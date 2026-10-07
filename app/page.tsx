@@ -1,10 +1,18 @@
-import { ArrowRight, FileText, MessagesSquare, Pill, Upload } from "lucide-react";
+import { ArrowRight, ClipboardList, FileText, MailCheck, MessagesSquare, Pill, Upload, UserCheck } from "lucide-react";
 import Link from "next/link";
+import { SOURCE_URL } from "@/components/AppBar";
 import { ButtonLink } from "@/components/Button";
-import { HandoffPreview } from "@/components/HandoffPreview";
 import { HeroArtifact } from "@/components/home/HeroArtifact";
+import { Walkthrough } from "@/components/home/Walkthrough";
 import { PageShell } from "@/components/PageShell";
 import { StartSample } from "@/components/StartSample";
+import { DEMO_MODE } from "@/lib/demo";
+
+const BENEFITS = [
+  { icon: ClipboardList, title: "Know what changed", body: "Medication updates, referrals, and follow-up instructions." },
+  { icon: UserCheck, title: "Know who's responsible", body: "Assign next steps to people helping with care." },
+  { icon: MailCheck, title: "Know who received it", body: "See self-reported read acknowledgments." },
+];
 
 const PROBLEMS = [
   {
@@ -15,7 +23,7 @@ const PROBLEMS = [
   {
     icon: MessagesSquare,
     title: "Everyone hears a different version.",
-    body: "Your sister gets a text, the aide gets a phone call, and the day program gets nothing at all.",
+    body: "A sibling gets a text, the aide gets a phone call, and the day program gets nothing at all.",
   },
   {
     icon: Pill,
@@ -24,32 +32,10 @@ const PROBLEMS = [
   },
 ];
 
-const STEPS = [
-  {
-    title: "Add the summary",
-    body: "Upload the PDF from the patient portal, take a photo of the printout, or paste the text. Photos are read on your phone.",
-  },
-  {
-    title: "Check every line",
-    body: "AfterVisit sorts it into what changed, what happens next and what to watch for. Anything unclear is flagged. Nothing is shared until you confirm each part.",
-  },
-  {
-    title: "Send one link",
-    body: "Add who should see it, then text or email the link. Each person taps “I've read this,” and you can see who has.",
-  },
-];
-
-const SEES = [
-  { title: "Medication changes come first.", body: "New, stopped and changed doses are flagged, so the person handing out pills cannot miss them." },
-  { title: "Every task has a name on it.", body: "Tasks are grouped by who is doing them, with a date when there is one." },
-  { title: "Warning signs in the clinic's words.", body: "Nothing is reworded into advice. AfterVisit organizes; it never interprets." },
-  { title: "You know who has read it.", body: "Each person taps “I've read this,” and you see it on your private page." },
-];
-
 const PROMISES = [
-  { title: "Nothing is saved until you share.", body: "Your draft stays in this browser tab, and photos are read on your device." },
-  { title: "Gone in 30 days.", body: "Every link expires on its own. Delete it sooner from your private manage page." },
-  { title: "No account. No ads.", body: "No sign-up, no tracking cookies, nothing to install." },
+  { title: "Nothing is saved while you draft.", body: "The summary is read to build your draft and isn't kept. Only what you confirm is saved." },
+  { title: "PIN-protected by default.", body: "Anyone with a link can open it, so new handoffs also ask for a 4-digit PIN you send separately." },
+  { title: "Gone in 30 days.", body: "Links expire on their own, and you can delete a handoff at any time." },
 ];
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -61,47 +47,69 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
   );
 }
 
+function SectionTitle({ id, children, className = "" }: { id: string; children: React.ReactNode; className?: string }) {
+  return (
+    <h2 id={id} className={`font-display text-[2.1rem] leading-[1.1] text-ink-900 sm:text-[2.8rem] ${className}`}>
+      {children}
+    </h2>
+  );
+}
+
 export default function Home() {
   return (
     <PageShell>
       <main id="main" className="flex-1 bg-white">
         {/* Hero */}
         <section className="overflow-x-clip">
-          <div className="mx-auto grid max-w-[1120px] items-center gap-14 px-4 pt-12 pb-14 sm:px-6 sm:pt-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:pt-24 lg:pb-20">
+          <div className="mx-auto grid max-w-[1120px] items-center gap-14 px-4 pt-12 pb-14 sm:px-6 sm:pt-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:pt-24 lg:pb-16">
             <div>
               <Eyebrow>For family caregivers</Eyebrow>
               <h1 className="font-display mt-6 text-[2.45rem] leading-[1.04] font-normal text-ink-900 sm:text-[4.1rem]">
                 Share the doctor&apos;s plan with everyone who helps.
               </h1>
-              <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-ink-500 sm:text-[1.2rem]">
-                Turn the after-visit summary from a medical appointment into one checked page for family, home aides and the day program.
+              <p className="mt-6 max-w-[36rem] text-lg leading-relaxed text-ink-500 sm:text-[1.15rem]">
+                Turn an after-visit summary into one reviewed care update showing what changed, what needs to happen next, and who&apos;s
+                responsible. Share it with family members, home aides, adult day programs, and care managers.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <ButtonLink href="/new" className="min-h-14 px-6 text-[1.05rem]">
-                  <Upload size={20} aria-hidden="true" /> Upload my summary
+                <StartSample variant="primary" label="Try a sample visit" className="min-h-14 px-6 text-[1.05rem]" />
+                <ButtonLink href="/new" variant="soft" className="min-h-14 px-6 text-[1.05rem]">
+                  <Upload size={20} aria-hidden="true" /> Upload a summary
                 </ButtonLink>
-                <StartSample variant="soft" className="min-h-14 px-6 text-[1.05rem]" />
               </div>
-              <p className="mt-5 text-[0.95rem] text-ink-500">Free. No account. Nothing is saved until you share.</p>
+              <p className="mt-5 text-[0.95rem] text-ink-500">
+                Free, no sign-up. The sample visit is fictional.
+                {DEMO_MODE ? " This is a public prototype, so please don't upload real patient records yet." : ""}
+              </p>
             </div>
             <HeroArtifact />
           </div>
         </section>
 
-        <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
-          <p className="border-y border-border-200 py-4 text-center text-[0.8rem] font-bold tracking-[0.16em] text-primary-700 uppercase">
-            Free <span className="mx-2 text-med" aria-hidden="true">•</span> No account <span className="mx-2 text-med" aria-hidden="true">•</span> Private by
-            default <span className="mx-2 text-med" aria-hidden="true">•</span> Open source
-          </p>
-        </div>
+        {/* Benefits */}
+        <section aria-label="What AfterVisit does" className="mx-auto max-w-[1120px] px-4 sm:px-6">
+          <ul className="grid gap-px overflow-hidden rounded-2xl border border-border-200 bg-border-200 md:grid-cols-3">
+            {BENEFITS.map(({ icon: Icon, title, body }) => (
+              <li key={title} className="flex gap-4 bg-white p-6">
+                <Icon size={24} strokeWidth={1.7} className="mt-0.5 shrink-0 text-primary-700" aria-hidden="true" />
+                <div>
+                  <h2 className="text-[1.1rem] font-bold text-ink-900">{title}</h2>
+                  <p className="mt-1 text-ink-500">{body}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
 
         {/* The problem */}
         <section aria-labelledby="problem-title" className="py-20 sm:py-28">
           <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
-            <h2 id="problem-title" className="font-display max-w-3xl text-[2.1rem] leading-[1.1] text-ink-900 sm:text-[2.8rem]">
+            <SectionTitle id="problem-title" className="max-w-3xl">
               You shouldn&apos;t have to explain it five times.
-            </h2>
-            <p className="mt-4 max-w-2xl text-lg text-ink-500">After every appointment, the same news has to reach the same people. Usually it doesn&apos;t, or not all of it.</p>
+            </SectionTitle>
+            <p className="mt-4 max-w-2xl text-lg text-ink-500">
+              After every appointment, the same news has to reach the same people. Usually it doesn&apos;t, or not all of it.
+            </p>
             <ul className="mt-14 grid gap-12 md:grid-cols-3 md:gap-10">
               {PROBLEMS.map(({ icon: Icon, title, body }) => (
                 <li key={title}>
@@ -114,57 +122,20 @@ export default function Home() {
           </div>
         </section>
 
-        {/* How it works */}
-        <section id="how" aria-labelledby="how-title" className="scroll-mt-20 border-t border-border-200 py-20 sm:py-28">
-          <div className="mx-auto grid max-w-[1120px] gap-12 px-4 sm:px-6 lg:grid-cols-[0.9fr_1.1fr] lg:gap-20">
-            <div className="lg:sticky lg:top-28 lg:self-start">
-              <Eyebrow>How it works</Eyebrow>
-              <h2 id="how-title" className="font-display mt-5 text-[2.1rem] leading-[1.1] text-ink-900 sm:text-[2.8rem]">
-                From a stack of printouts to one clear page.
-              </h2>
-              <p className="mt-4 text-lg text-ink-500">About five minutes, start to finish.</p>
-              <Link href="/h/demo" className="mt-6 inline-flex items-center gap-1.5 font-semibold text-primary-700 underline decoration-primary-700/30 underline-offset-[6px] hover:decoration-primary-700">
-                See a finished handoff <ArrowRight size={18} aria-hidden="true" />
-              </Link>
+        {/* Walkthrough */}
+        <section id="how" aria-labelledby="how-title" className="scroll-mt-20 bg-surface-50 py-20 sm:py-28">
+          <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
+            <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-end">
+              <div>
+                <Eyebrow>How it works</Eyebrow>
+                <SectionTitle id="how-title" className="mt-5 max-w-2xl">
+                  Follow one fictional visit, start to finish.
+                </SectionTitle>
+              </div>
+              <StartSample variant="soft" label="Walk through it yourself" className="self-start lg:self-auto" />
             </div>
-            <ol className="divide-y divide-border-200 border-y border-border-200">
-              {STEPS.map(({ title, body }, i) => (
-                <li key={title} className="grid grid-cols-[3.5rem_1fr] gap-4 py-8 sm:grid-cols-[4.5rem_1fr]">
-                  <span className="font-display text-[2.6rem] leading-none text-primary-700/80 sm:text-[3.2rem]" aria-hidden="true">
-                    {i + 1}
-                  </span>
-                  <div>
-                    <h3 className="text-[1.25rem] font-bold text-ink-900">
-                      <span className="sr-only">Step {i + 1}: </span>
-                      {title}
-                    </h3>
-                    <p className="mt-2 text-ink-500">{body}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </section>
-
-        {/* What they see */}
-        <section aria-labelledby="sees-title" className="bg-surface-50 py-20 sm:py-28">
-          <div className="mx-auto grid max-w-[1120px] items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-20">
-            <div className="lg:order-2">
-              <Eyebrow>What they see</Eyebrow>
-              <h2 id="sees-title" className="font-display mt-5 text-[2.1rem] leading-[1.1] text-ink-900 sm:text-[2.8rem]">
-                A page anyone can read in a minute, on any phone.
-              </h2>
-              <dl className="mt-10 divide-y divide-border-200 border-t border-border-200">
-                {SEES.map(({ title, body }) => (
-                  <div key={title} className="py-5">
-                    <dt className="text-[1.1rem] font-bold text-ink-900">{title}</dt>
-                    <dd className="mt-1 text-ink-500">{body}</dd>
-                  </div>
-                ))}
-              </dl>
-            </div>
-            <div className="lg:order-1">
-              <HandoffPreview />
+            <div className="mt-12">
+              <Walkthrough />
             </div>
           </div>
         </section>
@@ -173,11 +144,12 @@ export default function Home() {
         <section aria-labelledby="privacy-title" className="py-20 sm:py-28">
           <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
             <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-end">
-              <h2 id="privacy-title" className="font-display text-[2.1rem] leading-[1.1] text-ink-900 sm:text-[2.8rem]">
-                Private by default.
-              </h2>
-              <Link href="/privacy" className="inline-flex items-center gap-1.5 font-semibold text-primary-700 underline decoration-primary-700/30 underline-offset-[6px] hover:decoration-primary-700">
-                Read the privacy page <ArrowRight size={18} aria-hidden="true" />
+              <SectionTitle id="privacy-title">Careful with health information.</SectionTitle>
+              <Link
+                href="/privacy"
+                className="inline-flex items-center gap-1.5 font-semibold text-primary-700 underline decoration-primary-700/30 underline-offset-[6px] hover:decoration-primary-700"
+              >
+                Read exactly what is stored <ArrowRight size={18} aria-hidden="true" />
               </Link>
             </div>
             <ul className="mt-12 grid gap-10 md:grid-cols-3">
@@ -191,18 +163,45 @@ export default function Home() {
           </div>
         </section>
 
+        {/* Founder */}
+        <section aria-labelledby="founder-title" className="border-t border-border-200 py-20 sm:py-28">
+          <div className="mx-auto grid max-w-[1120px] gap-10 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
+            <div>
+              <Eyebrow>Why I started AfterVisit</Eyebrow>
+              <p className="mt-6 font-semibold text-ink-900">Gobin Bastola</p>
+              <p className="text-ink-500">Founder</p>
+              <a
+                href={SOURCE_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="mt-6 inline-flex items-center gap-1.5 font-semibold text-primary-700 underline decoration-primary-700/30 underline-offset-[6px] hover:decoration-primary-700"
+              >
+                Read the source code on GitHub <ArrowRight size={18} aria-hidden="true" />
+              </a>
+              <p className="mt-2 text-sm text-ink-500">Open source under the AGPL-3.0 license.</p>
+            </div>
+            <figure>
+              <blockquote id="founder-title" className="font-display text-[1.6rem] leading-[1.35] text-ink-900 sm:text-[2rem]">
+                &ldquo;After five years working with Medicaid billing for an adult day health center, I&apos;ve seen how many different people
+                are involved in supporting aging adults. AfterVisit started with a simple question: what if the important information from a
+                medical appointment reached everyone helping with care, without families having to explain it over and over?&rdquo;
+              </blockquote>
+            </figure>
+          </div>
+        </section>
+
         {/* Closing */}
         <section aria-labelledby="cta-title" className="px-4 pb-20 sm:px-6">
           <div className="mx-auto max-w-[1120px] rounded-3xl bg-primary-900 px-6 py-14 text-center sm:px-12 sm:py-20">
             <h2 id="cta-title" className="font-display mx-auto max-w-2xl text-[2.2rem] leading-[1.08] text-white sm:text-[3.2rem]">
-              Have the summary from a recent visit?
+              See it with a fictional visit first.
             </h2>
-            <p className="mt-4 text-lg text-white/75">Make it a handoff in about five minutes.</p>
+            <p className="mt-4 text-lg text-white/75">No sign-up. Takes about two minutes.</p>
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-              <ButtonLink href="/new" variant="light" className="min-h-14 px-6 text-[1.05rem]">
-                <Upload size={20} aria-hidden="true" /> Upload my summary
+              <StartSample variant="light" label="Try a sample visit" className="min-h-14 px-6 text-[1.05rem]" />
+              <ButtonLink href="/new" variant="navy" className="min-h-14 px-6 text-[1.05rem]">
+                <Upload size={20} aria-hidden="true" /> Upload a summary
               </ButtonLink>
-              <StartSample variant="navy" className="min-h-14 px-6 text-[1.05rem]" />
             </div>
           </div>
         </section>

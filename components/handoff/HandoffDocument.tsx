@@ -1,5 +1,5 @@
 "use client";
-import { CalendarCheck, Check, ChevronDown, Eye, FileText, HelpCircle, NotebookPen, Pill, Printer, Type } from "lucide-react";
+import { CalendarCheck, Check, ChevronDown, Eye, FileText, HelpCircle, NotebookPen, Pill, Printer, Quote, Type } from "lucide-react";
 import { useEffect, useId, useState } from "react";
 import { MedBadge } from "@/components/Badge";
 import { LogoMark } from "@/components/Logo";
@@ -50,6 +50,7 @@ export function HandoffDocument({
   const p = view.payload;
   const creator = view.createdByFirstName;
   const [large, setLarge] = useState(false);
+  const [showWords, setShowWords] = useState(false);
   const [ackName, setAckName] = useState("");
   const [acked, setAcked] = useState<string | null>(null);
   const [ackBusy, setAckBusy] = useState(false);
@@ -104,6 +105,11 @@ export function HandoffDocument({
     `Expires ${shortDate(view.expiresAt)}.`,
   ].join(" ");
   const recipientOrder = view.recipients.map((r) => r.name);
+  const hasQuotes = [...p.medications, ...p.tasks].some((i) => i.sourceQuote);
+  const roleOf = (name: string) => {
+    const r = view.recipients.find((x) => x.name.toLowerCase() === name.toLowerCase());
+    return r ? ROLE_LABELS[r.role] : null;
+  };
   const groups = groupTasks(p.tasks, recipientOrder);
 
   return (
@@ -127,6 +133,18 @@ export function HandoffDocument({
             Shared with {view.recipients.map((r) => `${r.name} (${ROLE_LABELS[r.role]})`).join(", ")}
           </p>
         ) : null}
+        {hasQuotes ? (
+          <button
+            type="button"
+            aria-pressed={showWords}
+            onClick={() => setShowWords((v) => !v)}
+            className={`no-print mt-4 inline-flex min-h-10 items-center gap-2 rounded-full border px-3.5 text-sm font-medium ${
+              showWords ? "border-action-500 bg-sky-100 text-primary-900" : "border-border-200 bg-white text-primary-700"
+            }`}
+          >
+            <Quote size={16} aria-hidden="true" /> Show the clinic&apos;s exact words
+          </button>
+        ) : null}
 
         <div className="mt-6 space-y-5">
           {p.medications.length ? (
@@ -143,6 +161,7 @@ export function HandoffDocument({
                     </div>
                     <p className="mt-0.5">{m.detail}</p>
                     {m.reason ? <p className="text-sm text-ink-500">For: {m.reason}</p> : null}
+                    <Provenance quote={m.sourceQuote} added={m.origin === "caregiver"} show={showWords} creator={creator} />
                   </li>
                 ))}
               </ul>
@@ -154,19 +173,26 @@ export function HandoffDocument({
               <SectionHeading id="h-tasks" icon={<CalendarCheck size={20} />}>
                 What needs to happen next
               </SectionHeading>
+              <p className="mt-1 text-sm text-ink-500">
+                The steps come from the clinic&apos;s summary. {creator ?? "The person who shared this"} chose who handles each one.
+              </p>
               <div className="mt-3 space-y-4">
                 {groups.map((g) => (
                   <div key={g.who || "anyone"}>
-                    <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-500">{g.who ? `For ${g.who}` : "Not assigned"}</h3>
+                    <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-500">
+                      {g.who ? `For ${g.who}` : "Not assigned yet"}
+                      {g.who && roleOf(g.who) ? <span className="font-normal normal-case tracking-normal"> · {roleOf(g.who)}</span> : null}
+                    </h3>
                     <ul className="mt-1.5 space-y-2">
                       {g.tasks.map((t) => {
                         const when = t.dueDate ? `By ${longDate(t.dueDate)}` : t.dueText ? capitalize(t.dueText) : "";
                         return (
                           <li key={t.id} className="flex gap-3">
-                            <span className="mt-1.5 h-4 w-4 shrink-0 rounded border-2 border-primary-700/60" aria-hidden="true" />
+                            <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-700" aria-hidden="true" />
                             <div>
                               <p>{t.title}</p>
                               {when ? <p className="text-sm text-ink-500">{when}</p> : null}
+                              <Provenance quote={t.sourceQuote} added={t.origin === "caregiver"} show={showWords} creator={creator} />
                             </div>
                           </li>
                         );
@@ -322,6 +348,19 @@ export function HandoffDocument({
         </footer>
       </main>
     </div>
+  );
+}
+
+/** Where an item came from: the clinic's sentence, or the caregiver. */
+function Provenance({ quote, added, show, creator }: { quote?: string; added: boolean; show: boolean; creator?: string }) {
+  if (added) {
+    return <p className="mt-1 text-xs font-semibold tracking-wide text-ink-500 uppercase">Added by {creator ?? "the caregiver"}, not in the clinic&apos;s summary</p>;
+  }
+  if (!show || !quote) return null;
+  return (
+    <p className="mt-1.5 border-l-2 border-border-200 pl-3 text-sm text-ink-500 italic">
+      <span className="not-italic font-medium">Clinic&apos;s words:</span> &ldquo;{quote}&rdquo;
+    </p>
   );
 }
 

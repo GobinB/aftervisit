@@ -10,7 +10,7 @@ export function StartSample({
   label = "Start with a sample visit",
 }: {
   className?: string;
-  variant?: "secondary" | "primary" | "pill" | "soft" | "navy";
+  variant?: "secondary" | "primary" | "pill" | "soft" | "navy" | "light";
   label?: string;
 }) {
   const router = useRouter();

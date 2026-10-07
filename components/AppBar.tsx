@@ -20,7 +20,7 @@ export function AppBar({ minimal = false }: { minimal?: boolean }) {
             <Link href="/privacy" className="hidden rounded-lg px-3 py-2 font-medium text-ink-900/80 hover:text-primary-900 md:inline-block">
               Privacy
             </Link>
-            <StartSample label="Try the sample" variant="pill" />
+            <StartSample label="Try a sample visit" variant="pill" />
           </nav>
         )}
       </div>

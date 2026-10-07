@@ -1,9 +1,10 @@
 "use client";
-import { Check, Copy, Lock, Mail, MessageSquare, Plus, Printer, ShieldCheck, Trash2 } from "lucide-react";
+import { Check, Copy, Info, KeyRound, Lock, Mail, MessageSquare, Plus, Printer, ShieldCheck, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
+import { DemoNotice } from "@/components/DemoNotice";
 import { PinInput } from "@/components/PinInput";
 import { inputClass } from "@/components/review/parts";
 import { RoleChips } from "@/components/RoleChips";
@@ -39,7 +40,9 @@ export default function SharePage() {
   const [hydrated, setHydrated] = useState(false);
   const [ready, setReady] = useState(false);
   const [rows, setRows] = useState<Recipient[]>([]);
-  const [usePin, setUsePin] = useState(false);
+  // PIN protection is on by default; the caregiver can turn it off.
+  const [usePin, setUsePin] = useState(true);
+  const [consent, setConsent] = useState(false);
   const [pin, setPin] = useState("");
   const [attach, setAttach] = useState(false);
   const [hasFile, setHasFile] = useState(false);
@@ -88,7 +91,8 @@ export default function SharePage() {
     setError(null);
     const named = rows.map((r) => ({ ...r, name: r.name.trim() })).filter((r) => r.name);
     if (!named.length) return setError("Add at least one person to share with.");
-    if (usePin && !/^\d{4}$/.test(pin)) return setError("Enter all four digits of the PIN, or turn the PIN off.");
+    if (usePin && !/^\d{4}$/.test(pin)) return setError("Choose a 4-digit PIN, or turn the PIN off.");
+    if (!consent) return setError(COPY.consentRequired);
     setBusy(true);
     try {
       const body = {
@@ -96,6 +100,7 @@ export default function SharePage() {
         recipients: named,
         pin: usePin ? pin : undefined,
         createdByFirstName: caregiverFirstName.trim() || undefined,
+        consent: true,
       };
       const file = attach ? getOriginalFile() : null;
       let res: Response;
@@ -124,6 +129,7 @@ export default function SharePage() {
         <StepHeader current="Done" />
         <SuccessPanel
           headingRef={successRef}
+          pin={created.hasPin && /^\d{4}$/.test(pin) ? pin : null}
           shareUrl={created.shareUrl}
           manageUrl={created.manageUrl}
           expiresAt={created.expiresAt}
@@ -143,7 +149,8 @@ export default function SharePage() {
     <div className="mx-auto max-w-[720px]">
       <StepHeader current="Share" />
       <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Who should see this?</h1>
-      <p className="mt-2 text-ink-500">Add the people who help. Each gets the same read-only page.</p>
+      <p className="mt-2 text-ink-500">Add the people who help: family, a home aide, the day program, a care manager.</p>
+      <DemoNotice className="mt-4" />
 
       <ul className="mt-6 space-y-4">
         {rows.map((r, i) => (
@@ -208,7 +215,13 @@ export default function SharePage() {
           <p className="mt-1 text-sm text-ink-500">Shown on the handoff so people know who prepared it.</p>
         </div>
         <div className="border-t border-border-200 pt-5">
-          <Switch id="use-pin" checked={usePin} onChange={setUsePin} label="Protect with a 4-digit PIN" helper={usePin ? COPY.pinHelper : undefined} />
+          <Switch
+            id="use-pin"
+            checked={usePin}
+            onChange={setUsePin}
+            label="Protect with a 4-digit PIN"
+            helper={usePin ? COPY.pinDefaultHelper : COPY.pinOffWarning}
+          />
           {usePin ? (
             <div className="mt-4">
               <PinInput label="Choose a PIN" value={pin} onChange={setPin} autoFocus />
@@ -227,6 +240,22 @@ export default function SharePage() {
           </div>
         ) : null}
       </div>
+
+      <p className="mt-5 flex gap-2.5 text-[0.95rem] text-ink-500">
+        <Info size={18} className="mt-0.5 shrink-0" aria-hidden="true" />
+        {COPY.linkAccess}
+      </p>
+
+      <label htmlFor="consent" className="mt-5 flex cursor-pointer gap-3 rounded-2xl border border-border-200 bg-white p-4">
+        <input
+          id="consent"
+          type="checkbox"
+          checked={consent}
+          onChange={(e) => setConsent(e.target.checked)}
+          className="mt-0.5 h-6 w-6 shrink-0 cursor-pointer accent-primary-700"
+        />
+        <span>{COPY.consentLabel}</span>
+      </label>
 
       {error ? (
         <p ref={errorRef} tabIndex={-1} role="alert" className="mt-5 rounded-xl bg-attn-bg px-4 py-3 text-attn-ink">
@@ -251,6 +280,7 @@ export default function SharePage() {
 
 function SuccessPanel({
   headingRef,
+  pin,
   shareUrl,
   manageUrl,
   expiresAt,
@@ -260,6 +290,7 @@ function SuccessPanel({
   onAnother,
 }: {
   headingRef: React.RefObject<HTMLHeadingElement | null>;
+  pin: string | null;
   shareUrl: string;
   manageUrl: string;
   expiresAt: string;
@@ -300,6 +331,17 @@ function SuccessPanel({
         className={`mt-1 h-12 font-medium ${inputClass}`}
       />
       <p className="mt-1 text-sm text-ink-500">Expires {longDate(expiresAt)}.</p>
+      {pin ? (
+        <p className="mt-4 flex items-start gap-3 rounded-xl border border-border-200 bg-white px-4 py-3">
+          <KeyRound size={20} className="mt-0.5 shrink-0 text-primary-700" aria-hidden="true" />
+          <span>
+            PIN: <strong className="font-mono text-lg tracking-[0.3em]">{pin}</strong>
+            <span className="block text-sm text-ink-500">Send it separately, by voice or a different message. It is not shown again.</span>
+          </span>
+        </p>
+      ) : (
+        <p className="mt-4 text-sm text-ink-500">{COPY.pinOffWarning}</p>
+      )}
 
       <div className="mt-4 grid grid-cols-4 gap-2">
         <button type="button" className={action} onClick={() => copy("link")}>

@@ -33,7 +33,7 @@ export function DemoHandoff({ view }: { view: HandoffView }) {
   return (
     <>
       <div className="no-print bg-med-bg px-4 py-2 text-center text-sm text-med-ink">
-        Sample handoff for a fictional patient. Nothing here is stored.
+        Fictional sample: Margaret, the clinic and everyone named here are made up. Nothing here is stored.
       </div>
       <HandoffDocument view={view} onAck={async () => ({ ok: true })} />
     </>

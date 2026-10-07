@@ -25,6 +25,8 @@ export const MedicationChangeSchema = z.object({
   name: shortText, // "Lisinopril"
   detail: itemText, // "20 mg once daily (was 10 mg)"
   reason: shortText.optional(), // only if stated in the source
+  sourceQuote: itemText.optional(), // the clinic's original sentence; absent when the caregiver added the item
+  origin: z.enum(["summary", "caregiver"]).optional(), // "caregiver" when added during review, not from the summary
   confidence: ConfidenceSchema,
 });
 export type MedicationChange = z.infer<typeof MedicationChangeSchema>;
@@ -40,6 +42,8 @@ export const TaskSchema = z.object({
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(), // ISO, set by caregiver on review
   assignee: z.string().trim().max(80).optional(), // free text, chosen by caregiver
+  sourceQuote: itemText.optional(), // the clinic's original sentence; absent when the caregiver added the item
+  origin: z.enum(["summary", "caregiver"]).optional(), // "caregiver" when added during review, not from the summary
   confidence: ConfidenceSchema,
 });
 export type Task = z.infer<typeof TaskSchema>;
@@ -92,6 +96,8 @@ export const CreateHandoffSchema = z.object({
   recipients: z.array(RecipientSchema).min(1).max(20),
   pin: PinSchema.optional(),
   createdByFirstName: z.string().trim().max(60).optional(),
+  /** The caregiver confirmed they are the patient or are authorized to share this. */
+  consent: z.literal(true),
 });
 export type CreateHandoffInput = z.infer<typeof CreateHandoffSchema>;
 

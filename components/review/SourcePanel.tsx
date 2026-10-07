@@ -6,6 +6,10 @@ import { useEffect, useMemo, useRef } from "react";
 function findRange(source: string, query: string): [number, number] | null {
   const q = query.trim();
   if (q.length < 3) return null;
+  // Exact sentence, ignoring line breaks and bullets the PDF or portal added.
+  const words = q.split(/\s+/).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"));
+  const exact = new RegExp(words.join("[\\s\\-•*]+"), "i").exec(source);
+  if (exact) return [exact.index, exact.index + exact[0].length];
   const lower = source.toLowerCase();
   const tries = [q, q.split(/\s+/).slice(0, 5).join(" "), q.split(/\s+/).slice(0, 3).join(" "), q.split(/\s+/)[0]];
   for (const t of tries) {

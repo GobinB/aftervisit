@@ -205,3 +205,27 @@ describe("parser details", () => {
     expect(parse({ text: SAMPLE_SOURCE_TEXT, patientFirstName: "maggie" }).visit.patientFirstName).toBe("Maggie");
   });
 });
+
+describe("source traceability", () => {
+  test("every sample medication and task quotes a sentence that is in the fictional source", async () => {
+    const { sampleDraft } = await import("@/lib/sample");
+    const flat = SAMPLE_SOURCE_TEXT.replace(/\s+/g, " ");
+    const d = sampleDraft();
+    for (const item of [...d.medications, ...d.tasks]) {
+      expect(item.sourceQuote, item.id).toBeTruthy();
+      expect(flat, item.id).toContain(item.sourceQuote!.replace(/\s+/g, " "));
+    }
+  });
+
+  test("parser attaches the original line to every medication and task", () => {
+    for (const name of ["epic-mychart.txt", "cerner.txt", "portal-paste.txt"]) {
+      const text = fixture(name);
+      const { draft, trace } = parseWithTrace({ text });
+      for (const item of [...draft.medications, ...draft.tasks]) {
+        expect(item.sourceQuote, `${name}: ${"name" in item ? item.name : item.title}`).toBeTruthy();
+        const lines = item.sourceQuote!;
+        expect(trace.lines.some((l) => lines.includes(l))).toBe(true);
+      }
+    }
+  });
+});

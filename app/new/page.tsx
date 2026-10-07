@@ -3,6 +3,7 @@ import { CheckCircle2, CloudUpload, FileText, ImageIcon, Loader2, X } from "luci
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
+import { DemoNotice } from "@/components/DemoNotice";
 import { StepHeader } from "@/components/StepHeader";
 import { COPY } from "@/lib/copy";
 import type { HandoffDraft } from "@/lib/schema";
@@ -188,6 +189,7 @@ export default function IntakePage() {
       <StepHeader current="Upload" />
       <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Add the after-visit summary</h1>
       <p className="mt-2 text-ink-500">A PDF from the patient portal, a photo of the printed pages, or the text pasted in.</p>
+      <DemoNotice className="mt-4" />
 
       <div className="mt-6">
         {!pasteMode ? (
@@ -334,8 +336,8 @@ export default function IntakePage() {
       </Button>
       <p className="mt-3 text-sm text-ink-500">
         {kind === "image"
-          ? "Your photo is read on this device. Only the text is sent to build the draft, and it is not stored."
-          : "Your file is read once to build the draft and is not stored."}
+          ? "Your photo is read on this device. Only the text is sent to AfterVisit's server to build the draft, and it is not saved."
+          : "Your file is sent to AfterVisit's server to build the draft and is not saved."}
       </p>
     </div>
   );

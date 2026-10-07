@@ -9,7 +9,7 @@ create table if not exists public.handoffs (
   pin_failures    int  not null default 0,
   locked_until    timestamptz,
   payload         jsonb not null,                   -- HandoffDraft minus sourceText (zod-validated)
-  source_text     text,                             -- scrubbed extracted text
+  source_text     text,                             -- unused: source text is never stored (kept nullable for compatibility)
   original_path   text,                             -- storage object path, null unless attached
   created_by      text,                             -- caregiver first name
   recipients      jsonb not null default '[]',

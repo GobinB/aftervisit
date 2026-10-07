@@ -87,12 +87,12 @@ export default function ReviewPage() {
   }
 
   function addMed() {
-    const m: MedicationChange = { id: itemId("med"), kind: "new", name: "", detail: "", confidence: "high" };
+    const m: MedicationChange = { id: itemId("med"), kind: "new", name: "", detail: "", origin: "caregiver", confidence: "high" };
     setNewItem(m.id);
     set((d) => ({ ...d, medications: [...d.medications, m] }));
   }
   function addTask() {
-    const t: Task = { id: itemId("task"), title: "", category: "home", confidence: "high" };
+    const t: Task = { id: itemId("task"), title: "", category: "home", origin: "caregiver", confidence: "high" };
     setNewItem(t.id);
     set((d) => ({ ...d, tasks: [...d.tasks, t] }));
   }
@@ -109,16 +109,22 @@ export default function ReviewPage() {
       if (to === "medications") {
         const parsed = classifyMedication(note, true);
         const med: MedicationChange = parsed
-          ? { ...parsed, confidence: "high" }
-          : { id: itemId("med"), kind: "continue", name: note.slice(0, 60), detail: note, confidence: "high" };
+          ? { ...parsed, sourceQuote: note, confidence: "high" }
+          : { id: itemId("med"), kind: "continue", name: note.slice(0, 60), detail: note, sourceQuote: note, confidence: "high" };
         return { ...d, otherNotes, medications: [...d.medications, med] };
       }
-      if (to === "tasks") return { ...d, otherNotes, tasks: [...d.tasks, makeTask(note, true)] };
+      if (to === "tasks") return { ...d, otherNotes, tasks: [...d.tasks, makeTask(note, true, note)] };
       return { ...d, otherNotes, [to]: [...d[to], note] };
     });
     setReviewed(to, false);
     toast({ message: `Moved to ${SECTION_NAMES[to]}.` });
   }
+
+  /** Highlight the item's sentence in the original summary (rail on desktop, sheet on phones). */
+  const showSource = (quote: string) => {
+    setQuery(quote);
+    if (window.matchMedia("(max-width: 1023px)").matches) setSheetOpen(true);
+  };
 
   const lowMeds = draft.medications.some((m) => m.confidence === "low");
   const lowTasks = draft.tasks.some((t) => t.confidence === "low");
@@ -263,7 +269,8 @@ export default function ReviewPage() {
                       key={m.id}
                       med={m}
                       autoEdit={newItem === m.id}
-                      onFocusItem={() => setQuery(m.name)}
+                      onFocusItem={() => setQuery(m.sourceQuote ?? m.name)}
+                      onShowSource={showSource}
                       onChange={(next) => replaceAt("medications", i, next)}
                       onDelete={() => remove("medications", i)}
                     />
@@ -294,7 +301,8 @@ export default function ReviewPage() {
                       task={t}
                       nameListId={nameListId}
                       autoEdit={newItem === t.id}
-                      onFocusItem={() => setQuery(t.title)}
+                      onFocusItem={() => setQuery(t.sourceQuote ?? t.title)}
+                      onShowSource={showSource}
                       onChange={(next) => replaceAt("tasks", i, next)}
                       onDelete={() => remove("tasks", i)}
                     />

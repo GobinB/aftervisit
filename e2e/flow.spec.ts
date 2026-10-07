@@ -21,7 +21,7 @@ async function createViaApi(page: Page, opts: { pin?: string } = {}) {
   const ip = `10.${rand()}.${rand()}.${rand()}`;
   const res = await page.request.post("/api/handoffs", {
     headers: { "x-forwarded-for": ip },
-    data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, pin: opts.pin, createdByFirstName: "Gobin" },
+    data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, pin: opts.pin, createdByFirstName: "Gobin", consent: true },
   });
   expect(res.status()).toBe(201);
   return (await res.json()) as { token: string; manageKey: string; shareUrl: string; manageUrl: string };
@@ -31,7 +31,7 @@ test("sample visit: home to acknowledged handoff, manage, delete", async ({ page
   const started = Date.now();
   await isolateIp(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "Start with a sample visit" }).first().click();
+  await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
 
   const confirm = page.getByRole("link", { name: "Confirm and create handoff" });
@@ -41,6 +41,14 @@ test("sample visit: home to acknowledged handoff, manage, delete", async ({ page
 
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
   await expect(page.getByLabel("Name", { exact: true }).first()).toHaveValue("Lisa");
+  // PIN protection is on by default, and consent is required.
+  await expect(page.getByRole("switch", { name: "Protect with a 4-digit PIN" })).toHaveAttribute("aria-checked", "true");
+  await page.getByRole("button", { name: "Create handoff" }).click();
+  await expect(page.getByText("Choose a 4-digit PIN, or turn the PIN off.")).toBeVisible();
+  await page.getByLabel("Choose a PIN, digit 1 of 4").pressSequentially("2468");
+  await page.getByRole("button", { name: "Create handoff" }).click();
+  await expect(page.getByText("Please confirm you have permission to share this information.")).toBeVisible();
+  await page.getByLabel(/I am the patient, or I have the patient's permission/).check();
   await page.getByRole("button", { name: "Create handoff" }).click();
   await expect(page.getByText("Your handoff is ready. Only people with this link can see it.")).toBeVisible();
 
@@ -55,8 +63,13 @@ test("sample visit: home to acknowledged handoff, manage, delete", async ({ page
   // Recipient opens the link with no cookies and no login.
   const recipient = await page.context().browser()!.newContext({ ...test.info().project.use });
   const rp = await recipient.newPage();
+  await expect(page.getByText("2468")).toBeVisible();
   await rp.goto(shareUrl);
+  await rp.getByLabel("PIN, digit 1 of 4").pressSequentially("2468");
   await expect(rp.getByRole("heading", { name: "Margaret's visit on Oct 3" })).toBeVisible();
+  await expect(rp.getByText("The steps come from the clinic's summary. Gobin chose who handles each one.")).toBeVisible();
+  await rp.getByRole("button", { name: "Show the clinic's exact words" }).click();
+  await expect(rp.getByText(/Please call to schedule within 2 weeks/).first()).toBeVisible();
   await expect(rp.getByText("Dr. Anita Patel, Internal Medicine")).toBeVisible();
   await expect(rp.getByRole("heading", { name: "For Lisa" })).toBeVisible();
   await rp.getByLabel("Your name").fill("Lisa");
@@ -176,7 +189,7 @@ test("low-confidence items block the section until accepted", async ({ page }) =
 
 test("delete with undo, and edits persist across sections", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Start with a sample visit" }).first().click();
+  await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   const meds = page.getByRole("region", { name: /Medication changes/ });
   await meds.getByRole("button", { name: "Delete Meclizine" }).click();
   await expect(meds.getByText("Meclizine")).toHaveCount(0);
@@ -236,7 +249,7 @@ test("no horizontal scroll at 360 px; buttons at least 48 px", async ({ page }, 
     expect(overflow, path).toBeLessThanOrEqual(0);
   }
   await page.goto("/");
-  await page.getByRole("button", { name: "Start with a sample visit" }).first().click();
+  await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   const box = await page.getByRole("button", { name: "Confirm and create handoff" }).boundingBox();
@@ -329,6 +342,8 @@ test("attached original: served through a checked link, gone the moment the hand
   await page.getByLabel("Name", { exact: true }).first().fill("Rosa");
   await page.getByRole("radio", { name: "Home aide" }).click();
   await page.getByRole("switch", { name: "Attach the original summary" }).click();
+  await page.getByRole("switch", { name: "Protect with a 4-digit PIN" }).click();
+  await page.getByLabel(/I am the patient, or I have the patient's permission/).check();
   await page.getByRole("button", { name: "Create handoff" }).click();
   await expect(page.getByText("Your handoff is ready.")).toBeVisible();
   const shareUrl = await page.getByLabel("Share link").inputValue();
@@ -371,10 +386,40 @@ test("attached original: served through a checked link, gone the moment the hand
 
 test("attach switch is hidden when the summary was pasted", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Start with a sample visit" }).first().click();
+  await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   await checkAllSections(page);
   await page.getByRole("link", { name: "Confirm and create handoff" }).click();
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
   await expect(page.getByRole("switch", { name: "Attach the original summary" })).toHaveCount(0);
+});
+
+test("creating a handoff requires consent (server-side)", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop-chrome", "API-level check; run once");
+  const res = await page.request.post("/api/handoffs", {
+    headers: { "x-forwarded-for": `10.${rand()}.${rand()}.${rand()}` },
+    data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, createdByFirstName: "Gobin" },
+  });
+  expect(res.status()).toBe(400);
+  expect((await res.json()).error).toBe("consent_required");
+});
+
+test("privacy page describes access honestly", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop-chrome", "content check; run once");
+  await page.goto("/privacy");
+  await expect(page.getByText("Anyone who has the link can open a handoff that has no PIN.")).toBeVisible();
+  await expect(page.getByText(/is self-reported/)).toBeVisible();
+  await expect(page.getByText("The full text of the summary is not saved.")).toBeVisible();
+  const body = (await page.locator("main").innerText()).toLowerCase();
+  expect(body).not.toContain("not a hipaa covered entity");
+  expect(body).not.toMatch(/no (third-party )?ai/);
+});
+
+test("review: 'View original instruction' highlights the clinic's sentence", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Try a sample visit" }).first().click();
+  await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
+  const tasks = page.getByRole("region", { name: /What needs to happen next/ });
+  await tasks.getByRole("button", { name: "View original instruction" }).nth(1).click();
+  await expect(page.locator("mark", { hasText: "Please call to schedule within 2 weeks." }).first()).toBeAttached();
 });

@@ -26,6 +26,14 @@ export const COPY = {
   ackSuccess: (name: string, creator?: string) =>
     `Thanks, ${name}. ${creator ? creator : "The person who shared this"} will see that you've read this.`,
   emptySection: "The summary did not mention any. Add one if you know of something.",
+  consentRequired: "Please confirm you have permission to share this information.",
+  consentLabel:
+    "I am the patient, or I have the patient's permission or legal authority to share this information with the people above.",
+  linkAccess:
+    "Everyone you add gets the same link. Names help you keep track of who has read it; they do not control who can open it.",
+  pinDefaultHelper:
+    "Anyone with the link will also need this PIN. Send it separately, by voice or a different message. A PIN adds protection; it does not confirm who someone is.",
+  pinOffWarning: "Without a PIN, anyone who has the link can open this handoff.",
   rateLimited: "You have done that a lot in the last hour. Please wait a little and try again.",
   genericError: "Something went wrong on our side. Your work is still here; please try again.",
   offline: "We could not reach AfterVisit. Check your connection and try again.",

@@ -1,4 +1,5 @@
 import { CheckCircle2 } from "lucide-react";
+import { SamplePrintout } from "./SamplePrintout";
 
 /**
  * The transformation in one picture: the clinic's dense printout (marked up with a
@@ -9,43 +10,12 @@ export function HeroArtifact() {
   return (
     <div
       role="img"
-      aria-label="A dense after-visit summary printout with highlighted lines, and in front of it three clear cards: a medication change, a task for Lisa, and a warning sign, with a note that Rosa has read it."
+      aria-label="A fictional after-visit summary printout with highlighted instructions, and in front of it three clear cards: a medication change, a task for Lisa, and a warning sign, with a note that Rosa has read it."
       className="relative mx-auto h-[440px] w-full max-w-[540px] sm:h-[500px]"
     >
-      {/* The printout */}
-      <div
-        aria-hidden="true"
-        className="absolute top-0 left-0 w-[84%] -rotate-[2.5deg] overflow-hidden rounded-[3px] bg-white px-5 pt-5 pb-10 font-mono text-[9.5px] leading-[1.55] text-ink-900/70 shadow-[0_22px_48px_-20px_rgb(28_36_51/0.5)] ring-1 ring-black/10 sm:text-[10.5px]"
-        style={{ height: "92%" }}
-      >
-        <p className="font-semibold text-ink-900/85">RIVERBEND INTERNAL MEDICINE — AFTER VISIT SUMMARY</p>
-        <p>Patient: Margaret W. &nbsp; Visit date: 10/03/2026</p>
-        <p>Provider: Anita Patel, MD (Internal Medicine)</p>
-        <p className="mt-2">Reason for visit: Follow-up, hypertension; new complaint of dizziness when standing.</p>
-        <p className="mt-2">
-          Assessment: Blood pressure remains above goal (158/92 today). Lightheadedness on standing likely related to meclizine and
-          dehydration; no signs of inner-ear cause today.
-        </p>
-        <p className="mt-2 font-semibold">Medication changes:</p>
-        <p>
-          - <span className="marker">INCREASE lisinopril to 20 mg once daily</span> in the morning (was 10 mg).
-        </p>
-        <p>
-          - <span className="marker">STOP meclizine 25 mg.</span> Do not take unless instructed.
-        </p>
-        <p>- CONTINUE atorvastatin 40 mg nightly.</p>
-        <p className="mt-2 font-semibold">Orders / referrals:</p>
-        <p>
-          - Physical therapy referral for balance and fall prevention. <span className="marker">Please call to schedule within 2 weeks.</span>
-        </p>
-        <p>- Lab: basic metabolic panel in 2 weeks to check kidney function and potassium after the dose change.</p>
-        <p>- Return visit in 6 weeks with Dr. Patel.</p>
-        <p className="mt-2">
-          <span className="marker">Call the clinic if: dizziness gets worse, any fall,</span> swelling of the lips or face, or home blood
-          pressure readings below 100/60 or above 180/110.
-        </p>
-        <p className="mt-2">Discuss at next visit: whether to start a vitamin D supplement; sleep concerns raised by daughter.</p>
-        <div className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-white to-transparent" />
+      {/* The printout (fictional sample) */}
+      <div aria-hidden="true" className="absolute top-0 left-0 w-[84%] -rotate-[2.5deg]" style={{ height: "94%" }}>
+        <SamplePrintout className="h-full" fade />
       </div>
 
       {/* The handoff */}

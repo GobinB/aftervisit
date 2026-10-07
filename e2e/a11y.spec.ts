@@ -21,7 +21,7 @@ test("no WCAG 2.1 AA violations on any screen", async ({ page }, info) => {
   await page.goto("/h/demo");
   await audit(page, "handoff demo");
   await page.goto("/");
-  await page.getByRole("button", { name: "Start with a sample visit" }).first().click();
+  await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   await audit(page, "review");
   const boxes = page.getByRole("checkbox", { name: "I've reviewed this section" });
@@ -40,7 +40,7 @@ test("keyboard only: sample visit reaches Share", async ({ page }, info) => {
   // Tab to the sample button and press Enter.
   for (let i = 0; i < 10; i++) {
     await page.keyboard.press("Tab");
-    if ((await page.evaluate(() => document.activeElement?.textContent)) === "Start with a sample visit") break;
+    if ((await page.evaluate(() => document.activeElement?.textContent)) === "Try a sample visit") break;
   }
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();

@@ -1,5 +1,5 @@
 "use client";
-import { Check, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, FileSearch, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge, MED_KIND_LABEL } from "@/components/Badge";
 import { COPY } from "@/lib/copy";
@@ -107,6 +107,24 @@ function RowActions({ label, onEdit, onDelete }: { label: string; onEdit: () => 
   );
 }
 
+/** "View original instruction" for items from the summary; a label for items the caregiver added. */
+export function SourceLink({ quote, added, onShow }: { quote?: string; added?: boolean; onShow?: (q: string) => void }) {
+  if (added) return <p className="mt-1.5 text-xs font-semibold tracking-wide text-ink-500 uppercase">Added by you, not in the summary</p>;
+  if (!quote || !onShow) return null;
+  return (
+    <button
+      type="button"
+      onClick={(e) => {
+        e.stopPropagation();
+        onShow(quote);
+      }}
+      className="mt-1.5 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-1 text-sm font-medium text-primary-700 underline decoration-primary-700/30 underline-offset-4 hover:decoration-primary-700"
+    >
+      <FileSearch size={16} aria-hidden="true" /> View original instruction
+    </button>
+  );
+}
+
 function LowConfidence({ onAccept }: { onAccept: () => void }) {
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
@@ -191,12 +209,14 @@ export function MedRow({
   onChange,
   onDelete,
   onFocusItem,
+  onShowSource,
   autoEdit,
 }: {
   med: MedicationChange;
   onChange: (m: MedicationChange) => void;
   onDelete: () => void;
   onFocusItem?: () => void;
+  onShowSource?: (quote: string) => void;
   autoEdit?: boolean;
 }) {
   const [editing, setEditing] = useState(!!autoEdit);
@@ -288,6 +308,9 @@ export function MedRow({
         {med.reason ? <span className="block text-sm text-ink-500">For: {med.reason}</span> : null}
       </button>
       <RowActions label={med.name || "medicine"} onEdit={() => setEditing(true)} onDelete={onDelete} />
+      <div className="basis-full">
+        <SourceLink quote={med.sourceQuote} added={med.origin === "caregiver"} onShow={onShowSource} />
+      </div>
       {med.confidence === "low" ? (
         <div className="basis-full">
           <LowConfidence onAccept={() => onChange({ ...med, confidence: "high" })} />
@@ -312,6 +335,7 @@ export function TaskRow({
   onChange,
   onDelete,
   onFocusItem,
+  onShowSource,
   autoEdit,
   nameListId,
 }: {
@@ -319,6 +343,7 @@ export function TaskRow({
   onChange: (t: Task) => void;
   onDelete: () => void;
   onFocusItem?: () => void;
+  onShowSource?: (quote: string) => void;
   autoEdit?: boolean;
   nameListId: string;
 }) {
@@ -368,10 +393,11 @@ export function TaskRow({
         )}
         {!editing ? <RowActions label={task.title || "task"} onEdit={() => setEditing(true)} onDelete={onDelete} /> : null}
       </div>
+      <SourceLink quote={task.sourceQuote} added={task.origin === "caregiver"} onShow={onShowSource} />
       <div className="mt-2 grid grid-cols-2 gap-2 sm:max-w-md">
         <div>
           <label htmlFor={ids.who} className="text-sm text-ink-500">
-            Who
+            Who will do this
           </label>
           <input
             id={ids.who}

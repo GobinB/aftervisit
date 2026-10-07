@@ -70,7 +70,7 @@ export function splitTasks(line: string): string[] {
   return [line];
 }
 
-export function makeTask(text: string, confident: boolean): Task {
+export function makeTask(text: string, confident: boolean, sourceQuote?: string): Task {
   const timing = TIMING_RE.exec(text);
   let title = text;
   let dueText: string | undefined;
@@ -88,6 +88,7 @@ export function makeTask(text: string, confident: boolean): Task {
     title: cleanItem(title),
     category: categorize(text),
     dueText: dueText ? capitalize(dueText).toLowerCase() : undefined,
+    sourceQuote: sourceQuote?.trim() || undefined,
     confidence: confident ? "high" : "low",
   };
 }

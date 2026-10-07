@@ -25,6 +25,19 @@ Call the clinic if: dizziness gets worse, any fall, swelling of the lips or face
 Discuss at next visit: whether to start a vitamin D supplement; sleep concerns raised by daughter.
 Drink at least 6 glasses of water daily unless told otherwise.`;
 
+// Exact sentences from SAMPLE_SOURCE_TEXT, so every item traces back to the fictional source.
+export const SAMPLE_QUOTES = {
+  lisinopril: "INCREASE lisinopril to 20 mg once daily in the morning (was 10 mg).",
+  meclizine: "STOP meclizine 25 mg. Do not take unless instructed.",
+  atorvastatin: "CONTINUE atorvastatin 40 mg nightly.",
+  bpLog: "Check blood pressure at home every morning before medications and write it down. Bring the log to the next visit.",
+  pt: "Physical therapy referral for balance and fall prevention. Please call to schedule within 2 weeks.",
+  lab: "Lab: basic metabolic panel in 2 weeks to check kidney function and potassium after the dose change.",
+  returnVisit: "Return visit in 6 weeks with Dr. Patel.",
+  water: "Drink at least 6 glasses of water daily unless told otherwise.",
+  watch: "Call the clinic if: dizziness gets worse, any fall, swelling of the lips or face, or home blood pressure readings below 100/60 or above 180/110.",
+};
+
 export const SAMPLE_DRAFT: HandoffDraft = {
   visit: {
     patientFirstName: "Margaret",
@@ -42,7 +55,7 @@ export const SAMPLE_DRAFT: HandoffDraft = {
       kind: "dose_changed",
       name: "Lisinopril",
       detail: "20 mg once daily in the morning (was 10 mg)",
-      reason: "Blood pressure",
+      sourceQuote: SAMPLE_QUOTES.lisinopril,
       confidence: "high",
     },
     {
@@ -50,6 +63,7 @@ export const SAMPLE_DRAFT: HandoffDraft = {
       kind: "stopped",
       name: "Meclizine",
       detail: "Stop taking. Do not use unless the clinic says to.",
+      sourceQuote: SAMPLE_QUOTES.meclizine,
       confidence: "high",
     },
     {
@@ -57,6 +71,7 @@ export const SAMPLE_DRAFT: HandoffDraft = {
       kind: "continue",
       name: "Atorvastatin",
       detail: "40 mg every night, no change",
+      sourceQuote: SAMPLE_QUOTES.atorvastatin,
       confidence: "high",
     },
   ],
@@ -66,6 +81,7 @@ export const SAMPLE_DRAFT: HandoffDraft = {
       title: "Check blood pressure every morning before medicines and write it down",
       category: "home",
       dueText: "daily, bring the log to the next visit",
+      sourceQuote: SAMPLE_QUOTES.bpLog,
       confidence: "high",
     },
     {
@@ -73,13 +89,15 @@ export const SAMPLE_DRAFT: HandoffDraft = {
       title: "Call to schedule physical therapy for balance",
       category: "referral",
       dueText: "within 2 weeks",
+      sourceQuote: SAMPLE_QUOTES.pt,
       confidence: "high",
     },
     {
       id: "task_sample_3",
-      title: "Get the basic metabolic panel blood test",
+      title: "Arrange the basic metabolic panel blood test",
       category: "lab",
       dueText: "in 2 weeks",
+      sourceQuote: SAMPLE_QUOTES.lab,
       confidence: "high",
     },
     {
@@ -87,12 +105,15 @@ export const SAMPLE_DRAFT: HandoffDraft = {
       title: "Book the return visit with Dr. Patel",
       category: "appointment",
       dueText: "in 6 weeks",
+      sourceQuote: SAMPLE_QUOTES.returnVisit,
       confidence: "high",
     },
     {
       id: "task_sample_5",
       title: "Make sure Margaret drinks at least 6 glasses of water a day",
       category: "home",
+      dueText: "daily",
+      sourceQuote: SAMPLE_QUOTES.water,
       confidence: "high",
     },
   ],
@@ -107,16 +128,19 @@ export const SAMPLE_DRAFT: HandoffDraft = {
   sourceText: SAMPLE_SOURCE_TEXT,
 };
 
-/** Appendix A.3 demo recipients and who is assigned what. */
+/** Who gets the sample handoff. Lisa is Margaret's daughter; all fictional. */
 export const SAMPLE_RECIPIENTS: Recipient[] = [
   { name: "Lisa", role: "family" },
   { name: "Rosa", role: "home_aide" },
-  { name: "Sunrise Adult Day Health front desk", role: "day_program" },
+  { name: "Dana", role: "care_manager" },
+  { name: "Sunrise Adult Day Health", role: "day_program" },
 ];
 
+/** The caregiver's assignments (not the clinic's): who handles each step. */
 export const SAMPLE_ASSIGNEES: Record<string, string> = {
   task_sample_1: "Rosa",
   task_sample_2: "Lisa",
+  task_sample_3: "Dana",
   task_sample_4: "Lisa",
   task_sample_5: "Rosa",
 };

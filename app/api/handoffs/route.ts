@@ -4,7 +4,6 @@ import { db } from "@/lib/db";
 import { env, RATE_LIMITS } from "@/lib/env";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { CreateHandoffSchema, HandoffPayloadSchema } from "@/lib/schema";
-import { scrubIdentifiers } from "@/lib/scrub";
 import { deleteOriginal, isAllowedOriginalType, uploadOriginal } from "@/lib/storage";
 import { hashManageKey, hashPin, newManageKey, newShareToken } from "@/lib/tokens";
 
@@ -45,7 +44,10 @@ export async function POST(req: Request) {
   }
 
   const parsed = CreateHandoffSchema.safeParse(raw);
-  if (!parsed.success) return json({ error: "invalid", message: COPY.genericError }, 400);
+  if (!parsed.success) {
+    const noConsent = parsed.error.issues.some((i) => i.path[0] === "consent");
+    return json({ error: noConsent ? "consent_required" : "invalid", message: noConsent ? COPY.consentRequired : COPY.genericError }, 400);
+  }
   const input = parsed.data;
 
   // Nothing is shared until a person has confirmed every item.
@@ -58,6 +60,9 @@ export async function POST(req: Request) {
     if (!isAllowedOriginalType(original.type)) return json({ error: "unsupported_type", message: COPY.uploadType }, 415);
   }
 
+  // Only the confirmed handoff fields are stored. The extracted source text is never saved:
+  // it was only needed on the caregiver's device to build and check the draft.
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { sourceText, ...rest } = input.draft;
   const payload = HandoffPayloadSchema.parse(rest);
   const token = newShareToken();
@@ -74,7 +79,7 @@ export async function POST(req: Request) {
         manage_key_hash: hashManageKey(manageKey),
         pin_hash: input.pin ? hashPin(token, input.pin) : null,
         payload,
-        source_text: scrubIdentifiers(sourceText).slice(0, 100_000),
+        source_text: null,
         original_path: originalPath,
         created_by: input.createdByFirstName || null,
         recipients: input.recipients,

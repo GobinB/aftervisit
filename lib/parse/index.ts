@@ -55,11 +55,14 @@ export function parseWithTrace(input: ParseInput): { draft: HandoffDraft; trace:
   let section: SectionInfo = { kind: "unknown" };
   let lastBucket: Bucket | null = null;
 
+  let currentLine = "";
   const addTasks = (text: string, confident: boolean) => {
-    for (const part of splitTasks(text)) tasks.push(makeTask(part, confident));
+    for (const part of splitTasks(text)) tasks.push(makeTask(part, confident, currentLine));
   };
+  const withQuote = (m: MedicationChange): MedicationChange => ({ ...m, sourceQuote: currentLine });
 
   lines.forEach((line, i) => {
+    currentLine = line;
     if (consumed.has(i)) {
       buckets[i] = isIdentifierLine(line) ? "identifier" : "visit";
       return;
@@ -96,19 +99,20 @@ export function parseWithTrace(input: ParseInput): { draft: HandoffDraft; trace:
       if (parts.length > 1) {
         const meds = parts.map((p) => classifyMedication(p, true, ctx.medKindHint));
         if (meds.every(Boolean)) {
-          medications.push(...(meds as MedicationChange[]));
+          medications.push(...(meds as MedicationChange[]).map(withQuote));
           return place("medication");
         }
       }
       const med = classifyMedication(content, inMeds, ctx.medKindHint);
       if (med) {
-        medications.push(med);
+        medications.push(withQuote(med));
         return place("medication");
       }
       // A sig line with no drug name ("Take 1 tablet by mouth daily") belongs to the previous medication.
       if (lastBucket === "medication" && medications.length) {
         const prev = medications[medications.length - 1];
         prev.detail = `${prev.detail}. ${cleanItem(expandAbbreviations(content))}`;
+        prev.sourceQuote = prev.sourceQuote ? `${prev.sourceQuote} ${line}` : line;
         return place("medication");
       }
     }

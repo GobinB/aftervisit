@@ -14,17 +14,17 @@ Built for the Assembly Code Incubator (Cohort 02, caregiving). Open source under
 
 Every handoff expires after 30 days and is deleted automatically.
 
-## Privacy
+## Privacy and access (current behavior)
 
-- No accounts and no cookies beyond Vercel's cookie-less analytics.
-- PDFs are read in memory on the server and discarded. Photos are read entirely in the browser with Tesseract.js; only the recognized text is sent.
-- A handoff is stored only when the caregiver presses *Create handoff*, and only the confirmed content plus a source text with obvious identifiers removed (date of birth, MRN, address, phone, insurance ID, the patient name line).
-- The original document is stored only if the caregiver turns on *Attach the original summary*, in a private bucket tied to that handoff, and deleted with it. Recipients open it through an AfterVisit link that re-checks the handoff on every open and redirects to a 60-second signed URL, so a deleted handoff stops serving its original immediately.
-- Share links are 21-character random tokens; PINs lock for 10 minutes after 3 wrong tries and never appear in a URL. `/h` pages are `noindex` and send no referrer.
-- Extraction is pluggable (see below). The privacy page automatically names any outside service a deployment uses.
-- AfterVisit is not a HIPAA covered entity in this prototype; it is a tool caregivers use on their own information.
-
-See `/privacy` in the app for the plain-language version.
+- No accounts. Vercel Web Analytics only (no cookies).
+- To build a draft, pasted text and PDFs are sent to AfterVisit's server and processed in memory; photos are read in the browser and only the recognized text is sent. Nothing is saved at this stage.
+- When a handoff is created, only the confirmed fields are stored (visit details, medication changes, next steps with assignees, watch-fors, questions, kept notes, each item's source sentence, recipient names and roles, the caregiver's first name). **The full source text is not stored.**
+- The original document is stored only if the caregiver turns on *Attach the original summary*, in a private bucket, served through a link that re-checks the handoff on every open, and deleted with the handoff.
+- **Access model:** everyone gets the same share link. Anyone who has a link without a PIN can open it. New handoffs are PIN-protected by default (3 wrong tries lock for 10 minutes). Recipient names do not restrict access, and "I've read this" is self-reported.
+- Creating a handoff requires confirming the caregiver is the patient or is authorized to share.
+- Every handoff expires after 30 days; the creator can delete it any time from the manage link.
+- The privacy page reads the active extraction provider from the same code that selects it, so it always names any outside service in use.
+- AfterVisit is a prototype and has not completed a privacy, security or HIPAA compliance review. The public demo asks people not to upload real patient records (`NEXT_PUBLIC_DEMO_MODE`, on by default).
 
 ## Stack
 
@@ -66,6 +66,7 @@ cp .env.example .env.local
 | `CRON_SECRET` | Bearer token Vercel Cron sends to `/api/cron/purge` (`openssl rand -hex 24`) |
 | `IP_HASH_SALT` | Salt for IP, PIN and manage-key hashes (`openssl rand -hex 24`) |
 | `NEXT_PUBLIC_FEEDBACK_URL` | Optional two-question feedback form shown on the manage page |
+| `NEXT_PUBLIC_DEMO_MODE` | Defaults to on; shows "don't upload real patient records" notices. Set to `false` only after a privacy and security review |
 | `EXTRACTION_PROVIDER`, `ANTHROPIC_API_KEY`, `EXTRACTION_MODEL` | Optional; leave unset for the built-in parser |
 
 3. Start it:
@@ -88,7 +89,7 @@ The default `heuristic` provider needs no API key and is fully deterministic:
 
 `tests/parse.test.ts` checks six layouts (Epic MyChart, Cerner, an OCR'd printout, an urgent-care sheet, pasted portal text and the sample) and asserts that every source line lands in exactly one place.
 
-An LLM provider can be switched on with `EXTRACTION_PROVIDER=anthropic` and `ANTHROPIC_API_KEY`. It uses structured output validated with zod and falls back to the built-in parser on any error. If you enable it, update the privacy page to name the provider.
+An LLM provider can be switched on with `EXTRACTION_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (`openai` and `gemini` are reserved names and currently fall back to the built-in parser). It uses structured output validated with zod and falls back to the built-in parser on any error. If you enable it, update the privacy page to name the provider.
 
 ## Deploying to Vercel
 

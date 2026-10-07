@@ -29,6 +29,7 @@ Rules:
 - questions: only questions the document itself raises (e.g. "discuss at next visit"). Empty is fine.
 - visit.summary: at most 60 words on why the visit happened and the main outcome.
 - otherNotes: anything else in the document you could not place. Do not drop lines.
+- sourceQuote: for every medication and task, copy the exact sentence from the document it comes from.
 - If the document is not an after-visit summary or is unreadable, return empty arrays and set
   visit.summary to a one-sentence explanation.`;
 
@@ -49,6 +50,7 @@ const LlmDraftSchema = z.object({
       name: z.string(),
       detail: z.string(),
       reason: z.string().nullable(),
+      sourceQuote: z.string().nullable().describe("The exact sentence from the document this comes from"),
       confidence: z.enum(["high", "low"]),
     }),
   ),
@@ -57,6 +59,7 @@ const LlmDraftSchema = z.object({
       title: z.string(),
       category: z.enum(TASK_CATEGORIES),
       dueText: z.string().nullable(),
+      sourceQuote: z.string().nullable().describe("The exact sentence from the document this comes from"),
       confidence: z.enum(["high", "low"]),
     }),
   ),
@@ -79,8 +82,8 @@ function toDraft(out: z.infer<typeof LlmDraftSchema>, text: string, patientFirst
       reason: orUndef(out.visit.reason),
       summary: out.visit.summary,
     },
-    medications: out.medications.map((m) => ({ ...m, id: itemId("med"), reason: orUndef(m.reason) })),
-    tasks: out.tasks.map((t) => ({ ...t, id: itemId("task"), dueText: orUndef(t.dueText) })),
+    medications: out.medications.map((m) => ({ ...m, id: itemId("med"), reason: orUndef(m.reason), sourceQuote: orUndef(m.sourceQuote) })),
+    tasks: out.tasks.map((t) => ({ ...t, id: itemId("task"), dueText: orUndef(t.dueText), sourceQuote: orUndef(t.sourceQuote) })),
     watchFor: out.watchFor.filter(Boolean),
     questions: out.questions.filter(Boolean),
     otherNotes: out.otherNotes.filter(Boolean),
