@@ -35,7 +35,7 @@ app/                     routes: / · /new · /new/review · /new/share · /h/[t
 components/              UI (SectionCard, TaskRow, PinInput, RoleChips, HandoffDocument, ...)
 lib/parse/               built-in parser: normalize, header, sections, medications, tasks, watch-for/questions
 lib/extract/             ExtractionProvider interface; heuristic (default) and optional LLM provider
-lib/                     schema (zod), db, storage, tokens, rate limiting, identifier scrub, sample visit
+lib/                     schema (zod), db, storage, tokens, rate limiting, sample visit
 supabase/migrations/     0001_init.sql
 tests/                   parser fixtures and Vitest unit tests
 e2e/                     Playwright tests (desktop Chrome, iPhone Safari, Android Chrome)

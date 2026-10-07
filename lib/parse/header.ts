@@ -66,7 +66,7 @@ const LABELS = [
 const LABEL_ALT = LABELS.map((l) => l.replace(/ /g, "\\s+")).join("|");
 /** A line that begins with a known header label. */
 export const HEADER_LINE_RE = new RegExp(String.raw`^(?:${LABEL_ALT})\s*(?:#|no\.?)?\s*:`, "i");
-/** Identifier-only lines we deliberately drop (never shown, scrubbed from storage). */
+/** Identifier-only lines we deliberately drop from the draft (never shown). */
 export const IDENTIFIER_LINE_RE =
   /^(?:dob|date of birth|birth date|mrn|medical record(?: number)?|account|acct|insurance|member id|policy|address|phone|ssn|social security)\b\s*(?:#|no\.?)?\s*:?/i;
 
