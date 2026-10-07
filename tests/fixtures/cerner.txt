@@ -1,0 +1,25 @@
+Valley General Health Clinic
+Patient Name: DOE, ROSE
+Date of Service: Sep 22, 2026
+Attending: Maria Chen, NP (Cardiology)
+Chief Complaint: Leg swelling and shortness of breath
+
+DIAGNOSIS
+Heart failure with fluid buildup, improving.
+
+DISCHARGE MEDICATIONS
+New: Furosemide 20 mg PO QAM for swelling
+Increase: Metoprolol succinate from 25 mg to 50 mg daily
+Hold potassium chloride 10 mEq until labs are back.
+Continue lisinopril 10 mg QD
+
+FOLLOW-UP INSTRUCTIONS
+Weigh yourself every morning and write it down.
+Limit salt to less than 2000 mg per day.
+Follow up with cardiology in 1 week.
+Blood work (BMP) in 5 days.
+
+RETURN PRECAUTIONS
+Seek care right away for weight gain of more than 3 pounds in a day, worsening shortness of breath, or chest pain.
+
+Questions? Call the clinic at 555-0142.

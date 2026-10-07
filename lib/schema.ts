@@ -1,0 +1,113 @@
+import { z } from "zod";
+
+export const ROLES = ["family", "home_aide", "day_program", "care_manager", "other"] as const;
+export const RoleSchema = z.enum(ROLES);
+export type Role = z.infer<typeof RoleSchema>;
+
+export const ROLE_LABELS: Record<Role, string> = {
+  family: "Family",
+  home_aide: "Home aide",
+  day_program: "Day program",
+  care_manager: "Care manager",
+  other: "Other",
+};
+
+export const ConfidenceSchema = z.enum(["high", "low"]);
+export type Confidence = z.infer<typeof ConfidenceSchema>;
+
+const shortText = z.string().trim().max(300);
+const itemText = z.string().trim().max(1000);
+
+export const MED_KINDS = ["new", "stopped", "dose_changed", "continue"] as const;
+export const MedicationChangeSchema = z.object({
+  id: z.string().min(1).max(40),
+  kind: z.enum(MED_KINDS),
+  name: shortText, // "Lisinopril"
+  detail: itemText, // "20 mg once daily (was 10 mg)"
+  reason: shortText.optional(), // only if stated in the source
+  confidence: ConfidenceSchema,
+});
+export type MedicationChange = z.infer<typeof MedicationChangeSchema>;
+
+export const TASK_CATEGORIES = ["appointment", "referral", "lab", "pharmacy", "home", "other"] as const;
+export const TaskSchema = z.object({
+  id: z.string().min(1).max(40),
+  title: itemText, // "Schedule physical therapy evaluation"
+  category: z.enum(TASK_CATEGORIES),
+  dueText: shortText.optional(), // "within 2 weeks", "before Nov 14"
+  dueDate: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(), // ISO, set by caregiver on review
+  assignee: z.string().trim().max(80).optional(), // free text, chosen by caregiver
+  confidence: ConfidenceSchema,
+});
+export type Task = z.infer<typeof TaskSchema>;
+
+export const VisitSchema = z.object({
+  patientFirstName: z.string().trim().max(60).optional(),
+  date: z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .optional(),
+  provider: shortText.optional(),
+  specialty: shortText.optional(),
+  clinic: shortText.optional(), // clinic name from the first line of the summary
+  reason: itemText.optional(),
+  summary: z.string().trim().max(2000), // <= 60 words from the parser; caregiver may edit
+});
+export type Visit = z.infer<typeof VisitSchema>;
+
+const listItem = z.string().trim().min(1).max(1000);
+
+export const HandoffDraftSchema = z.object({
+  visit: VisitSchema,
+  medications: z.array(MedicationChangeSchema).max(100),
+  tasks: z.array(TaskSchema).max(100),
+  watchFor: z.array(listItem).max(100), // symptoms the clinician said to report, verbatim-ish
+  questions: z.array(listItem).max(100), // suggested questions for next visit, from source only
+  otherNotes: z.array(listItem).max(300), // lines the parser could not place; caregiver sorts or deletes
+  sourceText: z.string().max(100_000), // extracted text, shown in the side panel on review
+});
+export type HandoffDraft = z.infer<typeof HandoffDraftSchema>;
+
+/** What is stored in handoffs.payload: the confirmed draft minus sourceText. */
+export const HandoffPayloadSchema = HandoffDraftSchema.omit({ sourceText: true });
+export type HandoffPayload = z.infer<typeof HandoffPayloadSchema>;
+
+export const RecipientSchema = z.object({
+  name: z.string().trim().min(1).max(80),
+  role: RoleSchema,
+});
+export type Recipient = z.infer<typeof RecipientSchema>;
+
+export const AckSchema = z.object({ name: z.string(), at: z.string() });
+export type Ack = z.infer<typeof AckSchema>;
+
+export const PinSchema = z.string().regex(/^\d{4}$/);
+
+/** Body of POST /api/handoffs (JSON, or the "data" field of a multipart request). */
+export const CreateHandoffSchema = z.object({
+  draft: HandoffDraftSchema,
+  recipients: z.array(RecipientSchema).min(1).max(20),
+  pin: PinSchema.optional(),
+  createdByFirstName: z.string().trim().max(60).optional(),
+});
+export type CreateHandoffInput = z.infer<typeof CreateHandoffSchema>;
+
+export const ExtractTextSchema = z.object({
+  text: z.string().min(1).max(100_000),
+  patientFirstName: z.string().trim().max(60).optional(),
+});
+
+/** The view a recipient sees. Never includes hashes, source text or storage paths. */
+export interface HandoffView {
+  token: string;
+  payload: HandoffPayload;
+  createdByFirstName?: string;
+  createdAt: string;
+  expiresAt: string;
+  recipients: Recipient[];
+  ackCount: number;
+  hasOriginal: boolean;
+}
