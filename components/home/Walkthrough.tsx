@@ -107,21 +107,23 @@ export function Walkthrough() {
 
       <Step
         n={4}
-        title="One link, protected with a PIN"
-        body="Everyone gets the same read-only page. The PIN, sent separately, is what keeps it private; the names are there so you can see who has read it."
+        title="A personal link for each person"
+        body={`Each person gets their own link and sees only what ${SAMPLE_CAREGIVER} chose. The day program sees just the medication changes and what to watch for. A PIN, sent separately, adds protection.`}
       >
         <Panel>
           <ul className="divide-y divide-border-200">
             {SAMPLE_RECIPIENTS.map((r) => (
-              <li key={r.name} className="flex items-center justify-between gap-3 py-2.5 first:pt-0">
-                <span className="font-medium">{r.name}</span>
-                <span className="text-sm text-ink-500">{ROLE_NOTE[r.name] ?? ROLE_LABELS[r.role]}</span>
+              <li key={r.name} className="flex flex-wrap items-baseline justify-between gap-x-3 py-2.5 first:pt-0">
+                <span className="font-medium">
+                  {r.name} <span className="text-sm font-normal text-ink-500">· {ROLE_NOTE[r.name] ?? ROLE_LABELS[r.role]}</span>
+                </span>
+                <span className="text-sm text-ink-500">{r.sections ? "Sees medication changes, watch for" : "Sees everything"}</span>
               </li>
             ))}
           </ul>
           <div className="mt-4 grid gap-2 border-t border-border-200 pt-4 text-sm sm:grid-cols-2">
             <p className="flex items-center gap-2 text-ink-900">
-              <Link2 size={16} className="text-primary-700" aria-hidden="true" /> aftervisit…/h/k3Vq…
+              <Link2 size={16} className="text-primary-700" aria-hidden="true" /> 4 personal links
             </p>
             <p className="flex items-center gap-2 text-ink-900">
               <KeyRound size={16} className="text-primary-700" aria-hidden="true" /> PIN sent separately
@@ -132,8 +134,8 @@ export function Walkthrough() {
 
       <Step
         n={5}
-        title="You can see who has read it"
-        body={`Each person taps “I've read this.” ${SAMPLE_CAREGIVER} sees it on a private page, and knows whom to follow up with.`}
+        title="Who has read it, and what's done"
+        body={`Each person taps “I've read this” and marks their own steps as they go. ${SAMPLE_CAREGIVER} sees it all on a private page, and knows whom to follow up with.`}
       >
         <Panel>
           <ul className="divide-y divide-border-200">
@@ -154,7 +156,15 @@ export function Walkthrough() {
               );
             })}
           </ul>
-          <p className="mt-4 border-t border-border-200 pt-3 text-sm text-ink-500">Read receipts are self-reported: each person types their name.</p>
+          <div className="mt-4 rounded-xl bg-ok-bg/60 px-3.5 py-2.5 text-[0.95rem]">
+            <p className="flex items-center gap-2 font-medium text-ok-ink">
+              <CheckCircle2 size={16} aria-hidden="true" /> Completed: Call to schedule physical therapy
+            </p>
+            <p className="mt-0.5 text-sm text-ink-900/80">Marked by Lisa through Lisa&apos;s personal link. Note: booked for Oct 15.</p>
+          </div>
+          <p className="mt-4 border-t border-border-200 pt-3 text-sm text-ink-500">
+            Recorded through each person&apos;s own link: it shows which link was used, not who was holding the phone.
+          </p>
         </Panel>
       </Step>
     </ol>

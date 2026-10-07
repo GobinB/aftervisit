@@ -34,7 +34,7 @@ export const COPY = {
     "Each person gets their own link, and sees only what you choose. You can remove anyone's access later. Anyone who has a person's link can open it, which is why a PIN is on by default.",
   pinDefaultHelper:
     "Anyone with the link will also need this PIN. Send it separately, by voice or a different message. A PIN adds protection; it does not confirm who someone is.",
-  pinOffWarning: "Without a PIN, anyone who has the link can open this handoff.",
+  pinOffWarning: "Without a PIN, anyone who has one of these links can open it.",
   rateLimited: "You have done that a lot in the last hour. Please wait a little and try again.",
   genericError: "Something went wrong on our side. Your work is still here; please try again.",
   offline: "We could not reach AfterVisit. Check your connection and try again.",

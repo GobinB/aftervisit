@@ -10,7 +10,7 @@ import { DEMO_MODE } from "@/lib/demo";
 
 const BENEFITS = [
   { icon: ClipboardList, title: "Know what changed", body: "Medication updates, referrals, and follow-up instructions." },
-  { icon: UserCheck, title: "Know who's responsible", body: "Assign next steps to people helping with care." },
+  { icon: UserCheck, title: "Know who's responsible", body: "Assign next steps to people helping with care, and see when each one is done." },
   { icon: MailCheck, title: "Know who received it", body: "See self-reported read acknowledgments." },
 ];
 
@@ -34,7 +34,7 @@ const PROBLEMS = [
 
 const PROMISES = [
   { title: "Nothing is saved while you draft.", body: "The summary is read to build your draft and isn't kept. Only what you confirm is saved." },
-  { title: "PIN-protected by default.", body: "Anyone with a link can open it, so new handoffs also ask for a 4-digit PIN you send separately." },
+  { title: "A link for each person.", body: "Everyone sees only what you choose, and you can remove anyone's access. A 4-digit PIN is on by default." },
   { title: "Gone in 30 days.", body: "Links expire on their own, and you can delete a handoff at any time." },
 ];
 

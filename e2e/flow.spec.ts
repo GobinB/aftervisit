@@ -445,8 +445,9 @@ test("creating a handoff requires consent (server-side)", async ({ page }, info)
 test("privacy page describes access honestly", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop-chrome", "content check; run once");
   await page.goto("/privacy");
-  await expect(page.getByText("Anyone who has the link can open a handoff that has no PIN.")).toBeVisible();
-  await expect(page.getByText(/is self-reported/)).toBeVisible();
+  await expect(page.getByText("Anyone who has a person's link can open it if the handoff has no PIN.")).toBeVisible();
+  await expect(page.getByText(/so these are self-reported/)).toBeVisible();
+  await expect(page.getByText(/sees only the parts you chose for them/)).toBeVisible();
   await expect(page.getByText("The full text of the summary is not saved.")).toBeVisible();
   const body = (await page.locator("main").innerText()).toLowerCase();
   expect(body).not.toContain("not a hipaa covered entity");

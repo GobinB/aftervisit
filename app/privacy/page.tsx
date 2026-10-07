@@ -50,14 +50,18 @@ export default function PrivacyPage() {
                 Only the items you reviewed and confirmed: visit details, medication changes, next steps and who is responsible, things to
                 watch for, questions, and any notes you kept. Each item may include the sentence from the summary it came from.
               </li>
-              <li>The names and roles you entered for the people you are sharing with, and your first name.</li>
+              <li>
+                For each person you share with: their name and role, which parts they can see, when they opened their link, when they tapped
+                &ldquo;I&apos;ve read this,&rdquo; and any updates they made to their next steps (including notes). Your first name is saved too.
+              </li>
               <li>The full text of the summary is not saved.</li>
               <li>
                 The original document is saved only if you turn on <strong>Attach the original summary</strong>. It is kept in private
                 storage, opens only through a link that checks the handoff still exists, and is deleted with the handoff.
               </li>
               <li>When someone taps &ldquo;I&apos;ve read this,&rdquo; the name they typed and the time are saved.</li>
-              <li>PINs and your private manage key are stored only as one-way hashes.</li>
+              <li>PINs, personal links and your private manage key are stored only as one-way hashes.</li>
+              <li>If you send feedback, it is stored without any link to a handoff, your IP address or your name.</li>
             </ul>
           </section>
 
@@ -65,16 +69,20 @@ export default function PrivacyPage() {
             <h2>Who can open a handoff</h2>
             <ul>
               <li>
-                <strong>Anyone who has the link can open a handoff that has no PIN.</strong> Links are long random codes that are hard to
-                guess, but a link can be forwarded.
+                Each person you share with gets their own link and sees only the parts you chose for them. You can remove one person&apos;s
+                access, or send them a new link, at any time without affecting anyone else.
+              </li>
+              <li>
+                <strong>Anyone who has a person&apos;s link can open it if the handoff has no PIN.</strong> Links are long random codes that are
+                hard to guess, but a link can be forwarded.
               </li>
               <li>
                 New handoffs are protected with a 4-digit PIN by default. A PIN adds a second step; it does not confirm who someone is. Three
                 wrong tries lock the handoff for 10 minutes.
               </li>
               <li>
-                The names you enter help you keep track of who should see the update. They do not limit who can open the link.
-                &ldquo;I&apos;ve read this&rdquo; is self-reported: AfterVisit records the name typed, not a verified identity.
+                &ldquo;I&apos;ve read this&rdquo; and updates to next steps are recorded against the personal link they came from. That shows which
+                link was used, not who was holding the phone: AfterVisit does not verify identity, so these are self-reported.
               </li>
               <li>Handoff pages ask search engines not to index them and send no referrer to other sites.</li>
             </ul>
