@@ -34,11 +34,9 @@ export async function DELETE(req: Request, { params }: Ctx) {
   const { token } = await params;
   const key = req.headers.get("x-manage-key") ?? "";
   if (!MANAGE_KEY_RE.test(key)) return json({ status: "forbidden" }, 403);
-  const found = await lookup(token);
-  if (found.status !== "ok") {
-    // Deleting an expired handoff is still allowed if the row exists.
-    if (found.status !== "expired") return goneResponse(found.status);
-  }
+  // The caregiver can delete any handoff they hold the key for, including expired and personal-link ones.
+  const found = await lookup(token, { forCreator: true });
+  if (found.status !== "ok" && found.status !== "expired") return goneResponse(found.status);
   const { getHandoff } = await import("@/lib/db");
   const row = found.status === "ok" ? found.row : await getHandoff(token);
   if (!row || !safeEqual(hashManageKey(key), row.manage_key_hash)) return json({ status: "forbidden" }, 403);

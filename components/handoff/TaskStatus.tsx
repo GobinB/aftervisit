@@ -64,7 +64,7 @@ export function TaskStatusControl({
       <p className="text-sm font-medium" id={`${noteId}-label`}>
         Update this step
       </p>
-      <div role="group" aria-labelledby={`${noteId}-label`} className="mt-2 grid grid-cols-3 gap-1.5">
+      <div role="group" aria-labelledby={`${noteId}-label`} className="mt-2 flex flex-wrap gap-1.5">
         {TASK_STATUSES.map((s) => {
           const on = value.status === s;
           return (
@@ -75,7 +75,7 @@ export function TaskStatusControl({
               aria-label={`${TASK_STATUS_LABELS[s]}: ${taskTitle}`}
               disabled={busy !== null}
               onClick={() => save(s)}
-              className={`min-h-11 rounded-lg px-1.5 text-sm font-semibold transition-colors disabled:opacity-60 ${
+              className={`min-h-11 rounded-lg px-3.5 text-sm font-semibold whitespace-nowrap transition-colors disabled:opacity-60 ${
                 on ? (s === "completed" ? "bg-ok text-white" : "bg-primary-700 text-white") : "bg-white text-primary-700 ring-1 ring-border-200 hover:bg-sky-100"
               }`}
             >
