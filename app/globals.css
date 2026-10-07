@@ -6,11 +6,11 @@
   --color-primary-700: #1e4e8c; /* clinical blue: primary buttons, headings, links */
   --color-action-500: #2f80ed; /* focus rings, progress, selected chips */
   --color-sky-100: #e7eef7; /* visit snapshot, callouts, hover */
-  --color-surface-50: #f8f5ef; /* app background: warm paper */
-  --color-paper-100: #f1ece2; /* deeper paper for bands */
+  --color-surface-50: #f6f8fb; /* app background: cool near-white */
+  --color-paper-100: #eef2f7; /* alternate band */
   --color-ink-900: #1c2433; /* body text, never pure black */
-  --color-ink-500: #5f5a54; /* secondary text, warm gray */
-  --color-border-200: #e2d9cb; /* borders, dividers */
+  --color-ink-500: #566173; /* secondary text */
+  --color-border-200: #dde3ec; /* borders, dividers */
   --color-med: #b45309; /* medication change */
   --color-med-ink: #92400e;
   --color-med-bg: #fef3c7;
@@ -64,8 +64,6 @@ html.av-large { font-size: 20.4px; }
 
 body {
   background-color: var(--color-surface-50);
-  /* A faint paper grain. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   color: var(--color-ink-900);
   line-height: 1.55;
   font-family: var(--font-sans);

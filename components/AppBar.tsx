@@ -7,7 +7,7 @@ export const SOURCE_URL = "https://github.com/GobinB/aftervisit";
 /** `minimal` hides the marketing links inside the create flow. */
 export function AppBar({ minimal = false }: { minimal?: boolean }) {
   return (
-    <header className="no-print sticky top-0 z-30 h-16 border-b border-border-200 bg-surface-50">
+    <header className="no-print sticky top-0 z-30 h-16 border-b border-border-200 bg-white">
       <div className="mx-auto flex h-full max-w-[1120px] items-center justify-between gap-3 px-4 sm:px-6">
         <Link href="/" className="rounded-lg" aria-label="AfterVisit home">
           <Logo />

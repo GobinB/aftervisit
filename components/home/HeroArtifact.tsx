@@ -15,7 +15,7 @@ export function HeroArtifact() {
       {/* The printout */}
       <div
         aria-hidden="true"
-        className="absolute top-0 left-0 w-[84%] -rotate-[2.5deg] overflow-hidden rounded-[3px] bg-white px-5 pt-5 pb-10 font-mono text-[9.5px] leading-[1.55] text-ink-900/70 shadow-[0_18px_40px_-18px_rgb(28_36_51/0.45)] ring-1 ring-black/5 sm:text-[10.5px]"
+        className="absolute top-0 left-0 w-[84%] -rotate-[2.5deg] overflow-hidden rounded-[3px] bg-white px-5 pt-5 pb-10 font-mono text-[9.5px] leading-[1.55] text-ink-900/70 shadow-[0_22px_48px_-20px_rgb(28_36_51/0.5)] ring-1 ring-black/10 sm:text-[10.5px]"
         style={{ height: "92%" }}
       >
         <p className="font-semibold text-ink-900/85">RIVERBEND INTERNAL MEDICINE — AFTER VISIT SUMMARY</p>

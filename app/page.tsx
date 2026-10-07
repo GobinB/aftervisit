@@ -64,7 +64,7 @@ function Eyebrow({ children }: { children: React.ReactNode }) {
 export default function Home() {
   return (
     <PageShell>
-      <main id="main" className="flex-1">
+      <main id="main" className="flex-1 bg-white">
         {/* Hero */}
         <section className="overflow-x-clip">
           <div className="mx-auto grid max-w-[1120px] items-center gap-14 px-4 pt-12 pb-14 sm:px-6 sm:pt-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:pt-24 lg:pb-20">
@@ -148,7 +148,7 @@ export default function Home() {
         </section>
 
         {/* What they see */}
-        <section aria-labelledby="sees-title" className="bg-paper-100/70 py-20 sm:py-28">
+        <section aria-labelledby="sees-title" className="bg-surface-50 py-20 sm:py-28">
           <div className="mx-auto grid max-w-[1120px] items-center gap-14 px-4 sm:px-6 lg:grid-cols-[1fr_1fr] lg:gap-20">
             <div className="lg:order-2">
               <Eyebrow>What they see</Eyebrow>
