@@ -142,7 +142,7 @@ export default function SharePage() {
   return (
     <div className="mx-auto max-w-[720px]">
       <StepHeader current="Share" />
-      <h1 className="text-[1.75rem] leading-tight font-semibold text-primary-900">Who should see this?</h1>
+      <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Who should see this?</h1>
       <p className="mt-2 text-ink-500">Add the people who help. Each gets the same read-only page.</p>
 
       <ul className="mt-6 space-y-4">
@@ -284,7 +284,7 @@ function SuccessPanel({
         <span className="flex h-11 w-11 animate-pop items-center justify-center rounded-full bg-ok-bg text-ok">
           <Check size={24} strokeWidth={3} aria-hidden="true" />
         </span>
-        <h1 ref={headingRef} tabIndex={-1} className="text-[1.6rem] leading-tight font-semibold text-primary-900 outline-none">
+        <h1 ref={headingRef} tabIndex={-1} className="font-display text-[1.6rem] leading-tight font-medium text-primary-900 outline-none">
           {COPY.shareSuccess}
         </h1>
       </div>

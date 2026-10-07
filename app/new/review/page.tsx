@@ -132,7 +132,7 @@ export default function ReviewPage() {
       </div>
       <div className="flex gap-6">
         <div className="mx-auto w-full max-w-[720px] min-w-0 lg:mx-0 lg:flex-1">
-          <h1 className="text-[1.75rem] leading-tight font-semibold text-primary-900">Review the draft</h1>
+          <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Review the draft</h1>
           <p className="mt-2 text-ink-500">Nothing is shared until you confirm each section. Edit anything that looks wrong.</p>
 
           {isSample ? (

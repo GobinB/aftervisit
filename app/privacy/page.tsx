@@ -11,7 +11,7 @@ export default function PrivacyPage() {
   return (
     <PageShell>
       <main id="main" className="mx-auto w-full max-w-[720px] flex-1 px-4 pt-10 pb-16">
-        <h1 className="text-[2rem] font-semibold text-primary-900">Privacy</h1>
+        <h1 className="font-display text-[2rem] font-medium text-primary-900">Privacy</h1>
         <p className="mt-3 text-lg text-ink-500">Plain language, no fine print.</p>
 
         <div className="mt-8 space-y-8 [&_h2]:text-xl [&_h2]:font-semibold [&_h2]:text-primary-700 [&_li]:mt-2 [&_p]:mt-2 [&_ul]:list-disc [&_ul]:pl-6">

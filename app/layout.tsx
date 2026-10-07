@@ -1,10 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Inter } from "next/font/google";
+import { Lexend, Newsreader } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
 import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"], weight: ["400", "500", "600"], variable: "--font-inter", display: "swap" });
+// Body: Lexend, designed to improve reading fluency; large x-height and a plain zero (no "0" vs "Ø" confusion in doses).
+const sans = Lexend({ subsets: ["latin"], variable: "--font-body", display: "swap" });
+// Headlines: Newsreader, an editorial serif, so a handoff reads like a careful note.
+const display = Newsreader({ subsets: ["latin"], variable: "--font-serif", axes: ["opsz"], style: ["normal", "italic"], display: "swap" });
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -18,14 +21,14 @@ export const metadata: Metadata = {
 };
 
 export const viewport: Viewport = {
-  themeColor: "#163A6B",
+  themeColor: "#F8F5EF",
   width: "device-width",
   initialScale: 1,
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${sans.variable} ${display.variable}`}>
       <body className="min-h-dvh antialiased">
         <ToastProvider>{children}</ToastProvider>
         <Analytics />

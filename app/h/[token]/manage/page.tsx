@@ -25,7 +25,7 @@ function Invalid() {
   return (
     <PageShell>
       <main id="main" className="mx-auto w-full max-w-[640px] flex-1 px-4 py-20 text-center">
-        <h1 className="text-2xl font-semibold text-primary-900">This link is not valid</h1>
+        <h1 className="font-display text-2xl font-medium text-primary-900">This link is not valid</h1>
         <p className="mt-2 text-ink-500">Check that the whole manage link was copied, including the part after “key=”.</p>
         <Link href="/" className="mt-6 inline-block font-semibold text-primary-700 underline underline-offset-4">
           Go to AfterVisit
@@ -68,7 +68,7 @@ export default async function ManagePage({ params, searchParams }: Props) {
   return (
     <PageShell>
       <main id="main" className="mx-auto w-full max-w-[640px] flex-1 px-4 pt-8 pb-16">
-        <h1 className="text-[1.75rem] leading-tight font-semibold text-primary-900">Manage this handoff</h1>
+        <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Manage this handoff</h1>
         <p className="mt-1 text-ink-500">{visitTitle(row.payload)}</p>
 
         <div className="mt-6 space-y-4">

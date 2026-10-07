@@ -6,7 +6,8 @@ export function shortDate(iso?: string | null): string {
   if (!iso) return "";
   const d = /^\d{4}-\d{2}-\d{2}$/.test(iso) ? new Date(`${iso}T12:00:00Z`) : new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}`;
+  // Non-breaking space so "Oct 3" never wraps across lines.
+  return `${MONTHS[d.getUTCMonth()]}\u00a0${d.getUTCDate()}`;
 }
 
 export function longDate(iso?: string | null): string {

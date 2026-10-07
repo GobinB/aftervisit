@@ -14,7 +14,7 @@ export function GonePage({ status }: { status: "expired" | "deleted" | "not_foun
         <div className="mx-auto mt-6 flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-primary-700">
           <Icon size={22} aria-hidden="true" />
         </div>
-        <h1 className="mt-3 text-xl font-semibold text-primary-900">{title}</h1>
+        <h1 className="font-display mt-3 text-xl font-medium text-primary-900">{title}</h1>
         <p className="mt-2 text-ink-500">{body}</p>
         <Link href="/" className="mt-6 inline-flex min-h-12 items-center rounded-xl px-4 font-semibold text-primary-700 underline underline-offset-4">
           Go to AfterVisit

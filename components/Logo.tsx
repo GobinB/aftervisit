@@ -1,6 +1,6 @@
 /**
  * AfterVisit mark: a check that becomes an arrow. Confirmed, then passed on.
- * "onDark" is for the navy band on the handoff page.
+ * "onDark" is for navy backgrounds.
  */
 export const LOGO_PATHS = {
   check: "M12.5 25.5l7.5 7.5L35 17.5",
@@ -8,7 +8,7 @@ export const LOGO_PATHS = {
 };
 
 export function LogoMark({ size = 40, variant = "default", className = "" }: { size?: number; variant?: "default" | "onDark"; className?: string }) {
-  const bg = variant === "onDark" ? "#E8F1FB" : "#1E4E8C";
+  const bg = variant === "onDark" ? "#E7EEF7" : "#1E4E8C";
   const check = variant === "onDark" ? "#1E4E8C" : "#FFFFFF";
   const arrow = variant === "onDark" ? "#2F80ED" : "#9CC9FF";
   return (
@@ -20,15 +20,13 @@ export function LogoMark({ size = 40, variant = "default", className = "" }: { s
   );
 }
 
-export function Wordmark({ className = "text-[1.375rem]", tone = "default" }: { className?: string; tone?: "default" | "onDark" }) {
+export function Wordmark({ className = "text-[1.45rem]", tone = "default" }: { className?: string; tone?: "default" | "onDark" }) {
   return (
-    <span className={`font-semibold tracking-[-0.015em] ${tone === "onDark" ? "text-white" : "text-primary-900"} ${className}`}>
-      After<span className={tone === "onDark" ? "font-medium text-[#C9DEF7]" : "font-medium text-primary-700"}>Visit</span>
-    </span>
+    <span className={`font-display leading-none font-medium ${tone === "onDark" ? "text-white" : "text-primary-900"} ${className}`}>AfterVisit</span>
   );
 }
 
-export function Logo({ size = 40, className = "" }: { size?: number; className?: string }) {
+export function Logo({ size = 36, className = "" }: { size?: number; className?: string }) {
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <LogoMark size={size} />

@@ -6,7 +6,7 @@ export const metadata: Metadata = { title: "New handoff", robots: { index: false
 export default function NewLayout({ children }: { children: React.ReactNode }) {
   return (
     <>
-      <AppBar />
+      <AppBar minimal />
       <main id="main" className="mx-auto w-full max-w-[1100px] px-4 pt-6 pb-32">
         {children}
       </main>

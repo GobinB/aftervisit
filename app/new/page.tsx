@@ -156,7 +156,7 @@ export default function IntakePage() {
               </div>
             </div>
           )}
-          <h1 className="text-xl font-semibold text-primary-900">Building the draft</h1>
+          <h1 className="font-display text-xl font-medium text-primary-900">Building the draft</h1>
           <ol className="mt-5 space-y-3 text-left" aria-live="polite">
             {STEP_LABELS.map((label, i) => {
               const done = stepsDone > i;
@@ -186,7 +186,7 @@ export default function IntakePage() {
   return (
     <div className="mx-auto max-w-[720px]">
       <StepHeader current="Upload" />
-      <h1 className="text-[1.75rem] leading-tight font-semibold text-primary-900">Add the after-visit summary</h1>
+      <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Add the after-visit summary</h1>
       <p className="mt-2 text-ink-500">A PDF from the patient portal, a photo of the printed pages, or the text pasted in.</p>
 
       <div className="mt-6">

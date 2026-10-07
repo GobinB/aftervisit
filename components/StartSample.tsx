@@ -4,7 +4,15 @@ import { sampleDraft, SAMPLE_CAREGIVER, SAMPLE_RECIPIENTS } from "@/lib/sample";
 import { setOriginalFile, useFlow } from "@/lib/store";
 import { Button } from "./Button";
 
-export function StartSample({ className = "", variant = "secondary" as const }: { className?: string; variant?: "secondary" | "primary" }) {
+export function StartSample({
+  className = "",
+  variant = "secondary" as const,
+  label = "Start with a sample visit",
+}: {
+  className?: string;
+  variant?: "secondary" | "primary" | "pill" | "soft" | "navy";
+  label?: string;
+}) {
   const router = useRouter();
   const startDraft = useFlow((s) => s.startDraft);
   const setOriginalName = useFlow((s) => s.setOriginalName);
@@ -19,7 +27,7 @@ export function StartSample({ className = "", variant = "secondary" as const }: 
         router.push("/new/review");
       }}
     >
-      Start with a sample visit
+      {label}
     </Button>
   );
 }

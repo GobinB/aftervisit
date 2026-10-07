@@ -119,7 +119,7 @@ export function HandoffDocument({
       </header>
 
       <main id="main" className="mx-auto max-w-[640px] px-4 pt-6 pb-10">
-        <h1 className="text-[1.75rem] leading-tight font-semibold text-primary-900">{visitTitle(p)}</h1>
+        <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">{visitTitle(p)}</h1>
         {providerLine ? <p className="mt-1 text-lg">{providerLine}</p> : null}
         <p className="mt-1 text-ink-500">{prepared}</p>
         {view.recipients.length ? (

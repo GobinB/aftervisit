@@ -102,7 +102,7 @@ export function PinGate({ token, autoPrint }: { token: string; autoPrint?: boole
         <div className="mx-auto mt-6 flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-primary-700">
           <Lock size={22} aria-hidden="true" />
         </div>
-        <h1 className="mt-3 text-xl font-semibold text-primary-900">Enter the 4-digit PIN</h1>
+        <h1 className="font-display mt-3 text-xl font-medium text-primary-900">Enter the 4-digit PIN</h1>
         <p className="mt-1 text-ink-500">The person who shared this sent the PIN separately.</p>
         <form
           className="mt-6"

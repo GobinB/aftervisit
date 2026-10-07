@@ -5,11 +5,12 @@
   --color-primary-900: #163a6b; /* navy: headers, footers, dark panels */
   --color-primary-700: #1e4e8c; /* clinical blue: primary buttons, headings, links */
   --color-action-500: #2f80ed; /* focus rings, progress, selected chips */
-  --color-sky-100: #e8f1fb; /* visit snapshot, callouts, hover */
-  --color-surface-50: #f5f8fc; /* app background */
-  --color-ink-900: #1b2a41; /* body text, never pure black */
-  --color-ink-500: #5b6b7f; /* secondary text */
-  --color-border-200: #d6e0ec; /* borders, dividers */
+  --color-sky-100: #e7eef7; /* visit snapshot, callouts, hover */
+  --color-surface-50: #f8f5ef; /* app background: warm paper */
+  --color-paper-100: #f1ece2; /* deeper paper for bands */
+  --color-ink-900: #1c2433; /* body text, never pure black */
+  --color-ink-500: #5f5a54; /* secondary text, warm gray */
+  --color-border-200: #e2d9cb; /* borders, dividers */
   --color-med: #b45309; /* medication change */
   --color-med-ink: #92400e;
   --color-med-bg: #fef3c7;
@@ -20,7 +21,8 @@
   --color-ok-ink: #166534;
   --color-ok-bg: #dcfce7;
 
-  --font-sans: var(--font-inter), system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-sans: var(--font-body), system-ui, "Segoe UI", Roboto, sans-serif;
+  --font-display: var(--font-serif), "Iowan Old Style", Georgia, serif;
 
   --animate-fade-in: fade-in 0.35s ease-out both;
   --animate-slide-up: slide-up 0.3s ease-out both;
@@ -61,7 +63,9 @@ html.av-large { font-size: 20.4px; }
 }
 
 body {
-  background: var(--color-surface-50);
+  background-color: var(--color-surface-50);
+  /* A faint paper grain. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.3 0 0 0 0 0.2 0 0 0 .06 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   color: var(--color-ink-900);
   line-height: 1.55;
   font-family: var(--font-sans);
@@ -86,7 +90,7 @@ body {
 @page { size: letter; margin: 0.6in; }
 @media print {
   html, html.av-large { font-size: 12pt; }
-  body { background: #fff !important; color: #000 !important; }
+  body { background: #fff !important; background-image: none !important; color: #000 !important; }
   .no-print { display: none !important; }
   .print-only { display: block !important; }
   .print-plain { box-shadow: none !important; border-color: #999 !important; background: #fff !important; }
@@ -97,3 +101,16 @@ body {
   section, li { break-inside: avoid; }
 }
 .print-only { display: none; }
+
+/* Editorial headlines. */
+.font-display {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
+}
+
+/* A highlighter stroke, as a caregiver would mark up a printout. */
+.marker {
+  background: linear-gradient(transparent 55%, rgb(253 224 138 / 0.85) 55%, rgb(253 224 138 / 0.85) 92%, transparent 92%);
+  padding: 0 0.1em;
+}

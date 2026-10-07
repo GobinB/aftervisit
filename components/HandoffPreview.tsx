@@ -7,11 +7,10 @@ import { LogoMark } from "./Logo";
 export function HandoffPreview() {
   return (
     <figure className="relative isolate mx-auto w-full max-w-[400px]">
-      <div aria-hidden="true" className="absolute -inset-6 -z-10 rounded-[40px] bg-gradient-to-br from-sky-100 via-white to-transparent" />
       <div
         role="img"
         aria-label="Example of a finished care handoff: Margaret's visit on October 3, with medication changes, tasks for Lisa, and a read receipt."
-        className="overflow-hidden rounded-3xl border border-border-200 bg-white shadow-[0_24px_60px_-20px_rgb(22_58_107/0.35)]"
+        className="overflow-hidden rounded-2xl bg-white shadow-[0_24px_50px_-24px_rgb(28_36_51/0.45)] ring-1 ring-black/5"
       >
         <div className="flex items-center gap-2 bg-primary-900 px-4 py-3 text-white">
           <LogoMark size={24} variant="onDark" />
@@ -19,7 +18,7 @@ export function HandoffPreview() {
         </div>
         <div className="space-y-4 p-5">
           <div>
-            <p className="text-lg leading-tight font-semibold text-primary-900">Margaret&apos;s visit on Oct 3</p>
+            <p className="font-display text-[1.45rem] leading-tight font-medium text-primary-900">Margaret&apos;s visit on Oct 3</p>
             <p className="text-sm text-ink-500">Dr. Anita Patel, Internal Medicine</p>
           </div>
 
@@ -67,11 +66,8 @@ export function HandoffPreview() {
           </div>
         </div>
       </div>
-      <figcaption className="mt-4 text-center text-sm text-ink-500">
-        A finished handoff, as family and helpers see it.{" "}
-        <Link href="/h/demo" className="font-medium text-primary-700 underline underline-offset-4">
-          Open the full example
-        </Link>
+      <figcaption className="sr-only">
+        A finished handoff. <Link href="/h/demo">Open the full example</Link>
       </figcaption>
     </figure>
   );
