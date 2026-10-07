@@ -21,7 +21,7 @@ test("no WCAG 2.1 AA violations on any screen", async ({ page }, info) => {
   await page.goto("/h/demo");
   await audit(page, "handoff demo");
   await page.goto("/");
-  await page.getByRole("button", { name: "Start with a sample visit" }).click();
+  await page.getByRole("button", { name: "Start with a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   await audit(page, "review");
   const boxes = page.getByRole("checkbox", { name: "I've reviewed this section" });

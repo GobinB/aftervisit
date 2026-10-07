@@ -2,7 +2,7 @@ import { CheckCircle2, Link2, MessageCircleQuestion, ShieldAlert, Users } from "
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
-import { AppBar } from "@/components/AppBar";
+import { PageShell } from "@/components/PageShell";
 import { GonePage } from "@/components/handoff/GonePage";
 import { CopyField, DeleteHandoff } from "@/components/handoff/ManageActions";
 import { lookup } from "@/lib/access";
@@ -23,16 +23,15 @@ type Props = { params: Promise<{ token: string }>; searchParams: Promise<{ key?:
 
 function Invalid() {
   return (
-    <>
-      <AppBar />
-      <main id="main" className="mx-auto max-w-[640px] px-4 py-20 text-center">
+    <PageShell>
+      <main id="main" className="mx-auto w-full max-w-[640px] flex-1 px-4 py-20 text-center">
         <h1 className="text-2xl font-semibold text-primary-900">This link is not valid</h1>
         <p className="mt-2 text-ink-500">Check that the whole manage link was copied, including the part after “key=”.</p>
         <Link href="/" className="mt-6 inline-block font-semibold text-primary-700 underline underline-offset-4">
           Go to AfterVisit
         </Link>
       </main>
-    </>
+    </PageShell>
   );
 }
 
@@ -67,9 +66,8 @@ export default async function ManagePage({ params, searchParams }: Props) {
   const acks = [...(row.acks ?? [])].sort((a, b) => a.at.localeCompare(b.at));
 
   return (
-    <>
-      <AppBar />
-      <main id="main" className="mx-auto max-w-[640px] px-4 pt-8 pb-16">
+    <PageShell>
+      <main id="main" className="mx-auto w-full max-w-[640px] flex-1 px-4 pt-8 pb-16">
         <h1 className="text-[1.75rem] leading-tight font-semibold text-primary-900">Manage this handoff</h1>
         <p className="mt-1 text-ink-500">{visitTitle(row.payload)}</p>
 
@@ -132,6 +130,6 @@ export default async function ManagePage({ params, searchParams }: Props) {
           Create another handoff
         </Link>
       </main>
-    </>
+    </PageShell>
   );
 }

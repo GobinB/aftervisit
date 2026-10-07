@@ -31,7 +31,7 @@ test("sample visit: home to acknowledged handoff, manage, delete", async ({ page
   const started = Date.now();
   await isolateIp(page);
   await page.goto("/");
-  await page.getByRole("button", { name: "Start with a sample visit" }).click();
+  await page.getByRole("button", { name: "Start with a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
 
   const confirm = page.getByRole("link", { name: "Confirm and create handoff" });
@@ -176,7 +176,7 @@ test("low-confidence items block the section until accepted", async ({ page }) =
 
 test("delete with undo, and edits persist across sections", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Start with a sample visit" }).click();
+  await page.getByRole("button", { name: "Start with a sample visit" }).first().click();
   const meds = page.getByRole("region", { name: /Medication changes/ });
   await meds.getByRole("button", { name: "Delete Meclizine" }).click();
   await expect(meds.getByText("Meclizine")).toHaveCount(0);
@@ -236,7 +236,7 @@ test("no horizontal scroll at 360 px; buttons at least 48 px", async ({ page }, 
     expect(overflow, path).toBeLessThanOrEqual(0);
   }
   await page.goto("/");
-  await page.getByRole("button", { name: "Start with a sample visit" }).click();
+  await page.getByRole("button", { name: "Start with a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
   const box = await page.getByRole("button", { name: "Confirm and create handoff" }).boundingBox();
@@ -371,7 +371,7 @@ test("attached original: served through a checked link, gone the moment the hand
 
 test("attach switch is hidden when the summary was pasted", async ({ page }) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Start with a sample visit" }).click();
+  await page.getByRole("button", { name: "Start with a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   await checkAllSections(page);
   await page.getByRole("link", { name: "Confirm and create handoff" }).click();

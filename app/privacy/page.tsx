@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import { AppBar, SOURCE_URL } from "@/components/AppBar";
-import { Footer } from "@/components/Footer";
+import { SOURCE_URL } from "@/components/AppBar";
+import { PageShell } from "@/components/PageShell";
 import { activeProviderName } from "@/lib/extract/provider";
 
 export const metadata: Metadata = { title: "Privacy" };
@@ -9,9 +9,8 @@ export const dynamic = "force-dynamic";
 export default function PrivacyPage() {
   const ai = activeProviderName();
   return (
-    <>
-      <AppBar />
-      <main id="main" className="mx-auto max-w-[720px] px-4 pt-10">
+    <PageShell>
+      <main id="main" className="mx-auto w-full max-w-[720px] flex-1 px-4 pt-10 pb-16">
         <h1 className="text-[2rem] font-semibold text-primary-900">Privacy</h1>
         <p className="mt-3 text-lg text-ink-500">Plain language, no fine print.</p>
 
@@ -91,7 +90,6 @@ export default function PrivacyPage() {
           </section>
         </div>
       </main>
-      <Footer />
-    </>
+    </PageShell>
   );
 }
