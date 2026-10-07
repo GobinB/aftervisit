@@ -49,7 +49,7 @@ const SEES = [
 const PROMISES = [
   { title: "Nothing is saved until you share.", body: "Your draft stays in this browser tab, and photos are read on your device." },
   { title: "Gone in 30 days.", body: "Every link expires on its own. Delete it sooner from your private manage page." },
-  { title: "No account. No ads.", body: "No sign-up, no tracking cookies, and by default no AI company reads the summary." },
+  { title: "No account. No ads.", body: "No sign-up, no tracking cookies, nothing to install." },
 ];
 
 function Eyebrow({ children }: { children: React.ReactNode }) {
@@ -70,12 +70,11 @@ export default function Home() {
           <div className="mx-auto grid max-w-[1120px] items-center gap-14 px-4 pt-12 pb-14 sm:px-6 sm:pt-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:pt-24 lg:pb-20">
             <div>
               <Eyebrow>For family caregivers</Eyebrow>
-              <h1 className="font-display mt-6 text-[2.75rem] leading-[1.02] font-normal text-ink-900 sm:text-[4.1rem]">
-                After the visit, everyone knows the plan.
+              <h1 className="font-display mt-6 text-[2.45rem] leading-[1.04] font-normal text-ink-900 sm:text-[4.1rem]">
+                Share the doctor&apos;s plan with everyone who helps.
               </h1>
               <p className="mt-6 max-w-[34rem] text-lg leading-relaxed text-ink-500 sm:text-[1.2rem]">
-                AfterVisit turns the clinic&apos;s after-visit summary into one short, checked update for family, home aides and the day program.
-                You explain it once.
+                Turn the after-visit summary from a medical appointment into one checked page for family, home aides and the day program.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <ButtonLink href="/new" className="min-h-14 px-6 text-[1.05rem]">

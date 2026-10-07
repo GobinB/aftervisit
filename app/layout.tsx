@@ -13,9 +13,9 @@ const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
 export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
-  title: { default: "AfterVisit: a care handoff after every visit", template: "%s · AfterVisit" },
+  title: { default: "AfterVisit: share the doctor's plan with everyone who helps", template: "%s · AfterVisit" },
   description:
-    "Turn an after-visit summary into a short, confirmed care handoff and share it with the people who help. No accounts. Links expire in 30 days. Open source.",
+    "Upload the after-visit summary from a medical appointment, check what changed and what happens next, and share one clear page with family, home aides and the day program. No account. Links expire in 30 days.",
   openGraph: { siteName: "AfterVisit", type: "website" },
   formatDetection: { telephone: false },
 };

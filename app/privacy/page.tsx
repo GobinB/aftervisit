@@ -37,7 +37,7 @@ export default function PrivacyPage() {
               <li>PDFs are read in memory on AfterVisit&apos;s own server and discarded. They are never written to disk or logged.</li>
               <li>Photos are read entirely in your browser. The photo never leaves your phone; only the recognized text is sent.</li>
               {ai === "heuristic" ? (
-                <li>No third-party AI service sees your document. AfterVisit uses a built-in parser that runs on its own server.</li>
+                <li>The draft is built on AfterVisit&apos;s own server. If this ever changes, this page will name the service used and link to its terms.</li>
               ) : (
                 <li>
                   This deployment uses Anthropic&apos;s Claude API to draft the handoff, so the extracted text is sent to Anthropic. See{" "}

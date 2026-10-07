@@ -1,6 +1,6 @@
 # AfterVisit
 
-A permissioned care handoff after every medical visit. A family caregiver uploads (or pastes) an after-visit summary, AfterVisit drafts what changed, what needs to happen next and who needs to act, the caregiver confirms every item, and then shares one clean, read-only page with the people they choose. No accounts. No app install. No paid AI keys. Nothing is stored until the caregiver chooses to share.
+A permissioned care handoff after every medical visit. A family caregiver uploads (or pastes) an after-visit summary, AfterVisit drafts what changed, what needs to happen next and who needs to act, the caregiver confirms every item, and then shares one clean, read-only page with the people they choose. No accounts. No app install. Nothing is stored until the caregiver chooses to share.
 
 Built for the Assembly Code Incubator (Cohort 02, caregiving). Open source under the [AGPL-3.0](LICENSE). AfterVisit organizes what the clinician wrote; it is not medical advice.
 
@@ -21,7 +21,7 @@ Every handoff expires after 30 days and is deleted automatically.
 - A handoff is stored only when the caregiver presses *Create handoff*, and only the confirmed content plus a source text with obvious identifiers removed (date of birth, MRN, address, phone, insurance ID, the patient name line).
 - The original document is stored only if the caregiver turns on *Attach the original summary*, in a private bucket tied to that handoff, and deleted with it. Recipients open it through an AfterVisit link that re-checks the handoff on every open and redirects to a 60-second signed URL, so a deleted handoff stops serving its original immediately.
 - Share links are 21-character random tokens; PINs lock for 10 minutes after 3 wrong tries and never appear in a URL. `/h` pages are `noindex` and send no referrer.
-- By default no third-party AI service sees the document.
+- Extraction is pluggable (see below). The privacy page automatically names any outside service a deployment uses.
 - AfterVisit is not a HIPAA covered entity in this prototype; it is a tool caregivers use on their own information.
 
 See `/privacy` in the app for the plain-language version.
