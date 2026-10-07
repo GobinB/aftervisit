@@ -17,17 +17,21 @@ async function checkAllSections(page: Page) {
   return n;
 }
 
-async function createViaApi(page: Page, opts: { pin?: string } = {}) {
+type Created = { token: string; manageKey: string; manageUrl: string; invites: { id: string; name: string; role: string; url: string }[] };
+
+async function createViaApi(page: Page, opts: { pin?: string } = {}): Promise<Created> {
   const ip = `10.${rand()}.${rand()}.${rand()}`;
   const res = await page.request.post("/api/handoffs", {
     headers: { "x-forwarded-for": ip },
     data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, pin: opts.pin, createdByFirstName: "Gobin", consent: true },
   });
   expect(res.status()).toBe(201);
-  return (await res.json()) as { token: string; manageKey: string; shareUrl: string; manageUrl: string };
+  return (await res.json()) as Created;
 }
+const pathOf = (url: string) => new URL(url).pathname;
+const inviteOf = (url: string) => pathOf(url).split("/i/")[1];
 
-test("sample visit: home to acknowledged handoff, manage, delete", async ({ page }) => {
+test("sample visit: personal links, task update, acknowledgment, dashboard, revoke, delete", async ({ page }) => {
   const started = Date.now();
   await isolateIp(page);
   await page.goto("/");
@@ -50,46 +54,81 @@ test("sample visit: home to acknowledged handoff, manage, delete", async ({ page
   await expect(page.getByText("Please confirm you have permission to share this information.")).toBeVisible();
   await page.getByLabel(/I am the patient, or I have the patient's permission/).check();
   await page.getByRole("button", { name: "Create handoff" }).click();
-  await expect(page.getByText("Your handoff is ready. Only people with this link can see it.")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your handoff is ready." })).toBeVisible();
 
-  const shareUrl = await page.getByLabel("Share link").inputValue();
+  // One personal link per person.
+  const lisaUrl = await page.getByLabel("Personal link for Lisa").inputValue();
+  const rosaUrl = await page.getByLabel("Personal link for Rosa").inputValue();
+  const sunriseUrl = await page.getByLabel("Personal link for Sunrise Adult Day Health").inputValue();
   const manageUrl = await page.getByLabel("Manage link").inputValue();
-  expect(shareUrl).toMatch(/\/h\/[A-Za-z0-9_-]{21}$/);
-  expect(manageUrl).toMatch(/\/manage\?key=[A-Za-z0-9_-]{32}$/);
-  // Text / Email links are prefilled.
-  expect(await page.getByRole("link", { name: "Text it" }).getAttribute("href")).toContain(encodeURIComponent("Care update for Margaret"));
-  expect(await page.getByRole("link", { name: "Email it" }).getAttribute("href")).toContain("mailto:?subject=");
-
-  // Recipient opens the link with no cookies and no login.
-  const recipient = await page.context().browser()!.newContext({ ...test.info().project.use });
-  const rp = await recipient.newPage();
+  expect(lisaUrl).toMatch(/\/i\/[A-Za-z0-9_-]{24}$/);
+  expect(new Set([lisaUrl, rosaUrl, sunriseUrl]).size).toBe(3);
+  expect(await page.getByRole("link", { name: "Text Lisa their link" }).getAttribute("href")).toContain(encodeURIComponent("Hi Lisa"));
   await expect(page.getByText("2468")).toBeVisible();
-  await rp.goto(shareUrl);
-  await rp.getByLabel("PIN, digit 1 of 4").pressSequentially("2468");
-  await expect(rp.getByRole("heading", { name: "Margaret's visit on Oct 3" })).toBeVisible();
-  await expect(rp.getByText("The steps come from the clinic's summary. Gobin chose who handles each one.")).toBeVisible();
-  await rp.getByRole("button", { name: "Show the clinic's exact words" }).click();
-  await expect(rp.getByText(/Please call to schedule within 2 weeks/).first()).toBeVisible();
-  await expect(rp.getByText("Dr. Anita Patel, Internal Medicine")).toBeVisible();
-  await expect(rp.getByRole("heading", { name: "For Lisa" })).toBeVisible();
-  await rp.getByLabel("Your name").fill("Lisa");
-  await rp.getByRole("button", { name: "I've read this" }).click();
-  await expect(rp.getByText("Thanks, Lisa. Gobin will see that you've read this.")).toBeVisible();
+
+  // Lisa opens her own link on another device.
+  const lisaCtx = await page.context().browser()!.newContext({ ...test.info().project.use });
+  const lisa = await lisaCtx.newPage();
+  await lisa.goto(lisaUrl);
+  await lisa.getByLabel("PIN, digit 1 of 4").pressSequentially("2468");
+  await expect(lisa.getByRole("heading", { name: "Margaret's visit on Oct 3" })).toBeVisible();
+  await expect(lisa.getByText(/Shared with you,/)).toContainText("Lisa");
+  await expect(lisa.getByRole("heading", { name: /For you \(Lisa\)/ })).toBeVisible();
+  await lisa.getByRole("button", { name: "Show the clinic's exact words" }).click();
+  await expect(lisa.getByText(/Please call to schedule within 2 weeks/).first()).toBeVisible();
+
+  // Lisa completes her step, with a note.
+  await lisa.getByLabel("Add a note (optional), then choose a status").first().fill("PT booked for Oct 15");
+  await lisa.getByRole("button", { name: "Completed: Call to schedule physical therapy for balance" }).click();
+  await expect(lisa.getByText(/Marked completed by Lisa through Lisa's personal link/)).toBeVisible();
+  // Lisa cannot update Rosa's step: no controls on it.
+  await expect(lisa.getByRole("button", { name: /Completed: Check blood pressure/ })).toHaveCount(0);
+
+  await lisa.getByRole("button", { name: "I've read this" }).click();
+  await expect(lisa.getByText("Thanks, Lisa. Gobin will see that you've read this.")).toBeVisible();
   expect(Date.now() - started).toBeLessThan(120_000);
 
-  // Creator sees the acknowledgment.
-  await page.goto(manageUrl);
-  await expect(page.getByRole("heading", { name: "Manage this handoff" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Read by (1)" })).toBeVisible();
-  await expect(page.getByText("Lisa", { exact: true }).first()).toBeVisible();
+  // The day program sees only medication changes, watch-fors and the summary.
+  const sunCtx = await page.context().browser()!.newContext({ ...test.info().project.use });
+  const sun = await sunCtx.newPage();
+  await sun.goto(sunriseUrl);
+  await sun.getByLabel("PIN, digit 1 of 4").pressSequentially("2468");
+  await expect(sun.getByRole("heading", { name: "What changed" })).toBeVisible();
+  await expect(sun.getByRole("heading", { name: "Watch for" })).toBeVisible();
+  await expect(sun.getByRole("heading", { name: "What needs to happen next" })).toHaveCount(0);
+  await expect(sun.getByRole("heading", { name: "Questions for next visit" })).toHaveCount(0);
 
-  // Delete removes it immediately.
+  // The caregiver's dashboard.
+  await page.goto(manageUrl);
+  await expect(page.getByRole("heading", { name: "Your care handoff at a glance" })).toBeVisible();
+  await expect(page.getByText("1 of 4")).toBeVisible();
+  await expect(page.getByText("1 of 5")).toBeVisible();
+  await expect(page.getByText(/Lisa marked “Call to schedule physical therapy for balance” completed \(personal link\)\. Note: PT booked for Oct 15/)).toBeVisible();
+  await expect(page.getByText("Lisa tapped “I've read this” on their personal link")).toBeVisible();
+
+  // Remove Rosa's access only.
+  page.once("dialog", (d) => d.accept());
+  await page.getByRole("listitem").filter({ hasText: "Rosa" }).getByRole("button", { name: "Remove access" }).click();
+  await expect(page.getByRole("listitem").filter({ hasText: "Rosa" }).getByText("Access removed")).toBeVisible();
+  const rosaRes = await page.request.get(`/api/invites/${inviteOf(rosaUrl)}`);
+  expect(rosaRes.status()).toBe(410);
+  expect((await rosaRes.json()).status).toBe("revoked");
+  expect((await page.request.get(`/api/invites/${inviteOf(lisaUrl)}`)).status()).toBe(200);
+
+  // The general link does not open a personal-link handoff.
+  const token = pathOf(manageUrl).split("/")[2];
+  await page.goto(`/h/${token}`);
+  await expect(page.getByRole("heading", { name: "This care update uses personal links" })).toBeVisible();
+
+  // Delete removes it for everyone.
+  await page.goto(manageUrl);
   await page.getByRole("button", { name: "Delete this handoff" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
   await expect(page.getByRole("heading", { name: "This care update was deleted" })).toBeVisible();
-  await rp.goto(shareUrl);
-  await expect(rp.getByText("This care update was deleted by the person who created it.")).toBeVisible();
-  await recipient.close();
+  await lisa.goto(lisaUrl);
+  await expect(lisa.getByText("This care update was deleted by the person who created it.")).toBeVisible();
+  await lisaCtx.close();
+  await sunCtx.close();
 });
 
 test("pasted text reaches Review in under 3 seconds", async ({ page }) => {
@@ -210,7 +249,7 @@ test("PIN: wrong attempts count down, correct PIN opens, PIN never in URL", asyn
   const h = await createViaApi(page, { pin: "4821" });
   const urls: string[] = [];
   page.on("request", (r) => urls.push(r.url()));
-  await page.goto(`/h/${h.token}`);
+  await page.goto(pathOf(h.invites[1].url));
   await expect(page.getByRole("heading", { name: "Enter the 4-digit PIN" })).toBeVisible();
   await page.getByLabel("PIN, digit 1 of 4").pressSequentially("1111");
   await expect(page.getByText("That PIN does not match. 2 attempts left.")).toBeVisible();
@@ -218,7 +257,6 @@ test("PIN: wrong attempts count down, correct PIN opens, PIN never in URL", asyn
   await expect(page.getByRole("heading", { name: "Margaret's visit on Oct 3" })).toBeVisible();
   expect(urls.some((u) => u.includes("4821"))).toBe(false);
   // Acknowledging re-sends the PIN in the body.
-  await page.getByLabel("Your name").fill("Rosa");
   await page.getByRole("button", { name: "I've read this" }).click();
   await expect(page.getByText("Thanks, Rosa.")).toBeVisible();
 });
@@ -226,16 +264,17 @@ test("PIN: wrong attempts count down, correct PIN opens, PIN never in URL", asyn
 test("PIN: three wrong attempts lock for 10 minutes", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop-chrome", "API-level check; run once");
   const h = await createViaApi(page, { pin: "1234" });
+  const invite = inviteOf(h.invites[0].url);
   for (const [pin, status] of [
     ["0000", 401],
     ["0001", 401],
     ["0002", 423],
     ["1234", 423],
   ] as const) {
-    const r = await page.request.post(`/api/handoffs/${h.token}`, { data: { pin } });
+    const r = await page.request.post(`/api/invites/${invite}`, { data: { pin } });
     expect(r.status(), `pin ${pin}`).toBe(status);
   }
-  await page.goto(`/h/${h.token}`);
+  await page.goto(pathOf(h.invites[2].url));
   await page.getByLabel("PIN, digit 1 of 4").pressSequentially("1234");
   await expect(page.getByText("Too many attempts. Try again in 10 minutes.")).toBeVisible();
 });
@@ -346,14 +385,14 @@ test("attached original: served through a checked link, gone the moment the hand
   await page.getByLabel(/I am the patient, or I have the patient's permission/).check();
   await page.getByRole("button", { name: "Create handoff" }).click();
   await expect(page.getByText("Your handoff is ready.")).toBeVisible();
-  const shareUrl = await page.getByLabel("Share link").inputValue();
+  const shareUrl = await page.getByLabel("Personal link for Rosa").inputValue();
   const manageUrl = await page.getByLabel("Manage link").inputValue();
 
   await page.goto(shareUrl);
   const link = page.getByRole("link", { name: /View the clinic's original summary/ });
   await expect(link).toBeVisible();
   const href = (await link.getAttribute("href"))!;
-  expect(href).toMatch(/^\/api\/handoffs\/[A-Za-z0-9_-]{21}\/original\?ticket=\d{10}\.[0-9a-f]{32}$/);
+  expect(href).toMatch(/^\/api\/invites\/[A-Za-z0-9_-]{24}\/original\?ticket=\d{10}\.[0-9a-f]{32}$/);
   const file = await page.request.get(href);
   expect(file.status()).toBe(200);
   expect((await file.body()).subarray(0, 4).toString()).toBe("%PDF");
@@ -363,7 +402,6 @@ test("attached original: served through a checked link, gone the moment the hand
   expect(hop.headers()["location"]).toContain("/storage/v1/object/sign/originals/");
 
   await page.goto(manageUrl);
-  await expect(page.getByText("Attached", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Delete this handoff" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
   await expect(page.getByRole("heading", { name: "This care update was deleted" })).toBeVisible();
@@ -374,7 +412,7 @@ test("attached original: served through a checked link, gone the moment the hand
       .filter((l) => l.includes("="))
       .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]),
   );
-  const token = shareUrl.split("/h/")[1];
+  const token = pathOf(manageUrl).split("/")[2];
   const list = await page.request.post(`${env.SUPABASE_URL}/storage/v1/object/list/originals`, {
     headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` },
     data: { prefix: `${token}/`, limit: 10 },

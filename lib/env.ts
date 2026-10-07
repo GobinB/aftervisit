@@ -16,4 +16,4 @@ export const env = {
   salt: process.env.IP_HASH_SALT ?? "",
 };
 
-export const RATE_LIMITS = { extract: 10, create: 10, ack: 30 } as const;
+export const RATE_LIMITS = { extract: 10, create: 10, ack: 30, update: 60, manage: 60, feedback: 20 } as const;

@@ -1,7 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { HandoffDraft, Recipient } from "./schema";
+import type { HandoffDraft, RecipientShare, Role } from "./schema";
 
 export type SectionKey = "visit" | "medications" | "tasks" | "watchFor" | "questions" | "otherNotes";
 
@@ -10,10 +10,11 @@ export const SECTION_ORDER: SectionKey[] = ["visit", "medications", "tasks", "wa
 export interface CreatedHandoff {
   token: string;
   manageKey: string;
-  shareUrl: string;
   manageUrl: string;
   expiresAt: string;
   hasPin: boolean;
+  /** One personal link per person, shown once. */
+  invites: { id: string; name: string; role: Role; url: string }[];
 }
 
 interface FlowState {
@@ -23,14 +24,14 @@ interface FlowState {
   unsorted: boolean;
   reviewed: Partial<Record<SectionKey, boolean>>;
   caregiverFirstName: string;
-  recipients: Recipient[];
+  recipients: RecipientShare[];
   created: CreatedHandoff | null;
   /** Name of the file kept in memory for "Attach the original summary". */
   originalName: string | null;
-  startDraft: (draft: HandoffDraft, opts: { isSample: boolean; unsorted?: boolean; caregiverFirstName?: string; recipients?: Recipient[] }) => void;
+  startDraft: (draft: HandoffDraft, opts: { isSample: boolean; unsorted?: boolean; caregiverFirstName?: string; recipients?: RecipientShare[] }) => void;
   updateDraft: (fn: (d: HandoffDraft) => HandoffDraft) => void;
   setReviewed: (key: SectionKey, value: boolean) => void;
-  setRecipients: (r: Recipient[]) => void;
+  setRecipients: (r: RecipientShare[]) => void;
   setCaregiver: (name: string) => void;
   setCreated: (c: CreatedHandoff | null) => void;
   setOriginalName: (n: string | null) => void;

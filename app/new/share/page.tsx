@@ -1,10 +1,11 @@
 "use client";
-import { Check, Copy, Info, KeyRound, Lock, Mail, MessageSquare, Plus, Printer, ShieldCheck, Trash2 } from "lucide-react";
+import { Check, ChevronDown, Copy, Info, KeyRound, Lock, Mail, MessageSquare, Plus, Printer, ShieldCheck, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
 import { DemoNotice } from "@/components/DemoNotice";
+import { FeedbackCard } from "@/components/Feedback";
 import { PinInput } from "@/components/PinInput";
 import { inputClass } from "@/components/review/parts";
 import { RoleChips } from "@/components/RoleChips";
@@ -12,7 +13,7 @@ import { StepHeader } from "@/components/StepHeader";
 import { Switch } from "@/components/Switch";
 import { COPY, emailBody, emailSubject, smsBody } from "@/lib/copy";
 import { longDate } from "@/lib/format";
-import type { Recipient } from "@/lib/schema";
+import { ROLE_LABELS, SHARE_SECTION_LABELS, SHARE_SECTIONS, type RecipientShare, type Role, type ShareSection } from "@/lib/schema";
 import { activeSections, getOriginalFile, useFlow } from "@/lib/store";
 
 async function copyText(text: string): Promise<boolean> {
@@ -39,7 +40,7 @@ export default function SharePage() {
   const { draft, reviewed, recipients, setRecipients, caregiverFirstName, setCaregiver, created, setCreated, reset } = flow;
   const [hydrated, setHydrated] = useState(false);
   const [ready, setReady] = useState(false);
-  const [rows, setRows] = useState<Recipient[]>([]);
+  const [rows, setRows] = useState<RecipientShare[]>([]);
   // PIN protection is on by default; the caregiver can turn it off.
   const [usePin, setUsePin] = useState(true);
   const [consent, setConsent] = useState(false);
@@ -81,7 +82,7 @@ export default function SharePage() {
   // Render the form only once it is initialized, so nothing typed early is overwritten.
   if (!hydrated || !draft || (!ready && !created)) return <p className="py-20 text-center text-ink-500">Loading…</p>;
 
-  const updateRow = (i: number, r: Recipient) => {
+  const updateRow = (i: number, r: RecipientShare) => {
     const next = rows.map((x, j) => (j === i ? r : x));
     setRows(next);
     setRecipients(next.filter((x) => x.name.trim()));
@@ -130,12 +131,15 @@ export default function SharePage() {
         <SuccessPanel
           headingRef={successRef}
           pin={created.hasPin && /^\d{4}$/.test(pin) ? pin : null}
-          shareUrl={created.shareUrl}
+          invites={(created.invites ?? []).map((inv) => ({
+            ...inv,
+            sms: smsBody(draft, inv.url, created.hasPin, inv.name),
+            email: emailBody(draft, inv.url, caregiverFirstName.trim() || undefined, created.hasPin, inv.name),
+          }))}
+          subject={emailSubject(draft)}
           manageUrl={created.manageUrl}
           expiresAt={created.expiresAt}
-          sms={smsBody(draft, created.shareUrl, created.hasPin)}
-          subject={emailSubject(draft)}
-          email={emailBody(draft, created.shareUrl, caregiverFirstName.trim() || undefined, created.hasPin)}
+          isSample={flow.isSample}
           onAnother={() => {
             reset();
             router.push("/new");
@@ -188,6 +192,7 @@ export default function SharePage() {
             <div className="mt-3">
               <RoleChips name={r.name} value={r.role} onChange={(role) => updateRow(i, { ...r, role })} />
             </div>
+            <Visibility row={r} index={i} hasFile={hasFile} onChange={(next) => updateRow(i, next)} />
           </li>
         ))}
       </ul>
@@ -224,7 +229,7 @@ export default function SharePage() {
           />
           {usePin ? (
             <div className="mt-4">
-              <PinInput label="Choose a PIN" value={pin} onChange={setPin} autoFocus />
+              <PinInput label="Choose a PIN" value={pin} onChange={setPin} />
             </div>
           ) : null}
         </div>
@@ -278,96 +283,166 @@ export default function SharePage() {
   );
 }
 
+/** "What Lisa can see": sections and which next steps. Defaults to everything. */
+function Visibility({ row, index, hasFile, onChange }: { row: RecipientShare; index: number; hasFile: boolean; onChange: (r: RecipientShare) => void }) {
+  const sections = row.sections ?? [...SHARE_SECTIONS];
+  const scope = row.tasksScope ?? "all";
+  const shown = SHARE_SECTIONS.filter((s) => s !== "original" || hasFile);
+  const everything = shown.every((s) => sections.includes(s)) && scope === "all";
+  const toggle = (s: ShareSection, on: boolean) => onChange({ ...row, sections: on ? [...new Set([...sections, s])] : sections.filter((x) => x !== s) });
+  return (
+    <details className="group mt-3 rounded-xl border border-border-200">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center justify-between gap-2 rounded-xl px-3 text-sm font-medium text-primary-700 [&::-webkit-details-marker]:hidden">
+        <span>
+          What {row.name.trim() || "this person"} can see: <span className="text-ink-500">{everything ? "everything" : "some sections"}</span>
+        </span>
+        <ChevronDown size={18} className="transition-transform group-open:rotate-180" aria-hidden="true" />
+      </summary>
+      <div className="border-t border-border-200 px-3 pt-2 pb-3">
+        <fieldset>
+          <legend className="sr-only">Sections {row.name || "this person"} can see</legend>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {shown.map((s) => (
+              <label key={s} className="flex min-h-10 cursor-pointer items-center gap-2.5 text-[0.95rem]">
+                <input
+                  type="checkbox"
+                  checked={sections.includes(s)}
+                  onChange={(e) => toggle(s, e.target.checked)}
+                  className="h-5 w-5 shrink-0 accent-primary-700"
+                  aria-label={`${row.name || `Person ${index + 1}`} can see ${SHARE_SECTION_LABELS[s]}`}
+                />
+                {SHARE_SECTION_LABELS[s]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+        {sections.includes("tasks") ? (
+          <fieldset className="mt-2 border-t border-border-200 pt-2">
+            <legend className="text-sm font-medium text-ink-900">Which next steps</legend>
+            <div className="mt-1 flex flex-wrap gap-x-5">
+              {(
+                [
+                  ["all", "All of them"],
+                  ["mine", "Only steps assigned to them"],
+                ] as const
+              ).map(([v, label]) => (
+                <label key={v} className="flex min-h-10 cursor-pointer items-center gap-2 text-[0.95rem]">
+                  <input
+                    type="radio"
+                    name={`scope-${index}`}
+                    checked={scope === v}
+                    onChange={() => onChange({ ...row, tasksScope: v })}
+                    className="h-5 w-5 accent-primary-700"
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          </fieldset>
+        ) : null}
+      </div>
+    </details>
+  );
+}
+
 function SuccessPanel({
   headingRef,
   pin,
-  shareUrl,
+  invites,
+  subject,
   manageUrl,
   expiresAt,
-  sms,
-  subject,
-  email,
+  isSample,
   onAnother,
 }: {
   headingRef: React.RefObject<HTMLHeadingElement | null>;
   pin: string | null;
-  shareUrl: string;
+  invites: { id: string; name: string; role: Role; url: string; sms: string; email: string }[];
+  subject: string;
   manageUrl: string;
   expiresAt: string;
-  sms: string;
-  subject: string;
-  email: string;
+  isSample: boolean;
   onAnother: () => void;
 }) {
-  const [copied, setCopied] = useState<"link" | "manage" | null>(null);
-  const copy = async (what: "link" | "manage") => {
-    if (await copyText(what === "link" ? shareUrl : manageUrl)) {
-      setCopied(what);
+  const [copied, setCopied] = useState<string | null>(null);
+  const copy = async (key: string, text: string) => {
+    if (await copyText(text)) {
+      setCopied(key);
       setTimeout(() => setCopied(null), 2500);
     }
   };
   const action =
-    "flex min-h-14 flex-col items-center justify-center gap-1 rounded-xl border border-border-200 bg-white px-2 py-2 text-sm font-semibold text-primary-700 hover:bg-sky-100";
+    "inline-flex min-h-11 items-center justify-center gap-1.5 rounded-lg border border-border-200 bg-white px-3 text-sm font-semibold text-primary-700 hover:bg-sky-100";
 
   return (
     <div className="animate-fade-in">
       <div className="flex items-center gap-3">
-        <span className="flex h-11 w-11 animate-pop items-center justify-center rounded-full bg-ok-bg text-ok">
+        <span className="flex h-11 w-11 shrink-0 animate-pop items-center justify-center rounded-full bg-ok-bg text-ok">
           <Check size={24} strokeWidth={3} aria-hidden="true" />
         </span>
-        <h1 ref={headingRef} tabIndex={-1} className="font-display text-[1.6rem] leading-tight font-medium text-primary-900 outline-none">
-          {COPY.shareSuccess}
+        <h1 ref={headingRef} tabIndex={-1} className="font-display text-[1.9rem] leading-tight font-medium text-primary-900 outline-none">
+          Your handoff is ready.
         </h1>
       </div>
+      <p className="mt-3 text-ink-500">
+        Send each person their own link. Links are shown only once, so send them now. Everything expires {longDate(expiresAt)}.
+      </p>
 
-      <label htmlFor="share-link" className="mt-6 block font-medium">
-        Share link
-      </label>
-      <input
-        id="share-link"
-        readOnly
-        value={shareUrl}
-        onFocus={(e) => e.target.select()}
-        className={`mt-1 h-12 font-medium ${inputClass}`}
-      />
-      <p className="mt-1 text-sm text-ink-500">Expires {longDate(expiresAt)}.</p>
       {pin ? (
         <p className="mt-4 flex items-start gap-3 rounded-xl border border-border-200 bg-white px-4 py-3">
           <KeyRound size={20} className="mt-0.5 shrink-0 text-primary-700" aria-hidden="true" />
           <span>
             PIN: <strong className="font-mono text-lg tracking-[0.3em]">{pin}</strong>
-            <span className="block text-sm text-ink-500">Send it separately, by voice or a different message. It is not shown again.</span>
+            <span className="block text-sm text-ink-500">Everyone uses the same PIN. Send it separately, by voice or a different message.</span>
           </span>
         </p>
       ) : (
         <p className="mt-4 text-sm text-ink-500">{COPY.pinOffWarning}</p>
       )}
 
-      <div className="mt-4 grid grid-cols-4 gap-2">
-        <button type="button" className={action} onClick={() => copy("link")}>
-          {copied === "link" ? <Check size={20} aria-hidden="true" /> : <Copy size={20} aria-hidden="true" />}
-          <span aria-live="polite">{copied === "link" ? "Copied" : "Copy link"}</span>
-        </button>
-        <a className={action} href={`sms:?&body=${encodeURIComponent(sms)}`}>
-          <MessageSquare size={20} aria-hidden="true" />
-          Text it
-        </a>
-        <a className={action} href={`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(email)}`}>
-          <Mail size={20} aria-hidden="true" />
-          Email it
-        </a>
-        <a className={action} href={`${shareUrl}?print=1`} target="_blank" rel="noreferrer">
-          <Printer size={20} aria-hidden="true" />
-          Print
-        </a>
-      </div>
+      <ul className="mt-5 space-y-3" aria-label="Personal links">
+        {invites.map((inv) => (
+          <li key={inv.id} className="rounded-2xl border border-border-200 bg-white p-4">
+            <p className="font-semibold">
+              {inv.name} <span className="font-normal text-ink-500">· {ROLE_LABELS[inv.role]}</span>
+            </p>
+            <label htmlFor={`invite-${inv.id}`} className="sr-only">
+              Personal link for {inv.name}
+            </label>
+            <input
+              id={`invite-${inv.id}`}
+              readOnly
+              value={inv.url}
+              onFocus={(e) => e.target.select()}
+              className={`mt-2 h-11 text-sm ${inputClass}`}
+            />
+            <div className="mt-2 grid grid-cols-3 gap-2">
+              <button type="button" className={action} onClick={() => copy(inv.id, inv.url)}>
+                {copied === inv.id ? <Check size={16} aria-hidden="true" /> : <Copy size={16} aria-hidden="true" />}
+                <span aria-live="polite">{copied === inv.id ? "Copied" : "Copy"}</span>
+              </button>
+              <a className={action} href={`sms:?&body=${encodeURIComponent(inv.sms)}`} aria-label={`Text ${inv.name} their link`}>
+                <MessageSquare size={16} aria-hidden="true" /> Text
+              </a>
+              <a
+                className={action}
+                href={`mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(inv.email)}`}
+                aria-label={`Email ${inv.name} their link`}
+              >
+                <Mail size={16} aria-hidden="true" /> Email
+              </a>
+            </div>
+          </li>
+        ))}
+      </ul>
 
       <div className="mt-8 rounded-2xl bg-primary-900 p-5 text-white">
         <div className="flex items-center gap-2 font-semibold">
           <ShieldCheck size={20} aria-hidden="true" /> Save your manage link
         </div>
         <p className="mt-2 text-white/90">
-          This is your private manage link. It is the only way to see who has read the handoff or to delete it. Save it now.
+          This is your private manage link. Use it to see who has read the handoff, follow next steps, remove someone&apos;s access, or delete
+          it. Save it now.
         </p>
         <label htmlFor="manage-link" className="sr-only">
           Manage link
@@ -382,7 +457,7 @@ function SuccessPanel({
         <div className="mt-3 flex flex-wrap gap-2">
           <button
             type="button"
-            onClick={() => copy("manage")}
+            onClick={() => copy("manage", manageUrl)}
             className="inline-flex min-h-12 items-center gap-2 rounded-xl bg-white px-4 font-semibold text-primary-900 hover:bg-sky-100"
           >
             {copied === "manage" ? <Check size={18} aria-hidden="true" /> : <Copy size={18} aria-hidden="true" />}
@@ -395,13 +470,24 @@ function SuccessPanel({
       </div>
 
       <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-        <a href={shareUrl} target="_blank" rel="noreferrer" className="min-h-12 rounded-xl border-2 border-primary-700 px-5 py-2.5 text-center font-semibold text-primary-700 hover:bg-sky-100">
-          View the handoff
+        <a
+          href={manageUrl.replace("/manage?", "/manage/view?")}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex min-h-12 items-center justify-center gap-2 rounded-xl border-2 border-primary-700 px-5 font-semibold text-primary-700 hover:bg-sky-100"
+        >
+          <Printer size={18} aria-hidden="true" /> View or print the full handoff
         </a>
         <button type="button" onClick={onAnother} className="min-h-12 rounded-xl px-5 font-medium text-primary-700 hover:bg-sky-100">
           Create another handoff
         </button>
       </div>
+
+      {isSample ? (
+        <div className="mt-10">
+          <FeedbackCard context="demo" />
+        </div>
+      ) : null}
     </div>
   );
 }

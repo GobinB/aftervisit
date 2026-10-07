@@ -2,7 +2,7 @@
  * Appendix A demo visit. Entirely fictional. Used for "Start with a sample visit",
  * the application video, the OG preview and /public/sample-avs.pdf.
  */
-import type { HandoffDraft, Recipient } from "./schema";
+import type { HandoffDraft, RecipientShare } from "./schema";
 
 export const SAMPLE_SOURCE_TEXT = `RIVERBEND INTERNAL MEDICINE - AFTER VISIT SUMMARY
 Patient: Margaret W.    Visit date: 10/03/2026    Provider: Anita Patel, MD (Internal Medicine)
@@ -129,11 +129,12 @@ export const SAMPLE_DRAFT: HandoffDraft = {
 };
 
 /** Who gets the sample handoff. Lisa is Margaret's daughter; all fictional. */
-export const SAMPLE_RECIPIENTS: Recipient[] = [
+export const SAMPLE_RECIPIENTS: RecipientShare[] = [
   { name: "Lisa", role: "family" },
   { name: "Rosa", role: "home_aide" },
   { name: "Dana", role: "care_manager" },
-  { name: "Sunrise Adult Day Health", role: "day_program" },
+  // The day program only needs the medication change and what to watch for.
+  { name: "Sunrise Adult Day Health", role: "day_program", sections: ["medications", "watchFor", "summary"], tasksScope: "mine" },
 ];
 
 /** The caregiver's assignments (not the clinic's): who handles each step. */

@@ -1,6 +1,7 @@
 import { json } from "@/lib/access";
 import { COPY } from "@/lib/copy";
 import { db } from "@/lib/db";
+import { createInvitations } from "@/lib/invites";
 import { env, RATE_LIMITS } from "@/lib/env";
 import { checkRateLimit } from "@/lib/ratelimit";
 import { CreateHandoffSchema, HandoffPayloadSchema } from "@/lib/schema";
@@ -70,6 +71,7 @@ export async function POST(req: Request) {
   const expiresAt = new Date(Date.now() + env.ttlDays * 86_400_000).toISOString();
 
   let originalPath: string | null = null;
+  let invites: Awaited<ReturnType<typeof createInvitations>> = [];
   try {
     if (original) originalPath = await uploadOriginal(token, original);
     const { error } = await db()
@@ -82,14 +84,17 @@ export async function POST(req: Request) {
         source_text: null,
         original_path: originalPath,
         created_by: input.createdByFirstName || null,
-        recipients: input.recipients,
+        recipients: input.recipients.map(({ name, role }) => ({ name, role })),
         acks: [],
         expires_at: expiresAt,
+        access_mode: "invite",
       });
     if (error) throw error;
+    invites = await createInvitations(token, input.recipients, payload);
   } catch (e) {
     console.error("create handoff failed:", (e as { message?: string }).message);
     await deleteOriginal(originalPath).catch(() => {});
+    await db().from("handoffs").delete().eq("token", token);
     return json({ error: "storage", message: COPY.genericError }, 500);
   }
 
@@ -98,9 +103,10 @@ export async function POST(req: Request) {
     {
       token,
       manageKey,
-      shareUrl: `${base}/h/${token}`,
       manageUrl: `${base}/h/${token}/manage?key=${manageKey}`,
       expiresAt,
+      // One personal link per person, shown once.
+      invites: invites.map((i) => ({ id: i.id, name: i.name, role: i.role, url: `${base}/i/${i.invite}` })),
     },
     201,
   );

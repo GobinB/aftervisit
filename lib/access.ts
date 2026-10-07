@@ -2,7 +2,7 @@ import "server-only";
 import { NextResponse } from "next/server";
 import { db, getHandoff, getTombstone, isExpired, type HandoffRow } from "./db";
 import { PinSchema } from "./schema";
-import { hashPin, hashToken, safeEqual, TOKEN_RE } from "./tokens";
+import { hashManageKey, hashPin, hashToken, MANAGE_KEY_RE, safeEqual, TOKEN_RE } from "./tokens";
 
 export const MAX_PIN_ATTEMPTS = 3;
 export const LOCK_MINUTES = 10;
@@ -16,19 +16,34 @@ export function json(data: unknown, status = 200, headers: Record<string, string
 
 export type Lookup =
   | { status: "ok"; row: HandoffRow }
-  | { status: "expired" | "deleted" | "not_found" };
+  | { status: "expired" | "deleted" | "not_found" | "invite_only" };
 
-/** Finds a live handoff. Expired rows are never served, even between purge runs. */
-export async function lookup(token: string): Promise<Lookup> {
+/**
+ * Finds a live handoff. Expired rows are never served, even between purge runs.
+ * Handoffs shared with personal links are not readable through the general link at all,
+ * unless `forCreator` (the manage-key routes, which check the key themselves).
+ */
+export async function lookup(token: string, opts: { forCreator?: boolean } = {}): Promise<Lookup> {
   if (!TOKEN_RE.test(token)) return { status: "not_found" };
   const row = await getHandoff(token);
+  if (row && row.access_mode === "invite" && !opts.forCreator) return isExpired(row) ? { status: "expired" } : { status: "invite_only" };
   if (row) return isExpired(row) ? { status: "expired" } : { status: "ok", row };
   const gone = await getTombstone(hashToken(token));
   return gone ? { status: gone } : { status: "not_found" };
 }
 
-export function goneResponse(status: "expired" | "deleted" | "not_found") {
-  return json({ status }, status === "not_found" ? 404 : 410);
+export function goneResponse(status: "expired" | "deleted" | "not_found" | "invite_only" | "revoked") {
+  return json({ status }, status === "not_found" || status === "invite_only" ? 404 : 410);
+}
+
+/** For caregiver-only routes: the handoff, if the x-manage-key header matches. */
+export async function requireManage(req: Request, token: string): Promise<{ row: HandoffRow } | { res: Response }> {
+  const key = req.headers.get("x-manage-key") ?? "";
+  if (!MANAGE_KEY_RE.test(key)) return { res: json({ status: "forbidden" }, 403) };
+  const found = await lookup(token, { forCreator: true });
+  if (found.status !== "ok") return { res: goneResponse(found.status) };
+  if (!safeEqual(hashManageKey(key), found.row.manage_key_hash)) return { res: json({ status: "forbidden" }, 403) };
+  return { row: found.row };
 }
 
 export type PinCheck =

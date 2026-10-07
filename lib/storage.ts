@@ -2,6 +2,11 @@ import "server-only";
 import { db } from "./db";
 import { originalTicket } from "./tokens";
 
+/** The original, opened through a personal invitation (checks the invitation on every use). */
+export function inviteOriginalLink(invite: string): string {
+  return `/api/invites/${invite}/original?ticket=${originalTicket(`invite:${invite}`)}`;
+}
+
 /** The link a recipient opens: valid for an hour, checked against the database on every use. */
 export function originalLink(token: string): string {
   return `/api/handoffs/${token}/original?ticket=${originalTicket(token)}`;

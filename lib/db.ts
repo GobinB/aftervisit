@@ -18,6 +18,8 @@ export interface HandoffRow {
   acks: Ack[];
   created_at: string;
   expires_at: string;
+  /** "invite": personal links only (P1). "link": one shared link (older handoffs). Absent before migration 0002. */
+  access_mode?: "link" | "invite";
 }
 
 let client: SupabaseClient | null = null;
@@ -63,10 +65,12 @@ export async function getTombstone(tokenHash: string): Promise<GoneReason | null
   return (data?.reason as GoneReason | undefined) ?? null;
 }
 
-/** Deletes the stored original (if any), the row, and leaves a tombstone. */
+/** Deletes the stored original (if any), the row, and leaves tombstones for the link and every personal invitation. */
 export async function hardDeleteHandoff(row: Pick<HandoffRow, "token" | "original_path">, reason: GoneReason, tokenHash: string) {
   const { deleteOriginal } = await import("./storage");
   await deleteOriginal(row.original_path);
+  const { data: invites } = await db().from("handoff_recipients").select("invite_hash").eq("handoff_token", row.token);
+  for (const r of (invites ?? []) as { invite_hash: string }[]) await addTombstone(r.invite_hash, reason);
   const { error } = await db().from("handoffs").delete().eq("token", row.token);
   if (error) throw error;
   await addTombstone(tokenHash, reason);

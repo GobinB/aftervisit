@@ -64,3 +64,22 @@ test("keyboard only: sample visit reaches Share", async ({ page }, info) => {
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
 });
+
+test("no WCAG 2.1 AA violations on a personal link and the manage dashboard", async ({ page }, info) => {
+  test.skip(info.project.name === "iphone-safari", "axe runs in Chromium projects");
+  const { sampleDraft, SAMPLE_RECIPIENTS } = await import("../lib/sample");
+  const r = Math.floor(Math.random() * 250) + 1;
+  const res = await page.request.post("/api/handoffs", {
+    headers: { "x-forwarded-for": `10.9.${r}.${r}` },
+    data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, createdByFirstName: "Gobin", consent: true },
+  });
+  expect(res.status()).toBe(201);
+  const c = await res.json();
+  await page.goto(new URL(c.invites[0].url).pathname);
+  await expect(page.getByRole("heading", { name: "Margaret's visit on Oct 3" })).toBeVisible();
+  await audit(page, "personal link");
+  await page.goto(new URL(c.manageUrl).pathname + new URL(c.manageUrl).search);
+  await expect(page.getByRole("heading", { name: "Your care handoff at a glance" })).toBeVisible();
+  await audit(page, "manage dashboard");
+  await page.request.delete(`/api/handoffs/${c.token}`, { headers: { "x-manage-key": c.manageKey } });
+});

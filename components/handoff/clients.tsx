@@ -4,7 +4,7 @@ import { useState } from "react";
 import { LogoMark } from "@/components/Logo";
 import { PinInput } from "@/components/PinInput";
 import { COPY } from "@/lib/copy";
-import type { HandoffView } from "@/lib/schema";
+import type { HandoffView, TaskStatusView } from "@/lib/schema";
 import { HandoffDocument } from "./HandoffDocument";
 
 async function postAck(token: string, name: string, pin?: string) {
@@ -42,18 +42,31 @@ export function DemoHandoff({ view }: { view: HandoffView }) {
 
 /** Centered card with four digit boxes. The PIN goes in a POST body, never the URL. */
 export function PinGate({ token, autoPrint }: { token: string; autoPrint?: boolean }) {
+  return (
+    <PinPrompt
+      endpoint={`/api/handoffs/${token}`}
+      render={(d) => (
+        <HandoffDocument view={d.view} originalUrl={d.originalUrl} autoPrint={autoPrint} onAck={(name) => postAck(token, name, d.pin)} />
+      )}
+    />
+  );
+}
+
+type Unlocked = { view: HandoffView; originalUrl: string | null; pin: string };
+
+function PinPrompt({ endpoint, render }: { endpoint: string; render: (d: Unlocked) => React.ReactNode }) {
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [locked, setLocked] = useState(false);
-  const [data, setData] = useState<{ view: HandoffView; originalUrl: string | null; pin: string } | null>(null);
+  const [data, setData] = useState<Unlocked | null>(null);
 
   async function submit(value: string) {
     if (busy || !/^\d{4}$/.test(value)) return;
     setBusy(true);
     setMessage(null);
     try {
-      const res = await fetch(`/api/handoffs/${token}`, {
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ pin: value }),
@@ -69,7 +82,7 @@ export function PinGate({ token, autoPrint }: { token: string; autoPrint?: boole
       } else if (body.status === "wrong_pin") {
         setMessage(COPY.pinWrong(body.attemptsLeft));
       } else if (res.status === 410) {
-        setMessage(body.status === "deleted" ? COPY.deleted : COPY.expired);
+        setMessage(body.status === "deleted" ? COPY.deleted : body.status === "revoked" ? COPY.revoked : COPY.expired);
       } else {
         setMessage(COPY.genericError);
       }
@@ -81,16 +94,7 @@ export function PinGate({ token, autoPrint }: { token: string; autoPrint?: boole
     }
   }
 
-  if (data) {
-    return (
-      <HandoffDocument
-        view={data.view}
-        originalUrl={data.originalUrl}
-        autoPrint={autoPrint}
-        onAck={(name) => postAck(token, name, data.pin)}
-      />
-    );
-  }
+  if (data) return <>{render(data)}</>;
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-surface-50 px-4">
@@ -126,4 +130,54 @@ export function PinGate({ token, autoPrint }: { token: string; autoPrint?: boole
       </main>
     </div>
   );
+}
+
+async function postJson(url: string, body: unknown) {
+  try {
+    const res = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+    const data = await res.json().catch(() => ({}));
+    if (res.ok) return { ok: true as const, data };
+    if (res.status === 410) return { ok: false as const, message: data.status === "revoked" ? COPY.revoked : data.status === "deleted" ? COPY.deleted : COPY.expired };
+    return { ok: false as const, message: data.message || COPY.genericError };
+  } catch {
+    return { ok: false as const, message: COPY.offline };
+  }
+}
+
+function InviteDocument({ invite, view, originalUrl, pin }: { invite: string; view: HandoffView; originalUrl: string | null; pin?: string }) {
+  return (
+    <HandoffDocument
+      view={view}
+      originalUrl={originalUrl}
+      onAck={async () => {
+        const r = await postJson(`/api/invites/${invite}/ack`, { pin });
+        return r.ok ? { ok: true } : r;
+      }}
+      onTaskUpdate={async (taskId, status, note) => {
+        const r = await postJson(`/api/invites/${invite}/tasks`, { taskId, status, note, pin });
+        return r.ok ? { ok: true, taskStatus: r.data.taskStatus } : r;
+      }}
+    />
+  );
+}
+
+/** A personal invitation: rendered directly, or after the PIN when the handoff has one. */
+export function InviteHandoff({ invite, view, originalUrl }: { invite: string; view?: HandoffView; originalUrl?: string | null }) {
+  if (view) return <InviteDocument invite={invite} view={view} originalUrl={originalUrl ?? null} />;
+  return <PinPrompt endpoint={`/api/invites/${invite}`} render={(d) => <InviteDocument invite={invite} view={d.view} originalUrl={d.originalUrl} pin={d.pin} />} />;
+}
+
+/** The caregiver's own complete view: every section, current statuses, no acknowledgment. */
+export function CreatorView({
+  view,
+  taskStatus,
+  originalUrl,
+  autoPrint,
+}: {
+  view: HandoffView;
+  taskStatus: Record<string, TaskStatusView>;
+  originalUrl: string | null;
+  autoPrint?: boolean;
+}) {
+  return <HandoffDocument view={view} taskStatus={taskStatus} originalUrl={originalUrl} creatorView autoPrint={autoPrint} />;
 }

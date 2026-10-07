@@ -85,6 +85,54 @@ export const RecipientSchema = z.object({
 });
 export type Recipient = z.infer<typeof RecipientSchema>;
 
+/** Parts of a handoff the caregiver can choose to share with each person. */
+export const SHARE_SECTIONS = ["medications", "tasks", "watchFor", "questions", "summary", "otherNotes", "original"] as const;
+export type ShareSection = (typeof SHARE_SECTIONS)[number];
+export const SHARE_SECTION_LABELS: Record<ShareSection, string> = {
+  medications: "Medication changes",
+  tasks: "Next steps",
+  watchFor: "Watch for",
+  questions: "Questions for next visit",
+  summary: "Visit summary",
+  otherNotes: "Other notes",
+  original: "The original summary (if attached)",
+};
+
+export const TasksScopeSchema = z.enum(["all", "mine"]);
+export type TasksScope = z.infer<typeof TasksScopeSchema>;
+
+/** A person to share with, and what they can see. */
+export const RecipientShareSchema = RecipientSchema.extend({
+  sections: z.array(z.enum(SHARE_SECTIONS)).max(SHARE_SECTIONS.length).optional(),
+  tasksScope: TasksScopeSchema.optional(),
+});
+export type RecipientShare = z.infer<typeof RecipientShareSchema>;
+
+export const TASK_STATUSES = ["not_started", "in_progress", "completed"] as const;
+export type TaskStatusValue = (typeof TASK_STATUSES)[number];
+export const TASK_STATUS_LABELS: Record<TaskStatusValue, string> = {
+  not_started: "Not started",
+  in_progress: "In progress",
+  completed: "Completed",
+};
+
+export const TaskUpdateSchema = z.object({
+  taskId: z.string().min(1).max(40),
+  status: z.enum(TASK_STATUSES),
+  note: z.string().trim().max(300).optional(),
+});
+
+/** Who changed a task's status, and how. "personal_link" means through that person's own invitation link. */
+export interface TaskStatusView {
+  status: TaskStatusValue;
+  note?: string;
+  updatedAt?: string;
+  updatedByName?: string;
+  updatedVia?: "personal_link" | "creator";
+  completedAt?: string;
+  assigneeId?: string | null;
+}
+
 export const AckSchema = z.object({ name: z.string(), at: z.string() });
 export type Ack = z.infer<typeof AckSchema>;
 
@@ -93,7 +141,7 @@ export const PinSchema = z.string().regex(/^\d{4}$/);
 /** Body of POST /api/handoffs (JSON, or the "data" field of a multipart request). */
 export const CreateHandoffSchema = z.object({
   draft: HandoffDraftSchema,
-  recipients: z.array(RecipientSchema).min(1).max(20),
+  recipients: z.array(RecipientShareSchema).min(1).max(20),
   pin: PinSchema.optional(),
   createdByFirstName: z.string().trim().max(60).optional(),
   /** The caregiver confirmed they are the patient or are authorized to share this. */
@@ -116,4 +164,15 @@ export interface HandoffView {
   recipients: Recipient[];
   ackCount: number;
   hasOriginal: boolean;
+  /** Set when viewed through a personal invitation. */
+  invite?: {
+    recipientName: string;
+    recipientRole: Role;
+    ackedAt: string | null;
+    tasksScope: TasksScope;
+    sections: ShareSection[];
+    taskStatus: Record<string, TaskStatusView>;
+    /** Task ids this person may update: their own, plus unassigned ones they can see. */
+    canUpdate: string[];
+  };
 }

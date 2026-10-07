@@ -5,7 +5,8 @@ import { MedBadge } from "@/components/Badge";
 import { LogoMark } from "@/components/Logo";
 import { COPY, visitTitle } from "@/lib/copy";
 import { longDate, shortDate } from "@/lib/format";
-import { ROLE_LABELS, type HandoffView, type Task } from "@/lib/schema";
+import { ROLE_LABELS, type HandoffView, type Task, type TaskStatusValue, type TaskStatusView } from "@/lib/schema";
+import { Attribution, StatusChip, TaskStatusControl } from "./TaskStatus";
 
 const LARGE_KEY = "aftervisit-large-text";
 
@@ -40,15 +41,27 @@ export function HandoffDocument({
   view,
   originalUrl,
   onAck,
+  onTaskUpdate,
+  taskStatus,
+  creatorView,
   autoPrint,
 }: {
   view: HandoffView;
   originalUrl?: string | null;
-  onAck: (name: string) => Promise<{ ok: true } | { ok: false; message: string }>;
+  /** Shared link: the typed name. Personal link: ignored (recorded against the invitation). */
+  onAck?: (name: string) => Promise<{ ok: true } | { ok: false; message: string }>;
+  onTaskUpdate?: (taskId: string, status: TaskStatusValue, note?: string) => Promise<{ ok: true; taskStatus: TaskStatusView } | { ok: false; message: string }>;
+  /** Statuses for a read-only view (the caregiver's full view). */
+  taskStatus?: Record<string, TaskStatusView>;
+  /** The caregiver's own full view: no acknowledgment. */
+  creatorView?: boolean;
   autoPrint?: boolean;
 }) {
   const p = view.payload;
   const creator = view.createdByFirstName;
+  const invite = view.invite;
+  const [statuses, setStatuses] = useState<Record<string, TaskStatusView>>(invite?.taskStatus ?? taskStatus ?? {});
+  const canUpdate = new Set(invite?.canUpdate ?? []);
   const [large, setLarge] = useState(false);
   const [showWords, setShowWords] = useState(false);
   const [ackName, setAckName] = useState("");
@@ -61,8 +74,10 @@ export function HandoffDocument({
   useEffect(() => {
     try {
       setLarge(localStorage.getItem(LARGE_KEY) === "1");
-      setAcked(localStorage.getItem(ackKey));
+      if (invite) setAcked(invite.ackedAt ? invite.recipientName : null);
+      else setAcked(localStorage.getItem(ackKey));
     } catch {}
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ackKey]);
 
   useEffect(() => {
@@ -86,7 +101,8 @@ export function HandoffDocument({
 
   async function submitAck(e: React.FormEvent) {
     e.preventDefault();
-    const name = ackName.trim();
+    if (!onAck) return;
+    const name = invite ? invite.recipientName : ackName.trim();
     if (!name) return setAckError("Please add your name so they know who read it.");
     setAckBusy(true);
     setAckError(null);
@@ -94,9 +110,17 @@ export function HandoffDocument({
     setAckBusy(false);
     if (!r.ok) return setAckError(r.message);
     setAcked(name);
+    if (invite) return;
     try {
       localStorage.setItem(ackKey, name);
     } catch {}
+  }
+
+  async function updateTask(taskId: string, status: TaskStatusValue, note?: string) {
+    if (!onTaskUpdate) return { ok: false as const, message: COPY.genericError };
+    const r = await onTaskUpdate(taskId, status, note);
+    if (r.ok) setStatuses((s) => ({ ...s, [taskId]: r.taskStatus }));
+    return r.ok ? { ok: true as const } : r;
   }
 
   const providerLine = [p.visit.provider, p.visit.specialty].filter(Boolean).join(", ");
@@ -107,9 +131,11 @@ export function HandoffDocument({
   const recipientOrder = view.recipients.map((r) => r.name);
   const hasQuotes = [...p.medications, ...p.tasks].some((i) => i.sourceQuote);
   const roleOf = (name: string) => {
+    if (invite && name.toLowerCase() === invite.recipientName.toLowerCase()) return ROLE_LABELS[invite.recipientRole];
     const r = view.recipients.find((x) => x.name.toLowerCase() === name.toLowerCase());
     return r ? ROLE_LABELS[r.role] : null;
   };
+  const isMe = (name: string) => !!invite && name.toLowerCase() === invite.recipientName.toLowerCase();
   const groups = groupTasks(p.tasks, recipientOrder);
 
   return (
@@ -128,7 +154,12 @@ export function HandoffDocument({
         <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">{visitTitle(p)}</h1>
         {providerLine ? <p className="mt-1 text-lg">{providerLine}</p> : null}
         <p className="mt-1 text-ink-500">{prepared}</p>
-        {view.recipients.length ? (
+        {invite ? (
+          <p className="mt-3 rounded-xl bg-sky-100 px-4 py-2.5 text-primary-900">
+            Shared with you, <strong>{invite.recipientName}</strong> ({ROLE_LABELS[invite.recipientRole]}). This is your personal link; please
+            don&apos;t forward it.
+          </p>
+        ) : view.recipients.length ? (
           <p className="mt-1 text-sm text-ink-500">
             Shared with {view.recipients.map((r) => `${r.name} (${ROLE_LABELS[r.role]})`).join(", ")}
           </p>
@@ -180,7 +211,7 @@ export function HandoffDocument({
                 {groups.map((g) => (
                   <div key={g.who || "anyone"}>
                     <h3 className="text-sm font-semibold uppercase tracking-wider text-ink-500">
-                      {g.who ? `For ${g.who}` : "Not assigned yet"}
+                      {g.who ? (isMe(g.who) ? `For you (${g.who})` : `For ${g.who}`) : "Not assigned yet"}
                       {g.who && roleOf(g.who) ? <span className="font-normal normal-case tracking-normal"> · {roleOf(g.who)}</span> : null}
                     </h3>
                     <ul className="mt-1.5 space-y-2">
@@ -189,10 +220,17 @@ export function HandoffDocument({
                         return (
                           <li key={t.id} className="flex gap-3">
                             <span className="mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary-700" aria-hidden="true" />
-                            <div>
-                              <p>{t.title}</p>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+                                <p>{t.title}</p>
+                                {statuses[t.id] ? <StatusChip status={statuses[t.id].status} /> : null}
+                              </div>
                               {when ? <p className="text-sm text-ink-500">{when}</p> : null}
                               <Provenance quote={t.sourceQuote} added={t.origin === "caregiver"} show={showWords} creator={creator} />
+                              <Attribution s={statuses[t.id]} />
+                              {statuses[t.id] && canUpdate.has(t.id) && onTaskUpdate ? (
+                                <TaskStatusControl taskTitle={t.title} value={statuses[t.id]} onSave={(s, n) => updateTask(t.id, s, n)} />
+                              ) : null}
                             </div>
                           </li>
                         );
@@ -273,45 +311,55 @@ export function HandoffDocument({
           <p>Reviewed by: ________________________________ Date: ______________</p>
         </div>
 
-        <section aria-labelledby="ack-title" className="no-print mt-8 rounded-2xl border border-border-200 bg-white p-5">
-          <h2 id="ack-title" className="sr-only">
-            Acknowledge
-          </h2>
-          {acked ? (
-            <div className="flex items-center gap-3" role="status">
-              <span className="flex h-12 w-12 shrink-0 animate-pop items-center justify-center rounded-full bg-ok-bg text-ok">
-                <Check size={26} strokeWidth={3} aria-hidden="true" />
-              </span>
-              <p className="text-lg">{COPY.ackSuccess(acked, creator)}</p>
-            </div>
-          ) : (
-            <form onSubmit={submitAck} noValidate>
-              <label htmlFor={nameId} className="font-medium">
-                Your name
-              </label>
-              <input
-                id={nameId}
-                value={ackName}
-                onChange={(e) => setAckName(e.target.value)}
-                autoComplete="given-name"
-                maxLength={60}
-                className="mt-1 h-12 w-full rounded-xl border border-border-200 bg-white px-3 outline-none focus:border-action-500 focus:ring-2 focus:ring-action-500/30"
-              />
-              {ackError ? (
-                <p role="alert" className="mt-2 text-attn-ink">
-                  {ackError}
-                </p>
-              ) : null}
-              <button
-                type="submit"
-                disabled={ackBusy}
-                className="mt-3 min-h-14 w-full rounded-xl bg-primary-700 px-5 text-lg font-semibold text-white hover:bg-primary-900 disabled:opacity-60"
-              >
-                {ackBusy ? "Sending…" : "I've read this"}
-              </button>
-            </form>
-          )}
-        </section>
+        {creatorView || !onAck ? null : (
+          <section aria-labelledby="ack-title" className="no-print mt-8 rounded-2xl border border-border-200 bg-white p-5">
+            <h2 id="ack-title" className="sr-only">
+              Acknowledge
+            </h2>
+            {acked ? (
+              <div className="flex items-center gap-3" role="status">
+                <span className="flex h-12 w-12 shrink-0 animate-pop items-center justify-center rounded-full bg-ok-bg text-ok">
+                  <Check size={26} strokeWidth={3} aria-hidden="true" />
+                </span>
+                <p className="text-lg">{COPY.ackSuccess(acked, creator)}</p>
+              </div>
+            ) : (
+              <form onSubmit={submitAck} noValidate>
+                {invite ? (
+                  <p className="text-ink-500">
+                    Let {creator ?? "the person who shared this"} know you, {invite.recipientName}, have read this update.
+                  </p>
+                ) : (
+                  <>
+                    <label htmlFor={nameId} className="font-medium">
+                      Your name
+                    </label>
+                    <input
+                      id={nameId}
+                      value={ackName}
+                      onChange={(e) => setAckName(e.target.value)}
+                      autoComplete="given-name"
+                      maxLength={60}
+                      className="mt-1 h-12 w-full rounded-xl border border-border-200 bg-white px-3 outline-none focus:border-action-500 focus:ring-2 focus:ring-action-500/30"
+                    />
+                  </>
+                )}
+                {ackError ? (
+                  <p role="alert" className="mt-2 text-attn-ink">
+                    {ackError}
+                  </p>
+                ) : null}
+                <button
+                  type="submit"
+                  disabled={ackBusy}
+                  className="mt-3 min-h-14 w-full rounded-xl bg-primary-700 px-5 text-lg font-semibold text-white hover:bg-primary-900 disabled:opacity-60"
+                >
+                  {ackBusy ? "Sending…" : "I've read this"}
+                </button>
+              </form>
+            )}
+          </section>
+        )}
 
         {view.hasOriginal && originalUrl ? (
           <p className="no-print mt-6 text-center">

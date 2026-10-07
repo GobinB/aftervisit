@@ -13,11 +13,13 @@ type Ctx = { params: Promise<{ token: string }> };
  */
 export async function GET(req: Request, { params }: Ctx) {
   const { token } = await params;
-  const found = await lookup(token);
+  const ticket = new URL(req.url).searchParams.get("ticket");
+  // A valid ticket was issued by the server after a PIN check or to the caregiver's own view.
+  const ticketOk = verifyOriginalTicket(token, ticket);
+  const found = await lookup(token, { forCreator: ticketOk });
   if (found.status !== "ok") return goneResponse(found.status);
   if (!found.row.original_path) return json({ status: "no_original" }, 404);
-  const ticket = new URL(req.url).searchParams.get("ticket");
-  if (found.row.pin_hash && !verifyOriginalTicket(token, ticket)) return json({ status: "pin_required" }, 401);
+  if (found.row.pin_hash && !ticketOk) return json({ status: "pin_required" }, 401);
   const url = await signedOriginalUrl(found.row.original_path);
   if (!url) return json({ status: "unavailable" }, 500);
   return NextResponse.redirect(url, { status: 302, headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } });
