@@ -1,6 +1,6 @@
 import { checkPin, goneResponse, json, lookup, pinFailureResponse, readJson } from "@/lib/access";
 import { hardDeleteHandoff, toView } from "@/lib/db";
-import { signedOriginalUrl } from "@/lib/storage";
+import { originalLink } from "@/lib/storage";
 import { hashManageKey, hashToken, MANAGE_KEY_RE, safeEqual } from "@/lib/tokens";
 
 export const runtime = "nodejs";
@@ -13,7 +13,7 @@ export async function GET(_req: Request, { params }: Ctx) {
   const found = await lookup(token);
   if (found.status !== "ok") return goneResponse(found.status);
   if (found.row.pin_hash) return json({ status: "pin_required", hasPin: true });
-  const originalUrl = found.row.original_path ? await signedOriginalUrl(found.row.original_path) : null;
+  const originalUrl = found.row.original_path ? originalLink(token) : null;
   return json({ status: "ok", handoff: toView(found.row), originalUrl });
 }
 
@@ -25,7 +25,7 @@ export async function POST(req: Request, { params }: Ctx) {
   const { pin } = await readJson(req);
   const check = await checkPin(found.row, pin);
   if (!check.ok) return pinFailureResponse(check);
-  const originalUrl = found.row.original_path ? await signedOriginalUrl(found.row.original_path) : null;
+  const originalUrl = found.row.original_path ? originalLink(token) : null;
   return json({ status: "ok", handoff: toView(found.row), originalUrl });
 }
 

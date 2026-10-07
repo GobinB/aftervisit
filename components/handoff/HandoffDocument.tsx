@@ -109,10 +109,12 @@ export function HandoffDocument({
   return (
     <div className="min-h-dvh bg-surface-50 print:bg-white">
       <header className="bg-primary-900 text-white print:bg-white print:text-black">
-        <div className="mx-auto flex h-12 max-w-[640px] items-center gap-2 px-4">
-          <LogoMark className="h-7 w-7 text-base print:border print:border-black print:bg-white print:text-black" />
-          <span className="font-semibold">Care update</span>
-          {p.visit.clinic ? <span className="ml-auto truncate text-sm text-white/75 print:text-black">{p.visit.clinic}</span> : null}
+        <div className="mx-auto flex h-14 max-w-[640px] items-center gap-2.5 px-4">
+          <LogoMark size={32} variant="onDark" />
+          <span className="shrink-0 text-lg font-semibold whitespace-nowrap">Care update</span>
+          {p.visit.clinic ? (
+            <span className="ml-auto min-w-0 truncate pl-3 text-right text-sm text-white/75 print:text-black">{p.visit.clinic}</span>
+          ) : null}
         </div>
       </header>
 

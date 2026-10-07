@@ -95,9 +95,9 @@ export function PinGate({ token, autoPrint }: { token: string; autoPrint?: boole
   return (
     <div className="flex min-h-dvh items-center justify-center bg-surface-50 px-4">
       <main id="main" className="w-full max-w-sm rounded-2xl border border-border-200 bg-white p-7 text-center shadow-sm">
-        <div className="mx-auto flex w-fit items-center gap-2 text-primary-900">
-          <LogoMark />
-          <span className="font-semibold">Care update</span>
+        <div className="mx-auto flex w-fit items-center gap-2.5 text-primary-900">
+          <LogoMark size={36} />
+          <span className="text-lg font-semibold">Care update</span>
         </div>
         <div className="mx-auto mt-6 flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-primary-700">
           <Lock size={22} aria-hidden="true" />

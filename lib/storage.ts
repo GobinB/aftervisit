@@ -1,5 +1,11 @@
 import "server-only";
 import { db } from "./db";
+import { originalTicket } from "./tokens";
+
+/** The link a recipient opens: valid for an hour, checked against the database on every use. */
+export function originalLink(token: string): string {
+  return `/api/handoffs/${token}/original?ticket=${originalTicket(token)}`;
+}
 
 export const ORIGINALS_BUCKET = "originals";
 
@@ -16,14 +22,19 @@ export async function uploadOriginal(token: string, file: File): Promise<string>
   const path = `${token}/${safeName(file.name)}`;
   const { error } = await db()
     .storage.from(ORIGINALS_BUCKET)
-    .upload(path, new Uint8Array(await file.arrayBuffer()), { contentType: file.type, upsert: false });
+    // max-age=0 so the CDN never serves a copy after the handoff is deleted.
+    .upload(path, new Uint8Array(await file.arrayBuffer()), { contentType: file.type, upsert: false, cacheControl: "0" });
   if (error) throw error;
   return path;
 }
 
-/** 1-hour signed URL. */
-export async function signedOriginalUrl(path: string): Promise<string | null> {
-  const { data, error } = await db().storage.from(ORIGINALS_BUCKET).createSignedUrl(path, 60 * 60);
+/**
+ * Short-lived signed URL, created only after the handoff row is checked. Recipients never
+ * get this directly: they get /api/handoffs/[token]/original, which re-checks the row on
+ * every open, so a deleted handoff stops serving its original immediately.
+ */
+export async function signedOriginalUrl(path: string, seconds = 60): Promise<string | null> {
+  const { data, error } = await db().storage.from(ORIGINALS_BUCKET).createSignedUrl(path, seconds);
   if (error) return null;
   return data.signedUrl;
 }

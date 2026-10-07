@@ -1,6 +1,6 @@
 import { Clock, Link2Off, Trash2 } from "lucide-react";
 import Link from "next/link";
-import { LogoMark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
 import { COPY } from "@/lib/copy";
 
 export function GonePage({ status }: { status: "expired" | "deleted" | "not_found" }) {
@@ -10,9 +10,7 @@ export function GonePage({ status }: { status: "expired" | "deleted" | "not_foun
   return (
     <div className="flex min-h-dvh items-center justify-center bg-surface-50 px-4">
       <main id="main" className="w-full max-w-md rounded-2xl border border-border-200 bg-white p-8 text-center shadow-sm">
-        <div className="mx-auto flex w-fit items-center gap-2 font-semibold text-primary-900">
-          <LogoMark /> AfterVisit
-        </div>
+        <Logo className="mx-auto" />
         <div className="mx-auto mt-6 flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-primary-700">
           <Icon size={22} aria-hidden="true" />
         </div>

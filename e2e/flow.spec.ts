@@ -314,7 +314,7 @@ test("cron purge requires the bearer secret and removes expired rows", async ({ 
   await expect(page.getByText(/This care update has expired/)).toBeVisible();
 });
 
-test("attached original: served by signed URL, deleted with the handoff", async ({ page }, info) => {
+test("attached original: served through a checked link, gone the moment the handoff is deleted", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop-chrome", "storage check; run once");
   await isolateIp(page);
   await page.goto("/new");
@@ -337,18 +337,36 @@ test("attached original: served by signed URL, deleted with the handoff", async 
   await page.goto(shareUrl);
   const link = page.getByRole("link", { name: /View the clinic's original summary/ });
   await expect(link).toBeVisible();
-  const signed = (await link.getAttribute("href"))!;
-  expect(signed).toContain("/storage/v1/object/sign/originals/");
-  const file = await page.request.get(signed);
+  const href = (await link.getAttribute("href"))!;
+  expect(href).toMatch(/^\/api\/handoffs\/[A-Za-z0-9_-]{21}\/original\?ticket=\d{10}\.[0-9a-f]{32}$/);
+  const file = await page.request.get(href);
   expect(file.status()).toBe(200);
   expect((await file.body()).subarray(0, 4).toString()).toBe("%PDF");
+  // The redirect target is a short-lived Supabase URL, never handed out directly.
+  const hop = await page.request.get(href, { maxRedirects: 0 });
+  expect(hop.status()).toBe(302);
+  expect(hop.headers()["location"]).toContain("/storage/v1/object/sign/originals/");
 
   await page.goto(manageUrl);
   await expect(page.getByText("Attached", { exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Delete this handoff" }).click();
   await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
   await expect(page.getByRole("heading", { name: "This care update was deleted" })).toBeVisible();
-  expect((await page.request.get(signed)).status()).not.toBe(200);
+  // The object is gone from storage.
+  const env = Object.fromEntries(
+    readFileSync(".env.local", "utf8")
+      .split("\n")
+      .filter((l) => l.includes("="))
+      .map((l) => [l.slice(0, l.indexOf("=")), l.slice(l.indexOf("=") + 1)]),
+  );
+  const token = shareUrl.split("/h/")[1];
+  const list = await page.request.post(`${env.SUPABASE_URL}/storage/v1/object/list/originals`, {
+    headers: { apikey: env.SUPABASE_SERVICE_ROLE_KEY, authorization: `Bearer ${env.SUPABASE_SERVICE_ROLE_KEY}` },
+    data: { prefix: `${token}/`, limit: 10 },
+  });
+  expect(await list.json()).toEqual([]);
+  // The recipient's link stops working immediately.
+  expect((await page.request.get(href, { maxRedirects: 0 })).status()).toBe(410);
 });
 
 test("attach switch is hidden when the summary was pasted", async ({ page }) => {

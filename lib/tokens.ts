@@ -25,3 +25,18 @@ export function safeEqual(a: string, b: string): boolean {
   return ab.length === bb.length && timingSafeEqual(ab, bb);
 }
 export const hashToken = (token: string) => sha256(env.salt, "token", token);
+
+/**
+ * Ticket for opening the attached original: HMAC over token + expiry. Lets a PIN-checked
+ * viewer open the file without the PIN ever appearing in a URL.
+ */
+export function originalTicket(token: string, ttlSeconds = 3600): string {
+  const exp = Math.floor(Date.now() / 1000) + ttlSeconds;
+  return `${exp}.${sha256(env.salt, "original", token, String(exp)).slice(0, 32)}`;
+}
+
+export function verifyOriginalTicket(token: string, ticket: string | null): boolean {
+  const m = /^(\d{10})\.([0-9a-f]{32})$/.exec(ticket ?? "");
+  if (!m || Number(m[1]) < Date.now() / 1000) return false;
+  return safeEqual(m[2], sha256(env.salt, "original", token, m[1]).slice(0, 32));
+}

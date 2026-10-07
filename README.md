@@ -19,7 +19,7 @@ Every handoff expires after 30 days and is deleted automatically.
 - No accounts and no cookies beyond Vercel's cookie-less analytics.
 - PDFs are read in memory on the server and discarded. Photos are read entirely in the browser with Tesseract.js; only the recognized text is sent.
 - A handoff is stored only when the caregiver presses *Create handoff*, and only the confirmed content plus a source text with obvious identifiers removed (date of birth, MRN, address, phone, insurance ID, the patient name line).
-- The original document is stored only if the caregiver turns on *Attach the original summary*, in a private bucket tied to that handoff, and deleted with it.
+- The original document is stored only if the caregiver turns on *Attach the original summary*, in a private bucket tied to that handoff, and deleted with it. Recipients open it through an AfterVisit link that re-checks the handoff on every open and redirects to a 60-second signed URL, so a deleted handoff stops serving its original immediately.
 - Share links are 21-character random tokens; PINs lock for 10 minutes after 3 wrong tries and never appear in a URL. `/h` pages are `noindex` and send no referrer.
 - By default no third-party AI service sees the document.
 - AfterVisit is not a HIPAA covered entity in this prototype; it is a tool caregivers use on their own information.

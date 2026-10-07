@@ -6,7 +6,7 @@ import { ogTitle } from "@/lib/copy";
 import { toView } from "@/lib/db";
 import { SAMPLE_CAREGIVER, SAMPLE_RECIPIENTS, sampleDraft } from "@/lib/sample";
 import type { HandoffView } from "@/lib/schema";
-import { signedOriginalUrl } from "@/lib/storage";
+import { originalLink } from "@/lib/storage";
 
 export const dynamic = "force-dynamic";
 
@@ -53,6 +53,6 @@ export default async function HandoffPage({ params, searchParams }: Props) {
   if (found.status !== "ok") return <GonePage status={found.status} />;
   if (found.row.pin_hash) return <PinGate token={token} autoPrint={autoPrint} />;
 
-  const originalUrl = found.row.original_path ? await signedOriginalUrl(found.row.original_path) : null;
+  const originalUrl = found.row.original_path ? originalLink(token) : null;
   return <LiveHandoff view={toView(found.row)} originalUrl={originalUrl} autoPrint={autoPrint} />;
 }
