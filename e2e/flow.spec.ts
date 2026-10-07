@@ -40,7 +40,7 @@ test("sample visit: home to acknowledged handoff, manage, delete", async ({ page
   await confirm.click();
 
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
-  await expect(page.getByLabel("Name").first()).toHaveValue("Lisa");
+  await expect(page.getByLabel("Name", { exact: true }).first()).toHaveValue("Lisa");
   await page.getByRole("button", { name: "Create handoff" }).click();
   await expect(page.getByText("Your handoff is ready. Only people with this link can see it.")).toBeVisible();
 
@@ -312,4 +312,51 @@ test("cron purge requires the bearer secret and removes expired rows", async ({ 
   expect((await gone.json()).status).toBe("expired");
   await page.goto(`/h/${h.token}`);
   await expect(page.getByText(/This care update has expired/)).toBeVisible();
+});
+
+test("attached original: served by signed URL, deleted with the handoff", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop-chrome", "storage check; run once");
+  await isolateIp(page);
+  await page.goto("/new");
+  await page.locator('input[type="file"]').setInputFiles("public/sample-avs.pdf");
+  await page.getByLabel("Your first name").fill("Gobin");
+  await page.getByRole("button", { name: "Build the handoff" }).click();
+  await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
+  // The PDF path flags nothing low-confidence for the sample; check every section.
+  for (const accept of await page.getByRole("button", { name: "Accept" }).all()) await accept.click();
+  await checkAllSections(page);
+  await page.getByRole("link", { name: "Confirm and create handoff" }).click();
+  await page.getByLabel("Name", { exact: true }).first().fill("Rosa");
+  await page.getByRole("radio", { name: "Home aide" }).click();
+  await page.getByRole("switch", { name: "Attach the original summary" }).click();
+  await page.getByRole("button", { name: "Create handoff" }).click();
+  await expect(page.getByText("Your handoff is ready.")).toBeVisible();
+  const shareUrl = await page.getByLabel("Share link").inputValue();
+  const manageUrl = await page.getByLabel("Manage link").inputValue();
+
+  await page.goto(shareUrl);
+  const link = page.getByRole("link", { name: /View the clinic's original summary/ });
+  await expect(link).toBeVisible();
+  const signed = (await link.getAttribute("href"))!;
+  expect(signed).toContain("/storage/v1/object/sign/originals/");
+  const file = await page.request.get(signed);
+  expect(file.status()).toBe(200);
+  expect((await file.body()).subarray(0, 4).toString()).toBe("%PDF");
+
+  await page.goto(manageUrl);
+  await expect(page.getByText("Attached", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Delete this handoff" }).click();
+  await page.getByRole("dialog").getByRole("button", { name: "Delete" }).click();
+  await expect(page.getByRole("heading", { name: "This care update was deleted" })).toBeVisible();
+  expect((await page.request.get(signed)).status()).not.toBe(200);
+});
+
+test("attach switch is hidden when the summary was pasted", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start with a sample visit" }).click();
+  await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
+  await checkAllSections(page);
+  await page.getByRole("link", { name: "Confirm and create handoff" }).click();
+  await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
+  await expect(page.getByRole("switch", { name: "Attach the original summary" })).toHaveCount(0);
 });

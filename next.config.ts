@@ -19,6 +19,8 @@ const csp = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
+  // A stray lockfile higher up the tree would otherwise be taken as the workspace root.
+  outputFileTracingRoot: process.cwd(),
   async headers() {
     return [
       {

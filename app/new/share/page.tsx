@@ -37,6 +37,7 @@ export default function SharePage() {
   const flow = useFlow();
   const { draft, reviewed, recipients, setRecipients, caregiverFirstName, setCaregiver, created, setCreated, reset } = flow;
   const [hydrated, setHydrated] = useState(false);
+  const [ready, setReady] = useState(false);
   const [rows, setRows] = useState<Recipient[]>([]);
   const [usePin, setUsePin] = useState(false);
   const [pin, setPin] = useState("");
@@ -60,6 +61,7 @@ export default function SharePage() {
     if (!allReviewed && !created) return router.replace("/new/review");
     setRows(recipients.length ? recipients : [{ name: "", role: "family" }]);
     setHasFile(!!getOriginalFile());
+    setReady(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
@@ -67,10 +69,14 @@ export default function SharePage() {
     if (error) errorRef.current?.focus();
   }, [error]);
   useEffect(() => {
-    if (created) successRef.current?.focus();
+    if (created) {
+      window.scrollTo({ top: 0 });
+      successRef.current?.focus({ preventScroll: true });
+    }
   }, [created]);
 
-  if (!hydrated || !draft) return <p className="py-20 text-center text-ink-500">Loading…</p>;
+  // Render the form only once it is initialized, so nothing typed early is overwritten.
+  if (!hydrated || !draft || (!ready && !created)) return <p className="py-20 text-center text-ink-500">Loading…</p>;
 
   const updateRow = (i: number, r: Recipient) => {
     const next = rows.map((x, j) => (j === i ? r : x));
