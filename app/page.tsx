@@ -38,10 +38,10 @@ const PROMISES = [
   { title: "Gone in 30 days.", body: "Links expire on their own, and you can delete a handoff at any time." },
 ];
 
-function Eyebrow({ children }: { children: React.ReactNode }) {
+function Eyebrow({ children, showLine = true }: { children: React.ReactNode; showLine?: boolean }) {
   return (
     <p className="flex items-center gap-3 text-[0.8rem] font-bold tracking-[0.14em] text-primary-700 uppercase">
-      <span aria-hidden="true" className="h-px w-6 bg-primary-700" />
+      {showLine && <span aria-hidden="true" className="h-px w-6 bg-primary-700" />}
       {children}
     </p>
   );
@@ -63,7 +63,7 @@ export default function Home() {
         <section className="overflow-x-clip">
           <div className="mx-auto grid max-w-[1120px] items-center gap-14 px-4 pt-12 pb-14 sm:px-6 sm:pt-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:pt-24 lg:pb-16">
             <div>
-              <Eyebrow>For family caregivers</Eyebrow>
+              <Eyebrow showLine={false}>For family caregivers</Eyebrow>
               <h1 className="font-display mt-6 text-[2.45rem] leading-[1.04] font-normal text-ink-900 sm:text-[4.1rem]">
                 Share the doctor&apos;s plan with everyone who helps.
               </h1>
