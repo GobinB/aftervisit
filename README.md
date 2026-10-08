@@ -1,6 +1,6 @@
 # AfterVisit
 
-A permissioned care handoff after every medical visit. A family caregiver uploads (or pastes) an after-visit summary, AfterVisit drafts what changed, what needs to happen next and who needs to act, the caregiver confirms every item, and then shares one clean, read-only page with the people they choose. No accounts. No app install. Nothing is stored until the caregiver chooses to share.
+A permissioned care handoff after every medical visit. A family caregiver uploads (or pastes) an after-visit summary, reviews what changed and assigns the next steps, then gives family members and professional caregivers their own revocable links with individual section visibility. Recipients acknowledge the handoff and update their steps; the caregiver follows progress from a private dashboard. No accounts. No app install. Nothing is stored until the caregiver chooses to share.
 
 Built for the Assembly Code Incubator (Cohort 02, caregiving). Open source under the [AGPL-3.0](LICENSE). AfterVisit organizes what the clinician wrote; it is not medical advice.
 
@@ -9,8 +9,8 @@ Built for the Assembly Code Incubator (Cohort 02, caregiving). Open source under
 1. **Upload**: a PDF, a photo of the printed pages, or pasted text. Or start with the fictional sample visit.
 2. **Extract**: a built-in, deterministic parser (`lib/parse`) sorts the text into a visit snapshot, medication changes, next steps, watch-fors and questions. Anything it cannot place is kept under *Other notes*. Nothing is dropped or invented.
 3. **Review and confirm**: every item can be edited, deleted or assigned to a person. Unclear items are flagged *Please check this* and must be accepted or edited. Each section is checked off before the handoff can be created.
-4. **Share**: add recipients by name and role, optionally a 4-digit PIN, optionally the original document. Copy the link, text it, email it or print it. The creator gets a private manage link.
-5. **Read**: recipients open a mobile-first, printable page and tap *I've read this*. The creator sees who read it.
+4. **Share**: add recipients by name and role, choose each person's visible sections and task scope, and confirm permission to share. A 4-digit PIN is enabled by default; attaching the original document is optional. Each recipient gets a personal link, and the creator gets a private manage link.
+5. **Coordinate**: recipients open a mobile-first, printable page, tap *I've read this*, and update permitted steps with a status and optional note. The creator's dashboard shows self-reported acknowledgments, task progress and activity, and can revoke individual links or delete the handoff.
 
 Every handoff expires after 30 days and is deleted automatically.
 
@@ -33,12 +33,12 @@ Every handoff expires after 30 days and is deleted automatically.
 Next.js 15 (App Router) · TypeScript · React 19 · Tailwind CSS v4 · lucide-react · zod · Supabase Postgres + Storage (server-side, service role only) · unpdf · Tesseract.js · Vercel (hosting, cron, analytics) · Vitest + Playwright.
 
 ```
-app/                     routes: / · /new · /new/review · /new/share · /h/[token] · /h/[token]/manage · /privacy · /api/*
+app/                     routes: / · /new · /new/review · /new/share · /i/[invite] · /h/[token] · /h/[token]/manage · /privacy · /api/*
 components/              UI (SectionCard, TaskRow, PinInput, RoleChips, HandoffDocument, ...)
 lib/parse/               built-in parser: normalize, header, sections, medications, tasks, watch-for/questions
 lib/extract/             ExtractionProvider interface; heuristic (default) and optional LLM provider
 lib/                     schema (zod), db, storage, tokens, rate limiting, sample visit
-supabase/migrations/     0001_init.sql
+supabase/migrations/     0001_init.sql · 0002_invites_tracking.sql
 tests/                   parser fixtures and Vitest unit tests
 e2e/                     Playwright tests (desktop Chrome, iPhone Safari, Android Chrome)
 ```
@@ -54,7 +54,7 @@ npm install
 cp .env.example .env.local
 ```
 
-1. In Supabase, open the SQL editor and run `supabase/migrations/0001_init.sql`. It creates the `handoffs`, `rate_limits` and `handoff_tombstones` tables (RLS on, no policies) and the private `originals` storage bucket.
+1. In Supabase, open the SQL editor and run both migrations in order: `supabase/migrations/0001_init.sql`, then `supabase/migrations/0002_invites_tracking.sql`. The first creates the handoff tables and private `originals` storage bucket; the second adds personal invitations, task tracking, activity, anonymous feedback and the acknowledgment function. Existing installations with `0001` already applied still need `0002`.
    With the Supabase CLI instead: `supabase link --project-ref <ref>` then `supabase db push`.
 2. Fill in `.env.local`:
 
@@ -75,7 +75,7 @@ cp .env.example .env.local
 
 ```bash
 npm run dev          # http://localhost:3000
-npm test             # parser unit tests
+npm test             # parser and invitation-permission unit tests
 npm run test:e2e     # full browser suite (builds and starts the app on :3005)
 ```
 
@@ -91,12 +91,12 @@ The default `heuristic` provider needs no API key and is fully deterministic:
 
 `tests/parse.test.ts` checks six layouts (Epic MyChart, Cerner, an OCR'd printout, an urgent-care sheet, pasted portal text and the sample) and asserts that every source line lands in exactly one place.
 
-An LLM provider can be switched on with `EXTRACTION_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (`openai` and `gemini` are reserved names and currently fall back to the built-in parser). It uses structured output validated with zod and falls back to the built-in parser on any error. If you enable it, update the privacy page to name the provider.
+An LLM provider can be switched on with `EXTRACTION_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (`openai` and `gemini` are reserved names and currently fall back to the built-in parser). It uses structured output validated with zod and falls back to the built-in parser on any error. The privacy page automatically discloses the configured provider.
 
 ## Deploying to Vercel
 
 1. Import the GitHub repo in Vercel; the framework is detected automatically.
-2. Run the migration in Supabase (above).
+2. Apply both Supabase migrations (above) to the production database before deploying. Personal links, task tracking and feedback require `0002_invites_tracking.sql`.
 3. Add the environment variables for Production and Preview.
 4. `vercel.json` schedules `/api/cron/purge` daily at 03:00 UTC.
 5. Enable Web Analytics. Turn on Deployment Protection for previews only.

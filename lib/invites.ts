@@ -65,7 +65,8 @@ export interface EventRow {
 const norm = (s?: string | null) => (s ?? "").trim().toLowerCase();
 
 export function normalizeSections(sections?: ShareSection[]): ShareSection[] {
-  const set = new Set(sections && sections.length ? sections : SHARE_SECTIONS);
+  // Only an omitted selection gets the defaults; an explicit empty list grants no sections.
+  const set = new Set(sections === undefined ? SHARE_SECTIONS : sections);
   return SHARE_SECTIONS.filter((s) => set.has(s));
 }
 

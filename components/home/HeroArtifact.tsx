@@ -30,7 +30,7 @@ export function HeroArtifact() {
           Dizziness that gets worse, or any fall.
         </Card>
         <li className="ml-auto flex w-fit -translate-x-4 items-center gap-2 rounded-full bg-white px-3.5 py-2 text-[13px] font-medium text-ok-ink shadow-[0_10px_24px_-14px_rgb(28_36_51/0.5)] ring-1 ring-black/5">
-          <CheckCircle2 size={16} className="text-ok" /> Rosa read this at 9:14 AM
+          <CheckCircle2 size={16} className="text-ok" /> Rosa marked this as read
         </li>
       </ul>
     </div>

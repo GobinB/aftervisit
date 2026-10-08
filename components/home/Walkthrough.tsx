@@ -1,7 +1,7 @@
 import { CheckCircle2, CircleDashed, KeyRound, Link2 } from "lucide-react";
 import { MedBadge } from "@/components/Badge";
 import { SAMPLE_ASSIGNEES, SAMPLE_CAREGIVER, SAMPLE_DRAFT, SAMPLE_RECIPIENTS } from "@/lib/sample";
-import { ROLE_LABELS } from "@/lib/schema";
+import { ROLE_LABELS, SHARE_SECTION_LABELS } from "@/lib/schema";
 import { SamplePrintout } from "./SamplePrintout";
 
 const ROLE_NOTE: Record<string, string> = { Lisa: "Margaret's daughter" };
@@ -108,7 +108,7 @@ export function Walkthrough() {
       <Step
         n={4}
         title="A personal link for each person"
-        body={`Each person gets their own link and sees only what ${SAMPLE_CAREGIVER} chose. The day program sees just the medication changes and what to watch for. A PIN, sent separately, adds protection.`}
+        body={`Each person gets their own link and sees only what ${SAMPLE_CAREGIVER} chose. The day program sees the visit summary, medication changes and what to watch for. A PIN, sent separately, adds protection.`}
       >
         <Panel>
           <ul className="divide-y divide-border-200">
@@ -117,7 +117,7 @@ export function Walkthrough() {
                 <span className="font-medium">
                   {r.name} <span className="text-sm font-normal text-ink-500">· {ROLE_NOTE[r.name] ?? ROLE_LABELS[r.role]}</span>
                 </span>
-                <span className="text-sm text-ink-500">{r.sections ? "Sees medication changes, watch for" : "Sees everything"}</span>
+                <span className="text-sm text-ink-500">{r.sections ? `Sees: ${r.sections.map((s) => SHARE_SECTION_LABELS[s]).join(", ") || "No sections"}` : "Sees everything"}</span>
               </li>
             ))}
           </ul>
@@ -151,7 +151,7 @@ export function Walkthrough() {
                     )}
                     {r.name}
                   </span>
-                  <span className={`text-sm ${at ? "text-ink-500" : "font-medium text-med-ink"}`}>{at ? `Read ${at}` : "Not yet"}</span>
+                  <span className={`text-sm ${at ? "text-ink-500" : "font-medium text-med-ink"}`}>{at ? `Marked as read ${at}` : "Not yet"}</span>
                 </li>
               );
             })}

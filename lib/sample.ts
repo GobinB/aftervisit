@@ -133,7 +133,7 @@ export const SAMPLE_RECIPIENTS: RecipientShare[] = [
   { name: "Lisa", role: "family" },
   { name: "Rosa", role: "home_aide" },
   { name: "Dana", role: "care_manager" },
-  // The day program only needs the medication change and what to watch for.
+  // The day program sees the visit summary, medication changes and what to watch for.
   { name: "Sunrise Adult Day Health", role: "day_program", sections: ["medications", "watchFor", "summary"], tasksScope: "mine" },
 ];
 
