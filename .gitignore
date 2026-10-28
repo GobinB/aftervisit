@@ -50,3 +50,6 @@ next-env.d.ts
 
 # supabase cli local state
 /supabase/.temp/
+
+# private working plan (never commit)
+PHASES.md
