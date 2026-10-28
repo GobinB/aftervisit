@@ -78,7 +78,7 @@ function PinPrompt({ endpoint, render }: { endpoint: string; render: (d: Unlocke
       }
       if (body.status === "locked") {
         setLocked(true);
-        setMessage(COPY.pinLocked);
+        setMessage(COPY.pinLocked(body.lockedUntil ?? null));
       } else if (body.status === "wrong_pin") {
         setMessage(COPY.pinWrong(body.attemptsLeft));
       } else if (res.status === 410) {
@@ -138,6 +138,7 @@ async function postJson(url: string, body: unknown) {
     const data = await res.json().catch(() => ({}));
     if (res.ok) return { ok: true as const, data };
     if (res.status === 410) return { ok: false as const, message: data.status === "revoked" ? COPY.revoked : data.status === "deleted" ? COPY.deleted : COPY.expired };
+    if (data.status === "locked") return { ok: false as const, message: COPY.pinLocked(data.lockedUntil ?? null) };
     return { ok: false as const, message: data.message || COPY.genericError };
   } catch {
     return { ok: false as const, message: COPY.offline };

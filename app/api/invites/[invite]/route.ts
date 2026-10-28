@@ -9,7 +9,7 @@ type Ctx = { params: Promise<{ invite: string }> };
 async function view(invite: string, pin: unknown) {
   const found = await lookupInvite(invite);
   if (found.status !== "ok") return goneResponse(found.status);
-  const check = await checkPin(found.row, pin);
+  const check = await checkPin(found.row, pin, found.recipient);
   if (!check.ok) return pinFailureResponse(check);
   await recordOpen(found.recipient);
   const v = inviteView(found.row, found.recipient, await taskStatusRows(found.row.token));

@@ -8,10 +8,13 @@ import { checkRateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
+const PIN_UNLOCKED = { pin_failures: 0, locked_until: null, pin_lock_count: 0 };
+
 /**
- * POST { action: "revoke" | "new_link" } with x-manage-key.
+ * POST { action: "revoke" | "new_link" | "unlock_pin" } with x-manage-key.
  * revoke: that one link stops working; everyone else keeps access.
- * new_link: issues a fresh link for the same person; the old one stops working.
+ * new_link: issues a fresh link for the same person; the old one stops working. Clears any PIN lock.
+ * unlock_pin: clears a PIN lockout on that one link.
  */
 export async function POST(req: Request, { params }: { params: Promise<{ token: string; id: string }> }) {
   const { token, id } = await params;
@@ -35,10 +38,21 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
   if (action === "new_link") {
     const invite = newInviteToken();
     await addTombstone(recipient.invite_hash, "deleted").catch(() => {});
-    await db().from("handoff_recipients").update({ invite_hash: hashInvite(invite), revoked_at: null }).eq("id", id);
+    await db()
+      .from("handoff_recipients")
+      .update({ invite_hash: hashInvite(invite), revoked_at: null, ...PIN_UNLOCKED })
+      .eq("id", id);
     await logEvent({ handoff_token: token, recipient_id: id, actor: "creator", via: "creator", kind: "invited", detail: { name: recipient.name, reissued: true } });
     const base = process.env.NEXT_PUBLIC_APP_URL ? env.appUrl : new URL(req.url).origin;
     return json({ status: "ok", url: `${base}/i/${invite}` });
+  }
+
+  if (action === "unlock_pin") {
+    if (recipient.locked_until || recipient.pin_failures || recipient.pin_lock_count) {
+      await db().from("handoff_recipients").update(PIN_UNLOCKED).eq("id", id);
+      await logEvent({ handoff_token: token, recipient_id: id, actor: "creator", via: "creator", kind: "pin_unlocked", detail: { name: recipient.name } });
+    }
+    return json({ status: "ok" });
   }
 
   return json({ error: "invalid" }, 400);

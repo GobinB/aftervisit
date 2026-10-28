@@ -17,6 +17,8 @@ export interface DashRecipient {
   firstOpenedAt: string | null;
   lastOpenedAt: string | null;
   ackedAt: string | null;
+  /** Locked after repeated wrong PINs; stays locked until the creator unlocks it. */
+  pinLocked: boolean;
 }
 
 export interface DashEvent {
@@ -107,7 +109,7 @@ export function Dashboard({
   const soon = open.filter((t) => t.dueDate && t.dueDate >= today() && t.dueDate <= inDays(7));
   const nameFor = (id?: string | null) => recipients.find((r) => r.id === id)?.name;
 
-  async function recipientAction(r: DashRecipient, action: "revoke" | "new_link") {
+  async function recipientAction(r: DashRecipient, action: "revoke" | "new_link" | "unlock_pin") {
     if (action === "revoke" && !window.confirm(`Remove ${r.name}'s access? Their link stops working right away. Everyone else keeps access.`)) return;
     setBusy(`${action}-${r.id}`);
     setError(null);
@@ -189,8 +191,23 @@ export function Dashboard({
               <p className="mt-1 text-sm text-ink-500">
                 {r.firstOpenedAt ? `Opened ${dateTime(r.firstOpenedAt)}${r.lastOpenedAt && r.lastOpenedAt !== r.firstOpenedAt ? `, last ${dateTime(r.lastOpenedAt)}` : ""}` : "Not opened yet"}
               </p>
+              {r.pinLocked && !r.revokedAt ? (
+                <p className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-attn-ink">
+                  <AlertTriangle size={14} aria-hidden="true" /> Locked after too many wrong PINs. Unlock it only if you know {r.name} was trying.
+                </p>
+              ) : null}
               {newLinks[r.id] ? <CopyBox url={newLinks[r.id]} label={`New link for ${r.name}`} /> : null}
               <div className="mt-2 flex flex-wrap gap-2">
+                {r.pinLocked && !r.revokedAt ? (
+                  <button
+                    type="button"
+                    disabled={busy !== null}
+                    onClick={() => recipientAction(r, "unlock_pin")}
+                    className="min-h-10 rounded-lg px-3 text-sm font-semibold text-primary-700 ring-1 ring-border-200 hover:bg-sky-100 disabled:opacity-60"
+                  >
+                    {busy === `unlock_pin-${r.id}` ? "Unlocking…" : "Unlock"}
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   disabled={busy !== null}

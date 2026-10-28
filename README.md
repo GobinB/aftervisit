@@ -20,7 +20,7 @@ Every handoff expires after 30 days and is deleted automatically.
 - To build a draft, pasted text and PDFs are sent to AfterVisit's server and processed in memory; photos are read in the browser and only the recognized text is sent. Nothing is saved at this stage.
 - When a handoff is created, only the confirmed fields are stored (visit details, medication changes, next steps with assignees, watch-fors, questions, kept notes, each item's source sentence, recipient names and roles, the caregiver's first name). **The full source text is not stored.**
 - The original document is stored only if the caregiver turns on *Attach the original summary*, in a private bucket, served through a link that re-checks the handoff on every open, and deleted with the handoff.
-- **Access model:** each person gets their own revocable link (`/i/[invite]`, stored only as a hash) and sees only the sections the caregiver chose, filtered on the server. Anyone who has a person's link can open it if there is no PIN; new handoffs are PIN-protected by default (3 wrong tries lock for 10 minutes). Acknowledgments and step updates are recorded against the personal link used, which shows which link was used, not who held the phone. Handoffs created before personal links used one shared link, where read receipts were a typed name.
+- **Access model:** each person gets their own revocable link (`/i/[invite]`, stored only as a hash) and sees only the sections the caregiver chose, filtered on the server. Anyone who has a person's link can open it if there is no PIN; new handoffs are PIN-protected by default. 3 wrong tries lock that one link for 10 minutes, each later lock doubles, and the third stays until the caregiver unlocks it from the manage page; one person's wrong tries never lock anyone else out. Each attempt is decided in one locked database step, so guesses sent at the same time cannot get past the limit. Acknowledgments and step updates are recorded against the personal link used, which shows which link was used, not who held the phone. Handoffs created before personal links used one shared link, where read receipts were a typed name.
 - **Next steps** have a status (not started, in progress, completed) with notes and attribution. People can update only their own steps; the caregiver can update any from the manage page, which also shows the handoff at a glance and an activity log.
 - **Feedback** from the demo and manage page is stored anonymously (no handoff link, no IP).
 - Creating a handoff requires confirming the caregiver is the patient or is authorized to share.
@@ -38,7 +38,7 @@ components/              UI (SectionCard, TaskRow, PinInput, RoleChips, HandoffD
 lib/parse/               built-in parser: normalize, header, sections, medications, tasks, watch-for/questions
 lib/extract/             ExtractionProvider interface; heuristic (default) and optional LLM provider
 lib/                     schema (zod), db, storage, tokens, rate limiting, sample visit
-supabase/migrations/     0001_init.sql · 0002_invites_tracking.sql
+supabase/migrations/     0001_init.sql · 0002_invites_tracking.sql · 0003_pin_lockout.sql
 tests/                   parser fixtures and Vitest unit tests
 e2e/                     Playwright tests (desktop Chrome, iPhone Safari, Android Chrome)
 ```
@@ -54,7 +54,7 @@ npm install
 cp .env.example .env.local
 ```
 
-1. In Supabase, open the SQL editor and run both migrations in order: `supabase/migrations/0001_init.sql`, then `supabase/migrations/0002_invites_tracking.sql`. The first creates the handoff tables and private `originals` storage bucket; the second adds personal invitations, task tracking, activity, anonymous feedback and the acknowledgment function. Existing installations with `0001` already applied still need `0002`.
+1. In Supabase, open the SQL editor and run the migrations in order: `supabase/migrations/0001_init.sql`, `0002_invites_tracking.sql`, then `0003_pin_lockout.sql`. The first creates the handoff tables and private `originals` storage bucket; the second adds personal invitations, task tracking, activity, anonymous feedback and the acknowledgment function; the third moves the PIN lockout to each personal link and decides each attempt in the database. Existing installations still need every migration they have not run yet.
    With the Supabase CLI instead: `supabase link --project-ref <ref>` then `supabase db push`.
 2. Fill in `.env.local`:
 
@@ -96,7 +96,7 @@ An LLM provider can be switched on with `EXTRACTION_PROVIDER=anthropic` and `ANT
 ## Deploying to Vercel
 
 1. Import the GitHub repo in Vercel; the framework is detected automatically.
-2. Apply both Supabase migrations (above) to the production database before deploying. Personal links, task tracking and feedback require `0002_invites_tracking.sql`.
+2. Apply every Supabase migration (above) to the production database before deploying. Personal links, task tracking and feedback require `0002_invites_tracking.sql`; PIN checks require `0003_pin_lockout.sql` and fail without it.
 3. Add the environment variables for Production and Preview.
 4. `vercel.json` schedules `/api/cron/purge` daily at 03:00 UTC.
 5. Enable Web Analytics. Turn on Deployment Protection for previews only.

@@ -164,6 +164,10 @@ async function InviteManage({ row, manageKey }: { row: HandoffRow; manageKey: st
         return `${e.actor} tapped “I've read this” on their personal link`;
       case "revoked":
         return `You removed ${d.name}'s access`;
+      case "pin_locked":
+        return `${d.name}'s link locked after too many wrong PINs`;
+      case "pin_unlocked":
+        return `You unlocked ${d.name}'s link`;
       case "task_status":
         return `${e.via === "creator" ? "You" : e.actor} marked “${titleOf(d.taskId)}” ${STATUS_TEXT[d.status] ?? d.status}${
           e.via === "personal_link" ? " (personal link)" : ""
@@ -202,6 +206,7 @@ async function InviteManage({ row, manageKey }: { row: HandoffRow; manageKey: st
               firstOpenedAt: r.first_opened_at,
               lastOpenedAt: r.last_opened_at,
               ackedAt: r.acked_at,
+              pinLocked: r.locked_until === "infinity",
             }))}
             events={events.map((e) => ({ id: e.id, text: eventText(e), at: e.at, via: e.via }))}
           />

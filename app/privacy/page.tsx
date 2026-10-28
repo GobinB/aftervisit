@@ -78,7 +78,8 @@ export default function PrivacyPage() {
               </li>
               <li>
                 New handoffs are protected with a 4-digit PIN by default. A PIN adds a second step; it does not confirm who someone is. Three
-                wrong tries lock the handoff for 10 minutes.
+                wrong tries lock that person&apos;s link for 10 minutes, and repeated lockouts last longer until the caregiver unlocks it.
+                One person&apos;s wrong tries never lock anyone else out.
               </li>
               <li>
                 &ldquo;I&apos;ve read this&rdquo; and updates to next steps are recorded against the personal link they came from. That shows which

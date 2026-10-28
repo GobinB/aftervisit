@@ -14,7 +14,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ invite:
   const found = await lookupInvite(invite);
   if (found.status !== "ok") return goneResponse(found.status);
   const { pin } = await readJson(req);
-  const check = await checkPin(found.row, pin);
+  const check = await checkPin(found.row, pin, found.recipient);
   if (!check.ok) return pinFailureResponse(check);
   const { error } = await db().rpc("ack_recipient", { p_recipient: found.recipient.id });
   if (error) return json({ error: "ack_failed", message: COPY.genericError }, 500);

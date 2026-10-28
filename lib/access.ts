@@ -1,11 +1,15 @@
 import "server-only";
 import { NextResponse } from "next/server";
 import { db, getHandoff, getTombstone, isExpired, type HandoffRow } from "./db";
+import type { RecipientRow } from "./invites";
 import { PinSchema } from "./schema";
 import { hashManageKey, hashPin, hashToken, MANAGE_KEY_RE, safeEqual, TOKEN_RE } from "./tokens";
 
 export const MAX_PIN_ATTEMPTS = 3;
+/** The first lock lasts this long; each later one doubles (shared links cap at 24 hours). */
 export const LOCK_MINUTES = 10;
+/** The third lock on a personal link lasts until the creator unlocks it. */
+export const HARD_LOCK_AFTER = 3;
 
 export function json(data: unknown, status = 200, headers: Record<string, string> = {}) {
   return NextResponse.json(data, {
@@ -49,34 +53,60 @@ export async function requireManage(req: Request, token: string): Promise<{ row:
 export type PinCheck =
   | { ok: true }
   | { ok: false; status: "pin_required" }
-  | { ok: false; status: "locked"; lockedUntil: string }
+  /** lockedUntil null: locked until the creator unlocks the link. */
+  | { ok: false; status: "locked"; lockedUntil: string | null }
   | { ok: false; status: "wrong_pin"; attemptsLeft: number };
 
+/** The lock still in force on a stored `locked_until`, if any. */
+export function activeLock(lockedUntil: string | null | undefined, now = Date.now()): { lockedUntil: string | null } | null {
+  if (!lockedUntil) return null;
+  if (lockedUntil === "infinity") return { lockedUntil: null };
+  return Date.parse(lockedUntil) > now ? { lockedUntil } : null;
+}
+
+export interface TryPinRow {
+  result: "ok" | "wrong_pin" | "locked" | "not_found";
+  locked_until: string | null;
+  attempts_left: number | null;
+}
+
+/** Maps a try_pin row (migration 0003) to the response the routes send. */
+export function toPinCheck(r: TryPinRow): PinCheck {
+  switch (r.result) {
+    case "ok":
+      return { ok: true };
+    case "wrong_pin":
+      return { ok: false, status: "wrong_pin", attemptsLeft: r.attempts_left ?? 0 };
+    case "locked":
+      return { ok: false, status: "locked", lockedUntil: r.locked_until === "infinity" ? null : r.locked_until };
+    default:
+      throw new Error(`try_pin: ${r.result}`);
+  }
+}
+
 /**
- * Verifies a PIN with lockout: three wrong attempts lock the handoff for ten minutes.
+ * Verifies a PIN. The lockout is per personal link (or per handoff for older shared links) and is
+ * decided by try_pin in the database, one attempt at a time, so parallel guesses cannot get past it.
  * The PIN only ever arrives in a POST body, never in a URL.
  */
-export async function checkPin(row: HandoffRow, pin: unknown): Promise<PinCheck> {
+export async function checkPin(row: HandoffRow, pin: unknown, recipient?: RecipientRow): Promise<PinCheck> {
   if (!row.pin_hash) return { ok: true };
-  if (row.locked_until && new Date(row.locked_until).getTime() > Date.now()) {
-    return { ok: false, status: "locked", lockedUntil: row.locked_until };
-  }
+  const lock = activeLock(recipient ? recipient.locked_until : row.locked_until);
+  if (lock) return { ok: false, status: "locked", ...lock };
   if (pin === undefined || pin === null || pin === "") return { ok: false, status: "pin_required" };
   const parsed = PinSchema.safeParse(pin);
-  if (parsed.success && safeEqual(hashPin(row.token, parsed.data), row.pin_hash)) {
-    if (row.pin_failures > 0 || row.locked_until) {
-      await db().from("handoffs").update({ pin_failures: 0, locked_until: null }).eq("token", row.token);
-    }
-    return { ok: true };
-  }
-  const failures = row.pin_failures + 1;
-  if (failures >= MAX_PIN_ATTEMPTS) {
-    const lockedUntil = new Date(Date.now() + LOCK_MINUTES * 60_000).toISOString();
-    await db().from("handoffs").update({ pin_failures: 0, locked_until: lockedUntil }).eq("token", row.token);
-    return { ok: false, status: "locked", lockedUntil };
-  }
-  await db().from("handoffs").update({ pin_failures: failures }).eq("token", row.token);
-  return { ok: false, status: "wrong_pin", attemptsLeft: MAX_PIN_ATTEMPTS - failures };
+  const { data, error } = await db()
+    .rpc("try_pin", {
+      p_token: row.token,
+      p_recipient: recipient?.id ?? null,
+      p_candidate: parsed.success ? hashPin(row.token, parsed.data) : null,
+      p_max: MAX_PIN_ATTEMPTS,
+      p_lock_minutes: LOCK_MINUTES,
+      p_hard_after: HARD_LOCK_AFTER,
+    })
+    .single<TryPinRow>();
+  if (error) throw error;
+  return toPinCheck(data);
 }
 
 export function pinFailureResponse(check: Exclude<PinCheck, { ok: true }>) {

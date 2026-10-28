@@ -37,6 +37,10 @@ export interface RecipientRow {
   first_opened_at: string | null;
   last_opened_at: string | null;
   acked_at: string | null;
+  /** PIN lockout for this link alone. Absent before migration 0003. "infinity" = until the creator unlocks it. */
+  pin_failures?: number;
+  locked_until?: string | null;
+  pin_lock_count?: number;
 }
 
 export interface TaskStatusRow {
@@ -57,7 +61,7 @@ export interface EventRow {
   recipient_id: string | null;
   actor: string;
   via: "personal_link" | "creator" | "shared_link";
-  kind: "invited" | "opened" | "acknowledged" | "task_status" | "revoked";
+  kind: "invited" | "opened" | "acknowledged" | "task_status" | "revoked" | "pin_locked" | "pin_unlocked";
   detail: Record<string, unknown>;
   at: string;
 }

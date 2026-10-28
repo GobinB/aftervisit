@@ -261,7 +261,7 @@ test("PIN: wrong attempts count down, correct PIN opens, PIN never in URL", asyn
   await expect(page.getByText("Thanks, Rosa.")).toBeVisible();
 });
 
-test("PIN: three wrong attempts lock for 10 minutes", async ({ page }, info) => {
+test("PIN: three wrong attempts lock that one link for 10 minutes; other links still open", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop-chrome", "API-level check; run once");
   const h = await createViaApi(page, { pin: "1234" });
   const invite = inviteOf(h.invites[0].url);
@@ -274,9 +274,25 @@ test("PIN: three wrong attempts lock for 10 minutes", async ({ page }, info) => 
     const r = await page.request.post(`/api/invites/${invite}`, { data: { pin } });
     expect(r.status(), `pin ${pin}`).toBe(status);
   }
-  await page.goto(pathOf(h.invites[2].url));
+  await page.goto(pathOf(h.invites[0].url));
   await page.getByLabel("PIN, digit 1 of 4").pressSequentially("1234");
   await expect(page.getByText("Too many attempts. Try again in 10 minutes.")).toBeVisible();
+  // Someone else's wrong guesses never lock this person out.
+  await page.goto(pathOf(h.invites[2].url));
+  await page.getByLabel("PIN, digit 1 of 4").pressSequentially("1234");
+  await expect(page.getByRole("heading", { name: "Margaret's visit on Oct 3" })).toBeVisible();
+});
+
+test("PIN: parallel guesses cannot get past the lockout", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop-chrome", "API-level check; run once");
+  const h = await createViaApi(page, { pin: "1234" });
+  const invite = inviteOf(h.invites[0].url);
+  const wrong = Array.from({ length: 12 }, (_, i) => String(i).padStart(4, "0"));
+  const statuses = await Promise.all(wrong.map((pin) => page.request.post(`/api/invites/${invite}`, { data: { pin } }).then((r) => r.status())));
+  expect(statuses.filter((s) => s === 401)).toHaveLength(2);
+  expect(statuses.filter((s) => s === 423)).toHaveLength(10);
+  const r = await page.request.post(`/api/invites/${invite}`, { data: { pin: "1234" } });
+  expect(r.status()).toBe(423);
 });
 
 test("no horizontal scroll at 360 px; buttons at least 48 px", async ({ page }, info) => {

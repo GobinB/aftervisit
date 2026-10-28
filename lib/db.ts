@@ -20,6 +20,8 @@ export interface HandoffRow {
   expires_at: string;
   /** "invite": personal links only (P1). "link": one shared link (older handoffs). Absent before migration 0002. */
   access_mode?: "link" | "invite";
+  /** PIN lockouts so far on the shared link. Absent before migration 0003. */
+  pin_lock_count?: number;
 }
 
 let client: SupabaseClient | null = null;

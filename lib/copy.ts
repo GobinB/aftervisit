@@ -19,7 +19,11 @@ export const COPY = {
   shareSuccess: "Your handoff is ready. Only people with this link can see it.",
   pinHelper: "Share the PIN separately, by voice or a different message.",
   pinWrong: (left: number) => `That PIN does not match. ${left} ${left === 1 ? "attempt" : "attempts"} left.`,
-  pinLocked: "Too many attempts. Try again in 10 minutes.",
+  pinLocked: (lockedUntil: string | null) => {
+    if (!lockedUntil) return "Too many attempts. Ask the person who shared this with you to unlock your link.";
+    const minutes = Math.max(1, Math.ceil((Date.parse(lockedUntil) - Date.now()) / 60_000));
+    return `Too many attempts. Try again in ${minutes} ${minutes === 1 ? "minute" : "minutes"}.`;
+  },
   expired: "This care update has expired. Links last 30 days to keep health information from lingering online.",
   deleted: "This care update was deleted by the person who created it.",
   revoked: "The person who shared this care update removed access for this link.",

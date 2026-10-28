@@ -17,7 +17,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ invite:
   const found = await lookupInvite(invite);
   if (found.status !== "ok") return goneResponse(found.status);
   const body = await readJson(req);
-  const check = await checkPin(found.row, body.pin);
+  const check = await checkPin(found.row, body.pin, found.recipient);
   if (!check.ok) return pinFailureResponse(check);
   const parsed = TaskUpdateSchema.safeParse(body);
   if (!parsed.success) return json({ error: "invalid", message: COPY.genericError }, 400);
