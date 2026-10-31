@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  ci:
+    name: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Unit tests
+        run: npm test
+
+      - name: Production build
+        run: npm run build
+        env:
+          NEXT_TELEMETRY_DISABLED: "1"
+          # Fake values only. The build does not call Supabase. Real secrets stay out of CI.
+          NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+          SUPABASE_URL: https://ci-dummy.invalid
+          SUPABASE_SERVICE_ROLE_KEY: ci-dummy-service-role-key
+          CRON_SECRET: ci-dummy-cron-secret
+          IP_HASH_SALT: ci-dummy-ip-hash-salt
+
+  # Playwright (e2e/) is not run. The suite creates handoffs through
+  # /api/handoffs, which needs a real Supabase project. Do not add secrets
+  # to this file. A later pull request can uncomment the job below and pass
+  # SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, IP_HASH_SALT, and CRON_SECRET
+  # from repository secrets. Install browsers with:
+  #   npx playwright install --with-deps chromium webkit
+  # (desktop Chrome and Pixel 7 use Chromium; iPhone 14 uses WebKit.)
+  #
+  # e2e:
+  #   name: playwright
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 30
+  #   steps:
+  #     - name: Checkout
+  #       uses: actions/checkout@v7
+  #       with:
+  #         persist-credentials: false
+  #     - name: Setup Node
+  #       uses: actions/setup-node@v7
+  #       with:
+  #         node-version: 22
+  #         cache: npm
+  #     - name: Install
+  #       run: npm ci
+  #     - name: Install Playwright browsers
+  #       run: npx playwright install --with-deps chromium webkit
+  #     - name: End-to-end tests
+  #       run: npm run test:e2e
+
+  # pgTAP RLS tests are not run yet. When supabase/tests exists, add a job
+  # that runs `supabase test db`. The Supabase CLI starts a local database
+  # for that command, so the job does not need production credentials.
