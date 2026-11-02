@@ -1,6 +1,8 @@
 "use client";
 
-import { buildHelperLink, exportKeyBytes, loadCircleKey } from "@/lib/crypto";
+import { exportKeyBytes } from "@/lib/crypto/export";
+import { loadCircleKey } from "@/lib/crypto/idb";
+import { buildHelperLink } from "@/lib/crypto/link";
 
 /** Builds /i/{token}#k=... on this device. The token is the only part a server action returned. */
 export async function urlForMemberToken(circleId: string, token: string): Promise<{ ok: true; url: string } | { ok: false; error: string }> {

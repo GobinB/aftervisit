@@ -1,5 +1,6 @@
 import "client-only";
 import { asBuffer, base64UrlToBytes, bytesToBase64Url } from "@/lib/crypto/bytes";
+import { exportKeyBytes } from "@/lib/crypto/export";
 import { normalizePhrase, phraseEntropy } from "@/lib/crypto/phrase";
 import { WRAPPED_CIRCLE_KEY } from "@/lib/schema/circles";
 
@@ -36,9 +37,7 @@ export async function generateFileKey(): Promise<CryptoKey> {
   return crypto.subtle.generateKey(AES, true, FILE_USES);
 }
 
-export async function exportKeyBytes(key: CryptoKey): Promise<Uint8Array> {
-  return new Uint8Array(await crypto.subtle.exportKey("raw", key));
-}
+export { exportKeyBytes };
 
 export async function importCircleKey(raw: Uint8Array): Promise<CryptoKey> {
   if (raw.length !== 32) throw new Error("Circle key is not valid.");
