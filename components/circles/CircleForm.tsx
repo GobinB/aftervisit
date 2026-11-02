@@ -1,9 +1,12 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { createCircle } from "@/app/actions/circles";
+import { RecoveryPhrase } from "@/components/circles/RecoveryPhrase";
 import { Button } from "@/components/ui/Button";
-import { CONSENT_TEXT, CONSENT_TYPES, type ConsentType } from "@/lib/schema/circles";
+import { generateCircleKey, generatePhrase, saveCircleKey, wrapCircleKey } from "@/lib/crypto";
+import { CONSENT_TEXT, CONSENT_TYPES, type CircleContent, type ConsentType } from "@/lib/schema/circles";
 
 const field =
   "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500";
@@ -19,7 +22,13 @@ function lines(value: string): string[] {
     .filter(Boolean);
 }
 
+type Draft = {
+  content: CircleContent;
+  consents: { authorized_to_share: true; terms: true; privacy: true };
+};
+
 export function CircleForm() {
+  const router = useRouter();
   const [error, setError] = useState<string | null>(null);
   const [pending, start] = useTransition();
   const [doctors, setDoctors] = useState<Row[]>([empty()]);
@@ -29,6 +38,10 @@ export function CircleForm() {
     terms: false,
     privacy: false,
   });
+  const [draft, setDraft] = useState<Draft | null>(null);
+  const [phrase, setPhrase] = useState<string[] | null>(null);
+  const [circleKey, setCircleKey] = useState<CryptoKey | null>(null);
+  const [savedId, setSavedId] = useState<string | null>(null);
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,34 +52,87 @@ export function CircleForm() {
     }
     const pharmacyName = String(form.get("pharmacy_name") ?? "").trim();
     const poa = String(form.get("poa_location") ?? "").trim();
+    const content: CircleContent = {
+      person_name: String(form.get("person_name") ?? ""),
+      allergies: lines(String(form.get("allergies") ?? "")),
+      doctors: doctors
+        .filter((row) => row.name.trim())
+        .map((row) => ({ name: row.name.trim(), specialty: row.extra.trim() || undefined, phone: row.phone.trim() || undefined })),
+      pharmacy: pharmacyName
+        ? {
+            name: pharmacyName,
+            phone: String(form.get("pharmacy_phone") ?? "").trim() || undefined,
+            address: String(form.get("pharmacy_address") ?? "").trim() || undefined,
+          }
+        : undefined,
+      emergency_contacts: contacts
+        .filter((row) => row.name.trim())
+        .map((row) => ({ name: row.name.trim(), relationship: row.extra.trim() || undefined, phone: row.phone.trim() || undefined })),
+      poa_location: poa || undefined,
+    };
+    setError(null);
     start(async () => {
-      const result = await createCircle({
-        content: {
-          person_name: String(form.get("person_name") ?? ""),
-          allergies: lines(String(form.get("allergies") ?? "")),
-          doctors: doctors
-            .filter((row) => row.name.trim())
-            .map((row) => ({ name: row.name.trim(), specialty: row.extra.trim() || undefined, phone: row.phone.trim() || undefined })),
-          pharmacy: pharmacyName
-            ? {
-                name: pharmacyName,
-                phone: String(form.get("pharmacy_phone") ?? "").trim() || undefined,
-                address: String(form.get("pharmacy_address") ?? "").trim() || undefined,
-              }
-            : undefined,
-          emergency_contacts: contacts
-            .filter((row) => row.name.trim())
-            .map((row) => ({ name: row.name.trim(), relationship: row.extra.trim() || undefined, phone: row.phone.trim() || undefined })),
-          poa_location: poa || undefined,
-        },
-        consents: { authorized_to_share: true, terms: true, privacy: true },
-      });
-      if (result && !result.ok) setError(result.error);
+      try {
+        const key = await generateCircleKey();
+        const words = (await generatePhrase()).split(" ");
+        setCircleKey(key);
+        setPhrase(words);
+        setDraft({ content, consents: { authorized_to_share: true, terms: true, privacy: true } });
+      } catch {
+        setError("The key could not be created in this browser. Try again.");
+      }
+    });
+  }
+
+  function confirmPhrase() {
+    if (!draft || !circleKey || !phrase) return;
+    start(async () => {
+      try {
+        const circleKeyWrapped = await wrapCircleKey(circleKey, phrase.join(" "));
+        const result = await createCircle({ ...draft, circleKeyWrapped, keyVersion: 1 });
+        if (!result.ok) {
+          setError(result.error);
+          return;
+        }
+        try {
+          await saveCircleKey(result.circleId, circleKey, 1);
+        } catch {
+          setSavedId(result.circleId);
+          setError("The circle is saved, but this browser could not keep the key. Leave only after the words are written down. You can enter them again from your circles.");
+          return;
+        }
+        router.push(`/circles/${result.circleId}`);
+      } catch {
+        setError("The key could not be saved. The words are still on this page. Try again.");
+      }
     });
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-8">
+    <>
+      {phrase ? (
+        <div className="space-y-4">
+          <RecoveryPhrase
+            words={phrase}
+            pending={pending}
+            error={error}
+            onConfirm={confirmPhrase}
+            onBack={() => {
+              setPhrase(null);
+              setCircleKey(null);
+              setDraft(null);
+              setSavedId(null);
+              setError(null);
+            }}
+          />
+          {savedId ? (
+            <a href={`/circles/${savedId}`} className="inline-flex min-h-12 items-center font-semibold text-primary-700">
+              Open the circle
+            </a>
+          ) : null}
+        </div>
+      ) : null}
+      <form onSubmit={onSubmit} hidden={phrase ? true : undefined} className="space-y-8">
       <div>
         <label htmlFor="person_name" className="font-medium text-ink-900">
           Name
@@ -177,7 +243,7 @@ export function CircleForm() {
         ))}
       </fieldset>
 
-      {error ? (
+      {error && !phrase ? (
         <p role="alert" className="rounded-xl bg-attn-bg px-3 py-2 text-attn-ink">
           {error}
         </p>
@@ -186,6 +252,7 @@ export function CircleForm() {
         {pending ? "Saving" : "Create circle"}
       </Button>
     </form>
+    </>
   );
 }
 

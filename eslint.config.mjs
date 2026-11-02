@@ -24,6 +24,11 @@ const supabaseJsBan = {
   message: "This file may import @supabase/ssr only. Other @supabase packages stay in store/.",
 };
 
+const cryptoBan = {
+  group: ["@/lib/crypto", "@/lib/crypto/*", "@/lib/crypto/**"],
+  message: "lib/crypto is browser-only. Server code must not import it. The key and the recovery phrase stay in the browser.",
+};
+
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
   {
@@ -45,7 +50,26 @@ const eslintConfig = [
   {
     files: ["app/(auth)/**/*.{ts,tsx}", "middleware.ts"],
     rules: {
-      "no-restricted-imports": ["error", { patterns: [supabaseJsBan, storeBan] }],
+      "no-restricted-imports": ["error", { patterns: [supabaseJsBan, storeBan, cryptoBan] }],
+    },
+  },
+  {
+    files: ["services/**/*.{ts,tsx}", "lib/**/*.{ts,tsx}"],
+    ignores: ["lib/crypto/**"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [supabaseBan, cryptoBan] }],
+    },
+  },
+  {
+    files: ["app/actions/**/*.{ts,tsx}", "app/api/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [supabaseBan, storeBan, cryptoBan] }],
+    },
+  },
+  {
+    files: ["store/**/*.{ts,tsx}"],
+    rules: {
+      "no-restricted-imports": ["error", { patterns: [cryptoBan] }],
     },
   },
 ];

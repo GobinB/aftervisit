@@ -2,14 +2,9 @@
 
 import "server-only";
 import { redirect } from "next/navigation";
-import { z } from "zod";
 import { setHelperSession } from "@/lib/auth";
+import { OpenMemberLinkSchema } from "@/lib/schema/circles";
 import { openMemberToken } from "@/services/members";
-
-const OpenSchema = z.object({
-  token: z.string().regex(/^[A-Za-z0-9_-]{24}$/),
-  pin: z.string().regex(/^\d{4}$/).optional(),
-});
 
 /**
  * Opens a member link. There is no actor yet: this is what creates the helper cookie.
@@ -20,7 +15,7 @@ export async function openMemberLink(input: unknown) {
     input instanceof FormData
       ? { token: input.get("token"), pin: String(input.get("pin") ?? "") || undefined }
       : input;
-  const parsed = OpenSchema.safeParse(raw);
+  const parsed = OpenMemberLinkSchema.safeParse(raw);
   if (!parsed.success) return { ok: false as const, error: "This link is not valid." };
   const result = await openMemberToken(parsed.data.token, parsed.data.pin);
   if (!result.ok) return result;

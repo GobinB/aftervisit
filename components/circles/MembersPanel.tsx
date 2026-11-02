@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState, useTransition } from "react";
+import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addMemberAction, changeRoleAction, newLinkAction, renewMemberAction, revokeMemberAction, setVisibilityAction } from "@/app/actions/members";
+import { urlForMemberToken } from "@/components/circles/member-link";
+import { ShareLink } from "@/components/circles/ShareLink";
 import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { dateTime } from "@/lib/format";
@@ -17,13 +19,17 @@ export function MembersPanel({ circleId, people, canManage }: { circleId: string
   const [link, setLink] = useState<{ url: string; name: string; email: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  function saved(result: { ok: boolean; error?: string; link?: string; name?: string; email?: string | null }) {
+  async function saved(result: { ok: boolean; error?: string; token?: string; name?: string; email?: string | null }) {
     if (!result.ok) {
       setError(result.error ?? "That could not be saved. Try again.");
       return;
     }
     setError(null);
-    if (result.link && result.name) setLink({ url: result.link, name: result.name, email: result.email ?? null });
+    if (result.token && result.name) {
+      const built = await urlForMemberToken(circleId, result.token);
+      if (!built.ok) setError(built.error);
+      else setLink({ url: built.url, name: result.name, email: result.email ?? null });
+    }
     router.refresh();
   }
 
@@ -63,7 +69,7 @@ function AddPerson({
   onDone,
 }: {
   circleId: string;
-  onDone: (result: { ok: boolean; error?: string; link?: string; name?: string; email?: string | null }) => void;
+  onDone: (result: { ok: boolean; error?: string; token?: string; name?: string; email?: string | null }) => void;
 }) {
   const [role, setRole] = useState<HelperRole>("family");
   const [hidden, setHidden] = useState<VisibilityArea[]>([]);
@@ -87,7 +93,7 @@ function AddPerson({
         pin: pin || undefined,
         visibility,
       });
-      onDone(result);
+      await onDone(result);
     });
   }
 
@@ -139,7 +145,7 @@ function MemberControls({
 }: {
   circleId: string;
   person: PersonView;
-  onDone: (result: { ok: boolean; error?: string; link?: string; name?: string; email?: string | null }) => void;
+  onDone: (result: { ok: boolean; error?: string; token?: string; name?: string; email?: string | null }) => void;
 }) {
   const [role, setRole] = useState<HelperRole>((HELPER_ROLES as readonly string[]).includes(person.role) ? (person.role as HelperRole) : "family");
   const [confirming, setConfirming] = useState(false);
@@ -147,8 +153,10 @@ function MemberControls({
   const [hidden, setHidden] = useState<VisibilityArea[]>([]);
   const [sections, setSections] = useState<ShareSection[]>([]);
 
-  const run = (work: () => Promise<{ ok: boolean; error?: string; link?: string; name?: string; email?: string | null }>) => {
-    start(async () => onDone(await work()));
+  const run = (work: () => Promise<{ ok: boolean; error?: string; token?: string; name?: string; email?: string | null }>) => {
+    start(async () => {
+      await onDone(await work());
+    });
   };
 
   return (
@@ -256,60 +264,3 @@ function SectionPicker({
   );
 }
 
-function ShareLink({ link, onDone }: { link: { url: string; name: string; email: string | null }; onDone: () => void }) {
-  const [copied, setCopied] = useState(false);
-  const [canShare, setCanShare] = useState(false);
-  useEffect(() => {
-    setCanShare(typeof navigator.share === "function");
-  }, []);
-
-  const mail = `mailto:${link.email ?? ""}?subject=${encodeURIComponent("A link for you")}&body=${encodeURIComponent(`Here is your AfterVisit link:\n${link.url}\n\nIf there is a PIN, it will come separately.`)}`;
-
-  return (
-    <div role="status" className="space-y-3 rounded-2xl border border-border-200 bg-sky-100 p-4">
-      <p className="font-semibold text-primary-900">Link for {link.name}</p>
-      <p className="text-sm text-ink-500">Shown once. Copy it now. AfterVisit does not send it.</p>
-      <label className="sr-only" htmlFor="fresh-link">
-        Personal link
-      </label>
-      <input id="fresh-link" readOnly value={link.url} onFocus={(event) => event.target.select()} className={field} />
-      <div className="grid gap-2">
-        <Button
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(link.url);
-              setCopied(true);
-            } catch {
-              setCopied(false);
-            }
-          }}
-        >
-          Copy link
-        </Button>
-        {canShare ? (
-          <Button
-            variant="secondary"
-            onClick={async () => {
-              try {
-                await navigator.share({ title: "AfterVisit", text: `A link for ${link.name}`, url: link.url });
-              } catch {
-                // The person closed the share sheet.
-              }
-            }}
-          >
-            Share
-          </Button>
-        ) : null}
-        <a href={mail} className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-primary-700 px-5 font-semibold text-primary-700">
-          Email link
-        </a>
-        <Button variant="ghost" onClick={onDone}>
-          Done
-        </Button>
-      </div>
-      <p aria-live="polite" className="text-sm text-primary-700">
-        {copied ? "Copied." : ""}
-      </p>
-    </div>
-  );
-}
