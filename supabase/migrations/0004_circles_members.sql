@@ -115,6 +115,20 @@ revoke all on function public.is_circle_owner(uuid) from public, anon;
 grant execute on function public.is_circle_caregiver(uuid) to authenticated, service_role;
 grant execute on function public.is_circle_owner(uuid) to authenticated, service_role;
 
+-- Reads the stored owner, bypassing RLS, so an update cannot swap owner_id in the same statement.
+create or replace function public.circle_owner_id(p_circle uuid)
+returns uuid
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select owner_id from public.circles where id = p_circle;
+$$;
+
+revoke all on function public.circle_owner_id(uuid) from public, anon;
+grant execute on function public.circle_owner_id(uuid) to authenticated, service_role;
+
 -- Invoker, not definer: current_user must stay the caller. A security definer
 -- function would see current_user as the owner and skip this check.
 create or replace function public.circles_owner_only_delete()
@@ -126,6 +140,10 @@ as $$
 begin
   if current_user in ('postgres', 'supabase_admin', 'supabase_auth_admin') then
     if tg_op = 'DELETE' then return old; else return new; end if;
+  end if;
+  if tg_op = 'UPDATE' and new.owner_id is distinct from old.owner_id then
+    -- Ownership moves only through a security-definer function, never a raw update.
+    raise exception 'only the owner can change circle ownership';
   end if;
   if tg_op = 'DELETE'
      or (tg_op = 'UPDATE' and new.deleted_at is distinct from old.deleted_at and new.deleted_at is not null) then
@@ -149,13 +167,24 @@ security invoker
 set search_path = public
 as $$
 declare
+  v_circle uuid;
   v_owner uuid;
 begin
   if current_user in ('postgres', 'supabase_admin', 'supabase_auth_admin') then
     if tg_op = 'DELETE' then return old; else return new; end if;
   end if;
-  select owner_id into v_owner from public.circles where id = old.circle_id;
-  if old.user_id = v_owner and auth.uid() is distinct from v_owner then
+  v_circle := case when tg_op = 'DELETE' then old.circle_id else new.circle_id end;
+  select owner_id into v_owner from public.circles where id = v_circle;
+  if auth.uid() is distinct from v_owner then
+    raise exception 'only the owner can change caregivers';
+  end if;
+  if tg_op <> 'DELETE' and new.role = 'owner' and new.user_id is distinct from v_owner then
+    raise exception 'the owner role cannot be granted this way';
+  end if;
+  if tg_op = 'UPDATE' and old.user_id = v_owner and (new.role is distinct from 'owner' or new.user_id is distinct from old.user_id) then
+    raise exception 'the owner cannot be removed';
+  end if;
+  if tg_op = 'DELETE' and old.user_id = v_owner then
     raise exception 'the owner cannot be removed';
   end if;
   if tg_op = 'DELETE' then return old; else return new; end if;
@@ -177,10 +206,11 @@ create policy circles_select on public.circles
 create policy circles_insert on public.circles
   for insert to authenticated
   with check (owner_id = auth.uid());
+-- Co-caregivers may edit content. owner_id must stay the stored owner. The trigger blocks a swap.
 create policy circles_update on public.circles
   for update to authenticated
   using (public.is_circle_caregiver(id))
-  with check (public.is_circle_caregiver(id));
+  with check (public.is_circle_caregiver(id) and owner_id = public.circle_owner_id(id));
 create policy circles_delete on public.circles
   for delete to authenticated
   using (public.is_circle_caregiver(id));
@@ -192,19 +222,26 @@ drop policy if exists circle_caregivers_delete on public.circle_caregivers;
 create policy circle_caregivers_select on public.circle_caregivers
   for select to authenticated
   using (public.is_circle_caregiver(circle_id));
+-- Only the owner adds caregivers. The first owner row is that same user. Nobody can grant owner to someone else.
 create policy circle_caregivers_insert on public.circle_caregivers
   for insert to authenticated
   with check (
-    public.is_circle_caregiver(circle_id)
-    or (user_id = auth.uid() and public.is_circle_owner(circle_id))
+    public.is_circle_owner(circle_id)
+    and (
+      (role = 'co_caregiver')
+      or (role = 'owner' and user_id = auth.uid())
+    )
   );
 create policy circle_caregivers_update on public.circle_caregivers
   for update to authenticated
-  using (public.is_circle_caregiver(circle_id))
-  with check (public.is_circle_caregiver(circle_id));
+  using (public.is_circle_owner(circle_id))
+  with check (
+    public.is_circle_owner(circle_id)
+    and (role <> 'owner' or user_id = auth.uid())
+  );
 create policy circle_caregivers_delete on public.circle_caregivers
   for delete to authenticated
-  using (public.is_circle_caregiver(circle_id));
+  using (public.is_circle_owner(circle_id) and user_id is distinct from auth.uid());
 
 drop policy if exists members_select on public.members;
 drop policy if exists members_insert on public.members;
@@ -230,12 +267,7 @@ create policy consents_select on public.consents
 create policy consents_insert on public.consents
   for insert to authenticated
   with check (public.is_circle_caregiver(circle_id) and user_id = auth.uid());
-create policy consents_update on public.consents
-  for update to authenticated
-  using (public.is_circle_caregiver(circle_id))
-  with check (public.is_circle_caregiver(circle_id));
-create policy consents_delete on public.consents
-  for delete to authenticated using (public.is_circle_caregiver(circle_id));
+-- No update or delete policy: consent rows are insert-only for signed-in users.
 
 drop policy if exists activity_select on public.activity;
 drop policy if exists activity_insert on public.activity;
@@ -245,18 +277,18 @@ create policy activity_select on public.activity
   for select to authenticated using (public.is_circle_caregiver(circle_id));
 create policy activity_insert on public.activity
   for insert to authenticated with check (public.is_circle_caregiver(circle_id));
-create policy activity_update on public.activity
-  for update to authenticated
-  using (public.is_circle_caregiver(circle_id))
-  with check (public.is_circle_caregiver(circle_id));
-create policy activity_delete on public.activity
-  for delete to authenticated using (public.is_circle_caregiver(circle_id));
+-- No update or delete policy: the activity trail is insert-only for signed-in users.
 
 grant select, insert, update, delete on public.circles to authenticated, service_role;
 grant select, insert, update, delete on public.circle_caregivers to authenticated, service_role;
 grant select, insert, update, delete on public.members to authenticated, service_role;
-grant select, insert, update, delete on public.consents to authenticated, service_role;
-grant select, insert, update, delete on public.activity to authenticated, service_role;
+grant select, insert on public.consents to authenticated;
+grant select, insert, update, delete on public.consents to service_role;
+grant select, insert on public.activity to authenticated;
+grant select, insert, update, delete on public.activity to service_role;
+-- Default privileges grant all to authenticated. Take update and delete back.
+revoke update, delete on public.consents from anon, authenticated;
+revoke update, delete on public.activity from anon, authenticated;
 
 -- Same signature as 0003. Handoff tokens keep the existing path. Any other token
 -- with a member id checks public.members (its own pin_failures, locked_until, lock_count).

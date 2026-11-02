@@ -15,7 +15,7 @@ export default async function CirclesPage() {
   const circles = await listCircles(actor);
   return (
     <CircleShell>
-      <h1 className="font-display text-[2rem] leading-tight text-primary-900">Circles</h1>
+      <h1 className="font-display text-page text-primary-900">Circles</h1>
       <p className="mt-2 text-ink-500">A circle is the people who help one person. You choose what is saved.</p>
       {circles.length ? (
         <ul className="mt-6 space-y-3">

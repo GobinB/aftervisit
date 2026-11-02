@@ -3,7 +3,7 @@
 
 begin;
 
-select plan(20);
+select plan(38);
 
 -- Same column split as supabase/seed.sql: GoTrue renames confirmed_at.
 create function pg_temp.seed_user(p_id uuid, p_email text, p_name text, p_token text)
@@ -85,10 +85,30 @@ select is((select count(*) from public.activity where circle_id = 'bbbbbbbb-bbbb
 update public.circles set key_version = 99 where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20';
 update public.circle_caregivers set key_version = 99 where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20';
 update public.members set name = 'changed' where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20';
-update public.consents set version = 'changed' where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20';
-update public.activity set action = 'changed' where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20';
-delete from public.activity where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20';
-delete from public.consents where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20';
+select throws_ok(
+  $$update public.consents set version = 'changed' where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20'$$,
+  '42501',
+  'permission denied for table consents',
+  'A cannot update B consents'
+);
+select throws_ok(
+  $$update public.activity set action = 'changed' where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20'$$,
+  '42501',
+  'permission denied for table activity',
+  'A cannot update B activity'
+);
+select throws_ok(
+  $$delete from public.activity where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20'$$,
+  '42501',
+  'permission denied for table activity',
+  'A cannot delete B activity'
+);
+select throws_ok(
+  $$delete from public.consents where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20'$$,
+  '42501',
+  'permission denied for table consents',
+  'A cannot delete B consents'
+);
 delete from public.members where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20';
 delete from public.circle_caregivers where circle_id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20';
 delete from public.circles where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20';
@@ -129,7 +149,69 @@ select throws_ok(
   'only the owner can delete a circle',
   'co-caregiver cannot delete the circle'
 );
+select throws_ok(
+  $$update public.circles set owner_id = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3' where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'$$,
+  'P0001',
+  'only the owner can change circle ownership',
+  'co-caregiver cannot change owner_id'
+);
+select throws_ok(
+  $$insert into public.circle_caregivers (circle_id, user_id, role) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', 'co_caregiver')$$,
+  '42501',
+  'new row violates row-level security policy for table "circle_caregivers"',
+  'co-caregiver cannot insert a caregiver'
+);
+update public.circle_caregivers
+   set role = 'owner'
+ where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'
+   and user_id = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3';
+delete from public.circle_caregivers
+ where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'
+   and user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
+select throws_ok(
+  $$update public.activity set action = 'changed' where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13'$$,
+  '42501',
+  'permission denied for table activity',
+  'co-caregiver cannot update activity'
+);
+select throws_ok(
+  $$delete from public.activity where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13'$$,
+  '42501',
+  'permission denied for table activity',
+  'co-caregiver cannot delete activity'
+);
+select throws_ok(
+  $$update public.consents set version = 'changed' where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12'$$,
+  '42501',
+  'permission denied for table consents',
+  'co-caregiver cannot update consents'
+);
+select throws_ok(
+  $$delete from public.consents where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12'$$,
+  '42501',
+  'permission denied for table consents',
+  'co-caregiver cannot delete consents'
+);
+update public.circles
+   set content = '{"person_name":"Person A edited"}'::jsonb
+ where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10';
 reset role;
+select is(
+  (select role from public.circle_caregivers where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10' and user_id = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3'),
+  'co_caregiver',
+  'co-caregiver cannot promote a caregiver to owner'
+);
+select is(
+  (select count(*) from public.circle_caregivers where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10' and user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1')::int,
+  1,
+  'co-caregiver cannot remove the owner'
+);
+select is((select action from public.activity where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13'), 'circle_created', 'co-caregiver cannot update activity');
+select is((select count(*) from public.activity where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13')::int, 1, 'co-caregiver cannot delete activity');
+select is((select version from public.consents where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12'), '2026-11-02', 'co-caregiver cannot update consents');
+select is((select count(*) from public.consents where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12')::int, 1, 'co-caregiver cannot delete consents');
+select is((select content->>'person_name' from public.circles where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'), 'Person A edited', 'co-caregiver can edit circle content');
+select is((select owner_id from public.circles where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'), 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'::uuid, 'owner_id stays with the owner');
 
 update public.members set pin_hash = 'member-pin-hash' where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb21';
 set local role service_role;

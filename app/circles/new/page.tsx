@@ -12,7 +12,7 @@ export default async function NewCirclePage() {
   if (!actor || actor.kind !== "caregiver") redirect("/login?next=/circles/new");
   return (
     <CircleShell>
-      <h1 className="font-display text-[2rem] leading-tight text-primary-900">New circle</h1>
+      <h1 className="font-display text-page text-primary-900">New circle</h1>
       <p className="mt-2 mb-6 text-ink-500">Record what you want the circle to hold. AfterVisit stores your words and does not interpret them.</p>
       <CircleForm />
     </CircleShell>

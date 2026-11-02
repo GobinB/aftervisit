@@ -24,6 +24,13 @@
   --font-sans: var(--font-body), system-ui, "Segoe UI", Roboto, sans-serif;
   --font-display: var(--font-serif), "Iowan Old Style", Georgia, serif;
 
+  --text-page: 2rem;
+  --text-page--line-height: 1.15;
+  --text-section: 1.6rem;
+  --text-section--line-height: 1.15;
+  --text-ui: 0.95rem;
+  --color-link-on-ink: #9cc3ff; /* toast action on ink */
+
   --animate-fade-in: fade-in 0.35s ease-out both;
   --animate-slide-up: slide-up 0.3s ease-out both;
   --animate-pop: pop 0.4s cubic-bezier(0.2, 0.9, 0.3, 1.3) both;

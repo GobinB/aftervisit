@@ -13,7 +13,7 @@ const variants: Record<Variant, string> = {
   ghost: "min-h-10 rounded-xl px-3 text-base text-primary-700 hover:bg-sky-100",
   danger: "min-h-12 rounded-xl px-5 text-base border-2 border-attn bg-white text-attn-ink hover:bg-attn-bg",
   navy: "min-h-12 rounded-xl px-5 text-base bg-white/10 text-white ring-1 ring-white/30 hover:bg-white/20",
-  pill: "min-h-10 rounded-full px-4 text-[0.95rem] bg-ink-900 text-white hover:bg-primary-900",
+  pill: "min-h-10 rounded-full px-4 text-ui bg-ink-900 text-white hover:bg-primary-900",
 };
 
 export function buttonClass(variant: Variant = "primary", extra = "") {

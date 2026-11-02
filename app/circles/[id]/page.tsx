@@ -23,7 +23,7 @@ export default async function CircleHome({ params }: { params: Promise<{ id: str
   return (
     <CircleShell>
       <p className="text-sm font-semibold tracking-wide text-primary-700 uppercase">{actor.kind === "caregiver" ? (actor.role === "owner" ? "Owner" : "Co-caregiver") : "Personal link"}</p>
-      <h1 className="font-display mt-2 text-[2rem] leading-tight text-primary-900">{content?.person_name ?? "Circle"}</h1>
+      <h1 className="font-display mt-2 text-page text-primary-900">{content?.person_name ?? "Circle"}</h1>
       {showSummary && content ? <Summary content={content} /> : <p className="mt-4 text-ink-500">The summary is not shared with you.</p>}
       <div className="mt-8 grid gap-3">
         {showPeople ? (

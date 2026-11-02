@@ -34,7 +34,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
             {toast.actionLabel ? (
               <button
                 type="button"
-                className="rounded-md px-2 py-1 font-semibold text-[#9cc3ff] underline-offset-4 hover:underline"
+                className="rounded-md px-2 py-1 font-semibold text-link-on-ink underline-offset-4 hover:underline"
                 onClick={() => {
                   toast.onAction?.();
                   setToast(null);

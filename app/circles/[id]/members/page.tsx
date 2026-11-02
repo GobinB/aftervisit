@@ -22,7 +22,7 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
       <Link href={`/circles/${id}`} className="font-semibold text-primary-700">
         Back
       </Link>
-      <h1 className="font-display mt-2 text-[2rem] leading-tight text-primary-900">People{circle ? ` for ${circle.person_name}` : ""}</h1>
+      <h1 className="font-display mt-2 text-page text-primary-900">People{circle ? ` for ${circle.person_name}` : ""}</h1>
       <p className="mt-2 mb-6 text-ink-500">Links are shown once. Copy, share, or open them in your own mail app. AfterVisit does not send messages.</p>
       <MembersPanel circleId={id} people={listed.people} canManage={listed.canManage} />
     </CircleShell>
