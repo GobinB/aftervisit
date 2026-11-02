@@ -7,9 +7,15 @@ updates:
       day: monday
     open-pull-requests-limit: 5
     groups:
-      npm:
-        patterns:
-          - "*"
+      # Minor and patch updates together, so one breaking major never holds them back.
+      npm-minor-and-patch:
+        update-types:
+          - minor
+          - patch
+      # Major updates together, reviewed on their own.
+      npm-major:
+        update-types:
+          - major
 
   - package-ecosystem: github-actions
     directory: /
