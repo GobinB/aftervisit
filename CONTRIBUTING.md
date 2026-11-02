@@ -25,7 +25,7 @@ npm run test:e2e             # browser tests (Playwright; needs Supabase)
 The parser lives in `lib/parse`, one module per step. To fix a miss:
 
 1. Add a de-identified fixture to `tests/fixtures/`.
-2. Add its expected medications, task count and watch-for count to `tests/parse.test.ts`.
+2. Add its expected medications, task count and watch-for count to `tests/unit/parse.test.ts`.
 3. Make the test pass without breaking the others. Every source line must still land in exactly one section or in Other notes.
 
 ## License

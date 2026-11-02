@@ -1,0 +1,162 @@
+import "server-only";
+import { cookies } from "next/headers";
+import { env } from "@/lib/env";
+import { HELPER_COOKIE, readHelperCookie, signHelperCookie, type HelperClaim } from "@/lib/helper-cookie";
+import { HELPER_ROLES, MEMBER_TTL_DAYS, VisibilitySchema, type HelperRole, type Visibility } from "@/lib/schema/circles";
+import { serviceClient, userClient } from "@/store/db";
+import { createSupabaseServerClient } from "@/store/supabase-server";
+
+export type CaregiverRole = "owner" | "co_caregiver";
+
+/**
+ * The signed-in person for one request.
+ * Caregiver fields include the circles they belong to. `role` is for the circle passed to getActor.
+ * Helper `role` and `visibility` come from the member row, never from the cookie alone.
+ * `accessToken` is captured here so nothing downstream reads cookies or headers.
+ */
+export type Actor =
+  | {
+      kind: "caregiver";
+      userId: string;
+      circleIds: string[];
+      role: CaregiverRole | null;
+      accessToken: string;
+    }
+  | {
+      kind: "helper";
+      memberId: string;
+      circleId: string;
+      role: HelperRole;
+      visibility: Visibility;
+    };
+
+const SEEN_MS = 60_000;
+const COOKIE_MAX_AGE = MEMBER_TTL_DAYS * 24 * 60 * 60;
+
+function cookieOptions() {
+  return {
+    httpOnly: true,
+    sameSite: "lax" as const,
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: COOKIE_MAX_AGE,
+  };
+}
+
+/** Adds or replaces this circle's helper session. Other circles in the cookie stay. */
+export async function setHelperSession(claim: HelperClaim): Promise<boolean> {
+  if (!env.helperSessionSecret) return false;
+  const jar = await cookies();
+  const current = readHelperCookie(jar.get(HELPER_COOKIE)?.value, env.helperSessionSecret);
+  const next = [...current.filter((row) => row.circleId !== claim.circleId), claim];
+  jar.set(HELPER_COOKIE, signHelperCookie(next, env.helperSessionSecret), cookieOptions());
+  return true;
+}
+
+type CaregiverRecord = {
+  userId: string;
+  accessToken: string;
+  circleIds: string[];
+  roles: Record<string, CaregiverRole>;
+};
+
+async function loadCaregiver(): Promise<CaregiverRecord | null> {
+  if (!env.supabaseUrl || !env.anonKey) return null;
+  try {
+    const supabase = await createSupabaseServerClient();
+    const { data: userData } = await supabase.auth.getUser();
+    const user = userData.user;
+    const { data: sessionData } = await supabase.auth.getSession();
+    const accessToken = sessionData.session?.access_token;
+    if (!user || !accessToken) return null;
+    const db = userClient(accessToken);
+    const { data: memberships, error } = await db.from("circle_caregivers").select("circle_id, role");
+    if (error) return null;
+    const { data: circles } = await db.from("circles").select("id").is("deleted_at", null);
+    const live = new Set((circles ?? []).map((circle) => circle.id as string));
+    const roles: Record<string, CaregiverRole> = {};
+    const circleIds: string[] = [];
+    for (const row of memberships ?? []) {
+      const circleId = row.circle_id as string;
+      const role = row.role as string;
+      if (!live.has(circleId)) continue;
+      if (role !== "owner" && role !== "co_caregiver") continue;
+      roles[circleId] = role;
+      circleIds.push(circleId);
+    }
+    return { userId: user.id, accessToken, circleIds, roles };
+  } catch {
+    return null;
+  }
+}
+
+async function loadHelper(circleId: string): Promise<Actor | null> {
+  if (!env.helperSessionSecret) return null;
+  try {
+    const jar = await cookies();
+    const claim = readHelperCookie(jar.get(HELPER_COOKIE)?.value, env.helperSessionSecret).find((row) => row.circleId === circleId);
+    if (!claim) return null;
+    const db = serviceClient();
+    const { data, error } = await db
+      .from("members")
+      .select("id, role, visibility, revoked_at, expires_at, last_seen_at")
+      .eq("id", claim.memberId)
+      .eq("circle_id", circleId)
+      .maybeSingle();
+    if (error || !data) return null;
+    if (data.revoked_at) return null;
+    if (new Date(data.expires_at as string).getTime() <= Date.now()) return null;
+    const role = data.role as string;
+    if (!HELPER_ROLES.includes(role as HelperRole)) return null;
+    const parsed = VisibilitySchema.safeParse(data.visibility ?? {});
+    const visibility = parsed.success ? parsed.data : {};
+    const seen = data.last_seen_at ? new Date(data.last_seen_at as string).getTime() : 0;
+    if (Date.now() - seen >= SEEN_MS) {
+      await db
+        .from("members")
+        .update({
+          last_seen_at: new Date().toISOString(),
+          expires_at: new Date(Date.now() + MEMBER_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+        })
+        .eq("id", data.id as string);
+    }
+    const helperRole = role as HelperRole;
+    if (helperRole !== claim.role) {
+      await setHelperSession({ memberId: data.id as string, circleId, role: helperRole });
+    }
+    return { kind: "helper", memberId: data.id as string, circleId, role: helperRole, visibility };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Resolves the actor for this request. Pass a circle when the page is inside one.
+ * Nothing that calls this should read cookies or headers itself.
+ */
+export async function getActor(circleId?: string): Promise<Actor | null> {
+  const caregiver = await loadCaregiver();
+  if (caregiver && circleId && caregiver.circleIds.includes(circleId)) {
+    return {
+      kind: "caregiver",
+      userId: caregiver.userId,
+      circleIds: caregiver.circleIds,
+      role: caregiver.roles[circleId] ?? null,
+      accessToken: caregiver.accessToken,
+    };
+  }
+  if (circleId) {
+    const helper = await loadHelper(circleId);
+    if (helper) return helper;
+  }
+  if (caregiver && !circleId) {
+    return {
+      kind: "caregiver",
+      userId: caregiver.userId,
+      circleIds: caregiver.circleIds,
+      role: null,
+      accessToken: caregiver.accessToken,
+    };
+  }
+  return null;
+}

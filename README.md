@@ -16,7 +16,11 @@ Every handoff expires after 30 days and is deleted automatically.
 
 ## Privacy and access (current behavior)
 
-- No accounts. Vercel Web Analytics only (no cookies).
+The public demo (`/new`, `/h/...`, `/i/...` handoff links) is unchanged: no account is required to build or open a handoff.
+
+Circles are the signed-in product. A caregiver signs in with Google. A helper opens a personal link (`/i/...`), which can be the same shape as an older handoff invite. The server tells them apart by the stored hash. Helper browsers can stay signed into more than one circle. See [docs/Permissions.md](docs/Permissions.md).
+
+- Handoff demo: no account. Vercel Web Analytics only on marketing pages.
 - To build a draft, pasted text and PDFs are sent to AfterVisit's server and processed in memory; photos are read in the browser and only the recognized text is sent. Nothing is saved at this stage.
 - When a handoff is created, only the confirmed fields are stored (visit details, medication changes, next steps with assignees, watch-fors, questions, kept notes, each item's source sentence, recipient names and roles, the caregiver's first name). **The full source text is not stored.**
 - The original document is stored only if the caregiver turns on *Attach the original summary*, in a private bucket, served through a link that re-checks the handoff on every open, and deleted with the handoff.
@@ -30,16 +34,17 @@ Every handoff expires after 30 days and is deleted automatically.
 
 ## Stack
 
-Next.js 15 (App Router) · TypeScript · React 19 · Tailwind CSS v4 · lucide-react · zod · Supabase Postgres + Storage (server-side, service role only) · unpdf · Tesseract.js · Vercel (hosting, cron, analytics) · Vitest + Playwright.
+Next.js 15 (App Router) · TypeScript · React 19 · Tailwind CSS v4 · lucide-react · zod · Supabase Postgres + Storage · unpdf · Tesseract.js · Vercel (hosting, cron, analytics) · Vitest + Playwright.
 
 ```
-app/                     routes: / · /new · /new/review · /new/share · /i/[invite] · /h/[token] · /h/[token]/manage · /privacy · /api/*
-components/              UI (SectionCard, TaskRow, PinInput, RoleChips, HandoffDocument, ...)
-lib/parse/               built-in parser: normalize, header, sections, medications, tasks, watch-for/questions
-lib/extract/             ExtractionProvider interface; heuristic (default) and optional LLM provider
-lib/                     schema (zod), db, storage, tokens, rate limiting, sample visit
-supabase/migrations/     0001_init.sql · 0002_invites_tracking.sql · 0003_pin_lockout.sql
-tests/                   parser fixtures and Vitest unit tests
+app/                     routes, server actions, Google sign-in
+components/ui/           Button, Badge, Switch, Toast, PinInput
+services/                circles and members. Each call checks can() before store/
+store/                   the only folder that imports @supabase (plus auth routes and middleware, which use @supabase/ssr)
+lib/                     actor, permissions, schema, parser
+supabase/migrations/     0001 through 0004. Seed data is fictional, in supabase/seed.sql
+tests/unit/              Vitest, including the permissions grid
+supabase/tests/          pgTAP row-level security
 e2e/                     Playwright tests (desktop Chrome, iPhone Safari, Android Chrome)
 ```
 
@@ -54,19 +59,21 @@ npm install
 cp .env.example .env.local
 ```
 
-1. In Supabase, open the SQL editor and run the migrations in order: `supabase/migrations/0001_init.sql`, `0002_invites_tracking.sql`, then `0003_pin_lockout.sql`. The first creates the handoff tables and private `originals` storage bucket; the second adds personal invitations, task tracking, activity, anonymous feedback and the acknowledgment function; the third moves the PIN lockout to each personal link and decides each attempt in the database. Existing installations still need every migration they have not run yet.
-   With the Supabase CLI instead: `supabase link --project-ref <ref>` then `supabase db push`.
-2. Fill in `.env.local`:
+1. Apply every migration in order, including `supabase/migrations/0004_circles_members.sql`. With the Supabase CLI: `supabase link` (the project ref stays on your machine, not in git) then `supabase db push`. `supabase/seed.sql` loads a fictional family and is what a future preview branch will run. Do not put real family data in it.
+2. Fill in `.env.local`. This week, production and preview deployments share one Supabase project. The URL and keys are environment variables only. Before any real family data is stored, preview deployments move to Supabase Branching so each pull request gets its own database from the migrations and the seed. See [docs/decisions/0005-code-vs-data.md](docs/decisions/0005-code-vs-data.md).
 
 | Variable | Notes |
 | --- | --- |
-| `SUPABASE_URL` | Project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Server only. The anon key is never used. |
-| `NEXT_PUBLIC_APP_URL` | Base for share links. Leave unset locally to use the request origin. |
+| `SUPABASE_URL` | Project URL from the Supabase settings page |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable key. Google sign-in and a caregiver's own session (row-level security) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Server only. Existing handoff routes, and helper sessions. Bypasses row-level security; helper access is checked in `lib/permissions.ts` |
+| `HELPER_SESSION_SECRET` | HMAC key for helper-link cookies (`openssl rand -hex 32`) |
+| `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` | Google client. Read by `supabase/config.toml` for local auth. Hosted Google settings are in the Supabase dashboard |
+| `NEXT_PUBLIC_APP_URL` | Base for share links and the Google redirect (`{origin}/callback`). Leave unset locally to use the request origin |
 | `HANDOFF_TTL_DAYS` | Default 30 |
 | `MAX_UPLOAD_MB` / `NEXT_PUBLIC_MAX_UPLOAD_MB` | Default 10 |
 | `CRON_SECRET` | Bearer token Vercel Cron sends to `/api/cron/purge` (`openssl rand -hex 24`) |
-| `IP_HASH_SALT` | Salt for IP, PIN and manage-key hashes (`openssl rand -hex 24`) |
+| `IP_HASH_SALT` | Salt for IP, PIN, invite, and manage-key hashes (`openssl rand -hex 24`) |
 | `NEXT_PUBLIC_FEEDBACK_URL` | Optional two-question feedback form shown on the manage page |
 | `NEXT_PUBLIC_DEMO_MODE` | Defaults to on; shows "don't upload real patient records" notices. Set to `false` only after a privacy and security review |
 | `EXTRACTION_PROVIDER`, `ANTHROPIC_API_KEY`, `EXTRACTION_MODEL` | Optional; leave unset for the built-in parser |
@@ -75,7 +82,7 @@ cp .env.example .env.local
 
 ```bash
 npm run dev          # http://localhost:3000
-npm test             # parser and invitation-permission unit tests
+npm test             # parser, permissions grid, and invitation unit tests
 npm run test:e2e     # full browser suite (builds and starts the app on :3005)
 ```
 
@@ -89,14 +96,14 @@ The default `heuristic` provider needs no API key and is fully deterministic:
 4. **Classifiers**: medications (dose patterns, verbs for new/stopped/changed/continue, sig abbreviations expanded to plain words), tasks (imperatives and timing phrases, categorized as appointment/referral/lab/pharmacy/home), watch-fors, questions, and a 60-word visit summary from the Assessment or Plan.
 5. **Nothing is lost**: every other line goes to *Other notes*, where the caregiver can move it to a section or delete it.
 
-`tests/parse.test.ts` checks six layouts (Epic MyChart, Cerner, an OCR'd printout, an urgent-care sheet, pasted portal text and the sample) and asserts that every source line lands in exactly one place.
+`tests/unit/parse.test.ts` checks six layouts (Epic MyChart, Cerner, an OCR'd printout, an urgent-care sheet, pasted portal text and the sample) and asserts that every source line lands in exactly one place.
 
 An LLM provider can be switched on with `EXTRACTION_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (`openai` and `gemini` are reserved names and currently fall back to the built-in parser). It uses structured output validated with zod and falls back to the built-in parser on any error. The privacy page automatically discloses the configured provider.
 
 ## Deploying to Vercel
 
 1. Import the GitHub repo in Vercel; the framework is detected automatically.
-2. Apply every Supabase migration (above) to the production database before deploying. Personal links, task tracking and feedback require `0002_invites_tracking.sql`; PIN checks require `0003_pin_lockout.sql` and fail without it.
+2. Apply every Supabase migration (above) to the production database before deploying, including `0004_circles_members.sql`. Personal links, task tracking and feedback require `0002_invites_tracking.sql`; PIN checks require `0003_pin_lockout.sql` and fail without it. Circles require `0004`. Set `HELPER_SESSION_SECRET` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` on the one shared project. Add `{origin}/callback` to the Google redirect allow-list.
 3. Add the environment variables for Production and Preview.
 4. `vercel.json` schedules `/api/cron/purge` daily at 03:00 UTC.
 5. Enable Web Analytics. Turn on Deployment Protection for previews only.
