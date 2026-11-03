@@ -52,13 +52,44 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ci-dummy-service-role-key
           CRON_SECRET: ci-dummy-cron-secret
           IP_HASH_SALT: ci-dummy-ip-hash-salt
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-dummy-anon-key
+          HELPER_SESSION_SECRET: ci-dummy-helper-secret
+
+  db:
+    name: supabase test db
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      # Local Supabase CLI database only. These values are fake. No project ref, no production keys.
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: 2.72.7
+
+      - name: Start database
+        run: supabase db start
+        env:
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-dummy-google-client
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-dummy-google-secret
+
+      - name: pgTAP
+        run: supabase test db
+        env:
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-dummy-google-client
+          SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-dummy-google-secret
 
   # Playwright (e2e/) is not run. The suite creates handoffs through
   # /api/handoffs, which needs a real Supabase project. Do not add secrets
   # to this file. A later pull request can uncomment the job below and pass
   # SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, IP_HASH_SALT, and CRON_SECRET
-  # from repository secrets. Install browsers with:
-  #   npx playwright install --with-deps chromium webkit
+  # from repository secrets. Playwright 1.64 ships a newer WebKit, so install
+  # browsers with deps instead of reusing an older browser cache:
+  #   npx playwright install --with-deps
   # (desktop Chrome and Pixel 7 use Chromium; iPhone 14 uses WebKit.)
   #
   # e2e:
@@ -78,10 +109,6 @@ jobs:
   #     - name: Install
   #       run: npm ci
   #     - name: Install Playwright browsers
-  #       run: npx playwright install --with-deps chromium webkit
+  #       run: npx playwright install --with-deps
   #     - name: End-to-end tests
   #       run: npm run test:e2e
-
-  # pgTAP RLS tests are not run yet. When supabase/tests exists, add a job
-  # that runs `supabase test db`. The Supabase CLI starts a local database
-  # for that command, so the job does not need production credentials.

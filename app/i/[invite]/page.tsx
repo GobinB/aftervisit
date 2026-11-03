@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
+import { OpenMemberLink } from "@/components/circles/OpenMemberLink";
 import { InviteHandoff } from "@/components/handoff/clients";
 import { GonePage } from "@/components/handoff/GonePage";
 import { ogTitle } from "@/lib/copy";
 import { inviteView, lookupInvite, recordOpen, taskStatusRows } from "@/lib/invites";
 import { inviteOriginalLink } from "@/lib/storage";
+import { previewMemberLink } from "@/services/members";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +28,25 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** A person's own link. Shows only what the caregiver chose to share with them. */
+/** A person's own link. Member links set a helper session. Older handoff invites keep working. */
 export default async function InvitePage({ params }: Props) {
   const { invite } = await params;
+  const member = await previewMemberLink(invite);
+  if (member.status === "revoked" || member.status === "expired") return <GonePage status={member.status} />;
+  if (member.status === "locked") {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-surface-50 px-4">
+        <OpenMemberLink token={invite} mode="pin" lockedMessage={member.message} />
+      </div>
+    );
+  }
+  if (member.status === "pin" || member.status === "ready") {
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-surface-50 px-4">
+        <OpenMemberLink token={invite} mode={member.status} />
+      </div>
+    );
+  }
   const found = await lookupInvite(invite);
   if (found.status !== "ok") return <GonePage status={found.status} />;
   if (found.row.pin_hash) return <InviteHandoff invite={invite} />;
