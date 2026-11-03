@@ -1,4 +1,5 @@
--- Who may write a circle key. Columns already exist (0004): circles.key_version,
+-- Who may write a circle key. Runs after 0005_create_circle.sql. 0005 is not modified.
+-- Columns already exist (0004): circles.key_version,
 -- circle_caregivers.circle_key_wrapped, circle_caregivers.key_version.
 -- A caregiver may change only their own wrapped key, and that version must match the
 -- circle. circles.key_version moves only inside rotate_own_circle_key, and only the
@@ -250,3 +251,100 @@ revoke all on function public.circle_caregivers_own_key() from public, anon, aut
 revoke all on function public.circles_protect_owner_and_key() from public, anon, authenticated, service_role;
 revoke all on function public.rotate_own_circle_key(uuid, text, int, jsonb) from public, anon, service_role;
 grant execute on function public.rotate_own_circle_key(uuid, text, int, jsonb) to authenticated;
+
+-- Circle and the owner's wrapped key, in one transaction.
+-- 0005's create_circle(jsonb, jsonb) stays. It stores no wrapped key.
+-- This overload takes the wrapped key. It does not take a key version.
+-- The circle is created at key_version 1, and the owner row uses that value.
+--
+-- The key-guard triggers return immediately when current_user is postgres,
+-- supabase_admin, or supabase_auth_admin. This function is security definer
+-- and runs as its owner, so those triggers skip their checks. They do not
+-- skip because a definer can read the new circle. The wrapped key is checked
+-- here, before it is stored.
+create or replace function public.create_circle(p_content jsonb, p_consents jsonb, p_wrapped text)
+returns uuid
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_uid uuid := auth.uid();
+  v_id uuid := pg_catalog.gen_random_uuid();
+  v_key int := 1;
+  v_agreed timestamptz := pg_catalog.now();
+  v_elem jsonb;
+  v_type text;
+  v_version text;
+  v_hash text;
+  v_seen text[] := array[]::text[];
+begin
+  if v_uid is null then
+    raise exception 'sign in to create a circle';
+  end if;
+
+  if p_wrapped is not null and (
+    pg_catalog.char_length(p_wrapped) > 200
+    or p_wrapped !~ '^av1\.600000\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{64}$'
+  ) then
+    raise exception 'wrapped key is not valid';
+  end if;
+
+  if p_content is null
+     or pg_catalog.jsonb_typeof(p_content) is distinct from 'object'
+     or pg_catalog.octet_length(p_content::text) > 262144
+     or pg_catalog.jsonb_typeof(p_content -> 'person_name') is distinct from 'string'
+     or pg_catalog.char_length(pg_catalog.btrim(p_content ->> 'person_name')) < 1
+     or pg_catalog.char_length(p_content ->> 'person_name') > 120 then
+    raise exception 'circle content is not valid';
+  end if;
+
+  if p_consents is null
+     or pg_catalog.jsonb_typeof(p_consents) is distinct from 'array'
+     or pg_catalog.jsonb_array_length(p_consents) is distinct from 3 then
+    raise exception 'circle consents are not valid';
+  end if;
+
+  insert into public.circles (id, owner_id, key_version, content)
+  values (v_id, v_uid, v_key, p_content)
+  returning key_version into v_key;
+
+  insert into public.circle_caregivers (circle_id, user_id, role, key_version, circle_key_wrapped)
+  values (v_id, v_uid, 'owner', v_key, p_wrapped);
+
+  for v_elem in
+    select e.elem from pg_catalog.jsonb_array_elements(p_consents) as e(elem)
+  loop
+    if pg_catalog.jsonb_typeof(v_elem) is distinct from 'object' then
+      raise exception 'circle consents are not valid';
+    end if;
+    v_type := v_elem ->> 'type';
+    v_version := v_elem ->> 'version';
+    v_hash := v_elem ->> 'text_hash';
+    if v_type is null
+       or v_type not in ('authorized_to_share', 'terms', 'privacy')
+       or v_type = any (v_seen)
+       or v_version is null
+       or v_version !~ '^[0-9A-Za-z][0-9A-Za-z._-]{0,39}$'
+       or v_hash is null
+       or v_hash !~ '^[0-9a-f]{64}$' then
+      raise exception 'circle consents are not valid';
+    end if;
+    v_seen := v_seen || v_type;
+    insert into public.consents (circle_id, user_id, type, version, text_hash, agreed_at)
+    values (v_id, v_uid, v_type, v_version, v_hash, v_agreed);
+  end loop;
+
+  if pg_catalog.array_length(v_seen, 1) is distinct from 3 then
+    raise exception 'circle consents are not valid';
+  end if;
+
+  insert into public.activity (circle_id, actor, action, subject_type, subject_id)
+  values (v_id, 'caregiver:' || v_uid::text, 'circle_created', 'circle', v_id);
+
+  return v_id;
+end;
+$$;
+
+revoke all on function public.create_circle(jsonb, jsonb, text) from public, anon, authenticated, service_role;
+grant execute on function public.create_circle(jsonb, jsonb, text) to authenticated;

@@ -6,7 +6,7 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-// Public schema after migrations 0001-0005. Regenerate with:
+// Public schema after migrations 0001-0006. Regenerate with:
 // supabase gen types typescript --local > store/types.gen.ts
 export type Database = {
   public: {
@@ -447,6 +447,10 @@ export type Database = {
       ack_recipient: { Args: { p_recipient: string }; Returns: boolean }
       is_circle_caregiver: { Args: { p_circle: string }; Returns: boolean }
       is_circle_owner: { Args: { p_circle: string }; Returns: boolean }
+      create_circle: {
+        Args: { p_consents: Json; p_content: Json; p_wrapped: string }
+        Returns: string
+      }
       rotate_own_circle_key: {
         Args: { p_circle: string; p_wrapped: string; p_version: number; p_member_tokens: Json }
         Returns: number

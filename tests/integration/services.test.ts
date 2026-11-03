@@ -38,7 +38,6 @@ describe("services call can() before store", () => {
       content: { person_name: "Margaret Ward", allergies: [], doctors: [], emergency_contacts: [] },
       consents: { authorized_to_share: true, terms: true, privacy: true },
       circleKeyWrapped: `av1.600000.${"a".repeat(22)}.${"b".repeat(16)}.${"c".repeat(64)}`,
-      keyVersion: 1,
     });
     expect(result.ok).toBe(false);
     expect(clientFor).not.toHaveBeenCalled();

@@ -24,9 +24,10 @@ describe("circle content", () => {
   test("create requires every consent and a wrapped key, and refuses a phrase", () => {
     const content = { person_name: "Margaret Ward" };
     const consents = { authorized_to_share: true as const, terms: true as const, privacy: true as const };
-    expect(CreateCircleSchema.safeParse({ content, consents, circleKeyWrapped: WRAPPED, keyVersion: 1 }).success).toBe(true);
-    expect(CreateCircleSchema.safeParse({ content, consents, circleKeyWrapped: WRAPPED, keyVersion: 1, phrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" }).success).toBe(false);
-    expect(CreateCircleSchema.safeParse({ content, consents: { authorized_to_share: true, terms: true, privacy: false }, circleKeyWrapped: WRAPPED, keyVersion: 1 }).success).toBe(false);
+    expect(CreateCircleSchema.safeParse({ content, consents, circleKeyWrapped: WRAPPED }).success).toBe(true);
+    expect(CreateCircleSchema.safeParse({ content, consents, circleKeyWrapped: WRAPPED, keyVersion: 1 }).success).toBe(false);
+    expect(CreateCircleSchema.safeParse({ content, consents, circleKeyWrapped: WRAPPED, phrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" }).success).toBe(false);
+    expect(CreateCircleSchema.safeParse({ content, consents: { authorized_to_share: true, terms: true, privacy: false }, circleKeyWrapped: WRAPPED }).success).toBe(false);
   });
 
   test("rotate accepts the next wrapped key and nothing else", () => {

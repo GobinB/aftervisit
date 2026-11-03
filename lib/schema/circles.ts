@@ -122,9 +122,8 @@ export const CreateCircleSchema = z
       terms: z.literal(true),
       privacy: z.literal(true),
     }),
-    /** Already wrapped in the browser. The raw key and the recovery phrase are not accepted. */
+    /** Already wrapped in the browser. The raw key, the recovery phrase, and a key version are not accepted. */
     circleKeyWrapped: CircleKeyWrappedSchema,
-    keyVersion: z.literal(1),
   })
   .strict();
 export type CreateCircleInput = z.infer<typeof CreateCircleSchema>;

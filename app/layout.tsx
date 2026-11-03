@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Lexend, Newsreader } from "next/font/google";
-import { Analytics } from "@vercel/analytics/next";
+import { Analytics } from "@/components/Analytics";
 import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 

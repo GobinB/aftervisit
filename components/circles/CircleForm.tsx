@@ -89,7 +89,7 @@ export function CircleForm() {
     start(async () => {
       try {
         const circleKeyWrapped = await wrapCircleKey(circleKey, phrase.join(" "));
-        const result = await createCircle({ ...draft, circleKeyWrapped, keyVersion: 1 });
+        const result = await createCircle({ ...draft, circleKeyWrapped });
         if (!result.ok) {
           setError(result.error);
           return;
