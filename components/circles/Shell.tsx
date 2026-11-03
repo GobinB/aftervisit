@@ -10,7 +10,7 @@ import { COPY } from "@/lib/copy";
 export function CircleShell({ children, signedIn = false, narrow = false }: { children: React.ReactNode; signedIn?: boolean; narrow?: boolean }) {
   const width = narrow ? "max-w-xl" : "max-w-5xl";
   return (
-    <div className="flex min-h-dvh flex-col bg-white">
+    <div className="flex min-h-dvh flex-col bg-surface-50">
       <header className="no-print sticky top-0 z-30 h-16 border-b border-border-200 bg-white">
         <div className={`mx-auto flex h-full ${width} items-center justify-between px-4 sm:px-6`}>
           <Link href={signedIn ? "/circles" : "/"} className="rounded-lg" aria-label={signedIn ? "AfterVisit, your circles" : "AfterVisit home"}>

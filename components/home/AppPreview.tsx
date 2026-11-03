@@ -26,7 +26,7 @@ const CAPTIONS: Record<Screen, string> = {
 export function AppPreview({ screen, className = "" }: { screen: Screen; className?: string }) {
   return (
     <figure className={className}>
-      <div className="overflow-hidden rounded-2xl bg-white shadow-[0_28px_60px_-28px_rgb(28_36_51/0.45)] ring-1 ring-border-200">
+      <div className="overflow-hidden rounded-2xl border border-border-200 bg-white">
         <div className="flex items-center justify-between gap-3 border-b border-border-200 bg-surface-50 px-4 py-2.5">
           <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
             <LogoMark size={22} /> AfterVisit

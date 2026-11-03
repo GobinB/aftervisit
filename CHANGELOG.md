@@ -4,6 +4,7 @@ Notable changes to AfterVisit. The newest entries are at the top.
 
 ## Unreleased
 
+- Circle screens use a geometric sans, a soft grey page, and thin white cards. The sign-in page is a centered card. Phone headers can open How it works, Privacy, and the sample visit, and the current circle tab stays on screen. A new circle has one main heading, field errors clear as you fix them, and the people list shows a caregiver's name.
 - Each circle has its own pages for Overview, Care summary, People and Settings, with tabs between them and a getting-started checklist for the owner. Starting a circle is four short steps. The home page shows the People and Care summary modules using the app's own screens with fictional data.
 - Deleting a circle works, and it turns off every helper link in the same step. Caregivers can sign out from circle screens, which also removes this device's circle keys. A Google sign-in that times out shows a message on the sign-in page. The add-person picker lists only the areas a helper can see today.
 - The home page describes the care circle, with "Start a care circle" and a "Sign in" link in the app bar. The sample visit still needs no sign-in. The new-circle form asks who you are caring for and no longer fills in your own name.

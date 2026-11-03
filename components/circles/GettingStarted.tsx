@@ -13,8 +13,8 @@ export function GettingStarted({ circleId, people }: { circleId: string; people:
   if (steps.every((step) => step.done)) return null;
   const next = steps.find((step) => !step.done);
   return (
-    <section aria-labelledby="start-title" className="rounded-2xl bg-surface-50 p-5 ring-1 ring-border-200 sm:p-6">
-      <h2 id="start-title" className="font-display text-section text-ink-900">
+    <section aria-labelledby="start-title" className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">
+      <h2 id="start-title" className="font-display text-section text-primary-900">
         Getting started
       </h2>
       <ol className="mt-4 space-y-3">

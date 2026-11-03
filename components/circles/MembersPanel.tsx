@@ -117,7 +117,7 @@ function AddPerson({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-border-200 bg-white p-4">
-      <h2 className="font-display text-section text-ink-900">Add a person</h2>
+      <h2 className="font-display text-section text-primary-900">Add a person</h2>
       <div>
         <label htmlFor="member-name" className="font-medium">
           Name

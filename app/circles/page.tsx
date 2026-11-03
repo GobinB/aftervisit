@@ -19,7 +19,7 @@ export default async function CirclesPage() {
   return (
     <CircleShell signedIn>
       <p className="text-eyebrow font-bold tracking-[0.14em] text-primary-700 uppercase">Your care circles</p>
-      <h1 className="font-display mt-2 text-heading text-ink-900 sm:text-heading-lg">Who are you looking after?</h1>
+      <h1 className="font-display mt-2 text-heading text-primary-900 sm:text-heading-lg">Who are you looking after?</h1>
       <p className="mt-3 max-w-2xl text-ink-500">A care circle is one shared page for one person, and the people who help them.</p>
       <RestoreKeys circles={keys} />
       <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -29,11 +29,11 @@ export default async function CirclesPage() {
             <li key={circle.id}>
               <Link
                 href={`/circles/${circle.id}`}
-                className="group flex h-full min-h-32 flex-col justify-between rounded-2xl bg-white p-5 ring-1 ring-border-200 transition-shadow hover:shadow-[0_12px_32px_-18px_rgb(28_36_51/0.45)] hover:ring-primary-700/40"
+                className="group flex h-full min-h-32 flex-col justify-between rounded-2xl border border-border-200 bg-white p-5 hover:border-primary-700"
               >
                 <span className="flex items-center gap-3">
                   <Avatar name={circle.personName} size="lg" />
-                  <span className="font-display text-section leading-tight text-ink-900">{circle.personName}</span>
+                  <span className="font-display text-section leading-tight text-primary-900">{circle.personName}</span>
                 </span>
                 <span className="mt-4 flex items-center justify-between text-sm text-ink-500">
                   {role}

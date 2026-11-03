@@ -142,7 +142,7 @@ function Points({ items }: { items: string[] }) {
 
 function SectionTitle({ id, children, className = "" }: { id: string; children: React.ReactNode; className?: string }) {
   return (
-    <h2 id={id} className={`font-display text-heading text-ink-900 sm:text-heading-lg ${className}`}>
+    <h2 id={id} className={`font-display text-heading text-primary-900 sm:text-heading-lg ${className}`}>
       {children}
     </h2>
   );
@@ -157,7 +157,7 @@ export default function Home() {
           <div className="mx-auto grid max-w-[1120px] items-center gap-14 px-4 pt-12 pb-14 sm:px-6 sm:pt-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:pt-24 lg:pb-16">
             <div>
               <Eyebrow showLine={false}>Free · Private by design · Nonprofit</Eyebrow>
-              <h1 className="font-display mt-6 text-hero font-normal text-ink-900 sm:text-hero-lg">
+              <h1 className="font-display mt-6 text-hero font-normal text-primary-900 sm:text-hero-lg">
                 One shared care page for the person you look after.
               </h1>
               <p className="mt-6 max-w-[36rem] text-lg leading-relaxed text-ink-500 sm:text-item">
@@ -168,7 +168,7 @@ export default function Home() {
                 <ButtonLink href={START_HREF} variant="primary" className="min-h-14 px-6 text-cta">
                   Start a care circle <ArrowRight size={20} aria-hidden="true" />
                 </ButtonLink>
-                <StartSample variant="soft" label="Try a sample visit" className="min-h-14 px-6 text-cta" />
+                <StartSample variant="secondary" label="Try a sample visit" className="min-h-14 px-6 text-cta" />
               </div>
               <p className="mt-5 max-w-[36rem] text-ui text-ink-500">
                 Caregivers sign in with Google. Everyone else opens their own link, with no account.
@@ -204,7 +204,7 @@ export default function Home() {
               {PROBLEMS.map(({ icon: Icon, title, body }) => (
                 <li key={title}>
                   <Icon size={28} strokeWidth={1.6} className="text-med" aria-hidden="true" />
-                  <h3 className="font-display mt-4 text-card text-ink-900">{title}</h3>
+                  <h3 className="font-display mt-4 text-card text-primary-900">{title}</h3>
                   <p className="mt-2 text-ink-500">{body}</p>
                 </li>
               ))}
@@ -241,7 +241,7 @@ export default function Home() {
 
             <article id="module-people" aria-labelledby="module-people-title" className="mt-16 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
               <div>
-                <h3 id="module-people-title" className="font-display text-heading text-ink-900">
+                <h3 id="module-people-title" className="font-display text-heading text-primary-900">
                   Everyone who helps, with their own link.
                 </h3>
                 <p className="mt-4 text-lg text-ink-500">
@@ -254,7 +254,7 @@ export default function Home() {
 
             <article id="module-summary" aria-labelledby="module-summary-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
               <div className="lg:order-2">
-                <h3 id="module-summary-title" className="font-display text-heading text-ink-900">
+                <h3 id="module-summary-title" className="font-display text-heading text-primary-900">
                   What to know in a hurry.
                 </h3>
                 <p className="mt-4 text-lg text-ink-500">
@@ -352,7 +352,7 @@ export default function Home() {
               <p className="mt-2 text-sm text-ink-500">Open source under the AGPL-3.0 license.</p>
             </div>
             <figure>
-              <blockquote id="founder-title" className="font-display text-section leading-[1.35] text-ink-900 sm:text-page">
+              <blockquote id="founder-title" className="font-display text-section leading-[1.35] text-primary-900 sm:text-page">
                 &ldquo;After five years working with Medicaid billing for an adult day health center, I&apos;ve seen how many different people
                 are involved in supporting aging adults. AfterVisit started with a simple question: what if the important information from a
                 medical appointment reached everyone helping with care, without families having to explain it over and over?&rdquo;
@@ -362,17 +362,17 @@ export default function Home() {
         </section>
 
         {/* Closing */}
-        <section aria-labelledby="cta-title" className="px-4 pb-20 sm:px-6">
-          <div className="mx-auto max-w-[1120px] rounded-3xl bg-primary-900 px-6 py-14 text-center sm:px-12 sm:py-20">
-            <h2 id="cta-title" className="font-display mx-auto max-w-2xl text-closing text-white sm:text-closing-lg">
+        <section aria-labelledby="cta-title" className="bg-surface-50 px-4 py-16 sm:px-6 sm:py-20">
+          <div className="mx-auto max-w-[1120px] rounded-3xl border border-border-200 bg-white px-6 py-14 text-center sm:px-12 sm:py-20">
+            <h2 id="cta-title" className="font-display mx-auto max-w-2xl text-closing text-primary-900 sm:text-closing-lg">
               Start a care page for someone you look after.
             </h2>
-            <p className="mt-4 text-lg text-white/75">Free. Sign in with Google. Helpers never need an account.</p>
+            <p className="mt-4 text-lg text-ink-500">Free. Sign in with Google. Helpers never need an account.</p>
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-              <ButtonLink href={START_HREF} variant="light" className="min-h-14 px-6 text-cta">
+              <ButtonLink href={START_HREF} variant="primary" className="min-h-14 px-6 text-cta">
                 Start a care circle <ArrowRight size={20} aria-hidden="true" />
               </ButtonLink>
-              <StartSample variant="navy" label="Try a sample visit" className="min-h-14 px-6 text-cta" />
+              <StartSample variant="secondary" label="Try a sample visit" className="min-h-14 px-6 text-cta" />
             </div>
           </div>
         </section>

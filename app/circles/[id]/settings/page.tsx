@@ -25,10 +25,10 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   return (
     <CircleShell signedIn>
       <CircleFrame personName={content.person_name} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} active="settings">
-        <div className="max-w-xl space-y-12">
+        <div className="max-w-xl space-y-6">
           {key && canRotate ? (
-            <section aria-labelledby="key-title">
-              <h2 id="key-title" className="font-display border-b-2 border-ink-900 pb-3 text-section text-ink-900">
+            <section aria-labelledby="key-title" className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">
+              <h2 id="key-title" className="font-display border-b border-border-200 pb-3 text-section text-primary-900">
                 Key for files
               </h2>
               <p className="mt-4 text-ink-500">
@@ -41,7 +41,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
             </section>
           ) : null}
           {canDelete ? (
-            <section aria-labelledby="delete-title">
+            <section aria-labelledby="delete-title" className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">
               <h2 id="delete-title" className="font-display border-b-2 border-attn pb-3 text-section text-attn-ink">
                 Delete this circle
               </h2>

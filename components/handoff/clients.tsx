@@ -98,7 +98,7 @@ function PinPrompt({ endpoint, render }: { endpoint: string; render: (d: Unlocke
 
   return (
     <div className="flex min-h-dvh items-center justify-center bg-surface-50 px-4">
-      <main id="main" className="w-full max-w-sm rounded-2xl border border-border-200 bg-white p-7 text-center shadow-sm">
+      <main id="main" className="w-full max-w-sm rounded-2xl border border-border-200 bg-white p-7 text-center">
         <div className="mx-auto flex w-fit items-center gap-2.5 text-primary-900">
           <LogoMark size={36} />
           <span className="text-lg font-semibold">Care update</span>

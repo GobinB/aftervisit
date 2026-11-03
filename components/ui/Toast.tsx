@@ -29,7 +29,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div aria-live="polite" role="status" className="no-print pointer-events-none fixed inset-x-0 bottom-24 z-50 flex justify-center px-4">
         {toast ? (
-          <div key={toast.id} className="pointer-events-auto flex animate-fade-in items-center gap-4 rounded-xl bg-ink-900 px-4 py-3 text-white shadow-lg">
+          <div key={toast.id} className="pointer-events-auto flex animate-fade-in items-center gap-4 rounded-xl border border-ink-900 bg-ink-900 px-4 py-3 text-white">
             <span>{toast.message}</span>
             {toast.actionLabel ? (
               <button

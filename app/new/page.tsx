@@ -137,7 +137,7 @@ export default function IntakePage() {
   if (processing) {
     return (
       <div className="mx-auto flex min-h-[60dvh] max-w-[720px] items-center justify-center">
-        <div className="w-full max-w-md animate-fade-in rounded-2xl border border-border-200 bg-white p-8 text-center shadow-sm">
+        <div className="w-full max-w-md animate-fade-in rounded-2xl border border-border-200 bg-white p-8 text-center">
           {ocr === null ? (
             <div className="mx-auto mb-6 flex h-16 w-16 animate-pulse-ring items-center justify-center rounded-full bg-sky-100">
               <Loader2 className="animate-spin text-action-500" size={28} aria-hidden="true" />
