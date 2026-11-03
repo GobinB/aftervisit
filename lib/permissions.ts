@@ -41,6 +41,7 @@ export const ACTIONS = [
   "summary:edit",
   "export:download",
   "circle:delete",
+  "circle:rotate_key",
 ] as const;
 
 export type Action = (typeof ACTIONS)[number];
@@ -78,6 +79,7 @@ const OWNER: Cell[] = [
   "allow", "allow", "allow",
   "allow",
   "allow",
+  "allow",
 ];
 
 const CO: Cell[] = [
@@ -89,6 +91,7 @@ const CO: Cell[] = [
   "allow", "allow", "allow",
   "allow", "allow", "allow",
   "allow", "allow", "allow",
+  "deny",
   "deny",
   "deny",
 ];
@@ -104,6 +107,7 @@ const FAMILY: Cell[] = [
   "allow", "allow", "deny",
   "deny",
   "deny",
+  "deny",
 ];
 
 const CARE_MANAGER: Cell[] = [
@@ -117,6 +121,7 @@ const CARE_MANAGER: Cell[] = [
   "allow", "allow", "deny",
   "deny",
   "deny",
+  "deny",
 ];
 
 const AIDE: Cell[] = [
@@ -128,6 +133,7 @@ const AIDE: Cell[] = [
   "deny", "deny", "allow",
   "deny", "deny", "sections",
   "allow", "allow", "deny",
+  "deny",
   "deny",
   "deny",
 ];

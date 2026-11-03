@@ -3,7 +3,7 @@
 
 begin;
 
-select plan(38);
+select plan(39);
 
 -- Same column split as supabase/seed.sql: GoTrue renames confirmed_at.
 create function pg_temp.seed_user(p_id uuid, p_email text, p_name text, p_token text)
@@ -161,10 +161,15 @@ select throws_ok(
   'new row violates row-level security policy for table "circle_caregivers"',
   'co-caregiver cannot insert a caregiver'
 );
-update public.circle_caregivers
-   set role = 'owner'
- where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'
-   and user_id = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3';
+select throws_ok(
+  $$update public.circle_caregivers
+       set role = 'owner'
+     where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'
+       and user_id = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3'$$,
+  'P0001',
+  'only the owner can change caregivers',
+  'co-caregiver cannot promote themselves'
+);
 delete from public.circle_caregivers
  where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'
    and user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';

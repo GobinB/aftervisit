@@ -2,11 +2,13 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { DeleteCircle } from "@/components/circles/DeleteCircle";
+import { RestoreKeys } from "@/components/circles/RestoreKeys";
+import { RotateKey } from "@/components/circles/RotateKey";
 import { CircleShell } from "@/components/circles/Shell";
 import { ButtonLink } from "@/components/ui/Button";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { getCircle } from "@/services/circles";
+import { getCircle, listOwnCircleKeys } from "@/services/circles";
 import type { CircleContent } from "@/lib/schema/circles";
 
 export const metadata: Metadata = { title: "Circle", robots: { index: false, follow: false } };
@@ -20,10 +22,13 @@ export default async function CircleHome({ params }: { params: Promise<{ id: str
   if (!content && actor.kind === "caregiver") notFound();
   const showSummary = can(actor, "summary:read", { circleId: id });
   const showPeople = can(actor, "members:read", { circleId: id }) || can(actor, "members:read:caregivers", { circleId: id }) || can(actor, "members:manage", { circleId: id });
+  const keys = actor.kind === "caregiver" ? await listOwnCircleKeys(actor) : [];
+  const key = keys.find((item) => item.circleId === id) ?? null;
   return (
     <CircleShell>
       <p className="text-sm font-semibold tracking-wide text-primary-700 uppercase">{actor.kind === "caregiver" ? (actor.role === "owner" ? "Owner" : "Co-caregiver") : "Personal link"}</p>
       <h1 className="font-display mt-2 text-page text-primary-900">{content?.person_name ?? "Circle"}</h1>
+      {key ? <RestoreKeys circles={[key]} /> : null}
       {showSummary && content ? <Summary content={content} /> : <p className="mt-4 text-ink-500">The summary is not shared with you.</p>}
       <div className="mt-8 grid gap-3">
         {showPeople ? (
@@ -34,6 +39,7 @@ export default async function CircleHome({ params }: { params: Promise<{ id: str
         <Link href="/circles" className="inline-flex min-h-12 items-center justify-center font-semibold text-primary-700">
           All circles
         </Link>
+        {key && actor.kind === "caregiver" && actor.role === "owner" && can(actor, "circle:rotate_key", { circleId: id }) ? <RotateKey circle={key} /> : null}
         {can(actor, "circle:delete", { circleId: id }) ? <DeleteCircle circleId={id} /> : null}
       </div>
     </CircleShell>

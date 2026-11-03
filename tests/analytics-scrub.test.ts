@@ -27,6 +27,13 @@ describe("scrubAnalyticsEvent", () => {
     });
   });
 
+  test("drops the circle key on a helper link", () => {
+    expect(page("https://aftervisit.example/i/abcdefghijklmnopqrstuvwx#k=secretkey")).toEqual({
+      type: "pageview",
+      url: "https://aftervisit.example/i/[token]",
+    });
+  });
+
   test("replaces the invite and share token segments", () => {
     expect(page("https://aftervisit.example/i/abc123")).toEqual({
       type: "pageview",

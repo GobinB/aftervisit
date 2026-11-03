@@ -4,13 +4,13 @@
 
 Roles: owner, co-caregiver, family, care manager, home aide, day program.
 
-A co-caregiver can manage members and cannot remove the owner, export, or delete the circle. Family can read and post updates, including family-only ones. A care manager can read updates that are not family-only. Home aides and day programs do not see updates. They can read and print medications, see their own tasks, read the calendar, and open the care folder of documents. Handoff sections for helpers are only the ones chosen on their member row. Per-member `visibility` can hide an area. It cannot grant manage, export, or delete.
+A co-caregiver can manage members and cannot remove the owner, export, or delete the circle. Only the owner can rotate the circle key (`circle:rotate_key`). That writes the new wrapped key only on the owner's row. A co-caregiver and helpers cannot rotate the key. Family can read and post updates, including family-only ones. A care manager can read updates that are not family-only. Home aides and day programs do not see updates. They can read and print medications, see their own tasks, read the calendar, and open the care folder of documents. Handoff sections for helpers are only the ones chosen on their member row. Per-member `visibility` can hide an area. It cannot grant manage, export, or delete.
 
 ## Who is locked by what
 
 `getActor(circleId)` is the only code that reads cookies and auth headers.
 
-- A caregiver gets their Supabase access token on the actor. `clientFor(actor)` uses that token, so row-level security applies. Policies allow a caregiver to see a circle only when `circle_caregivers` has their user id. Being the `owner_id` is not enough. Only the owner may delete a circle, add or remove caregivers, or change caregiver roles. A normal update cannot change `owner_id` or grant the owner role. Consents and activity are insert-only for signed-in users.
+- A caregiver gets their Supabase access token on the actor. `clientFor(actor)` uses that token, so row-level security applies. Policies allow a caregiver to see a circle only when `circle_caregivers` has their user id. Being the `owner_id` is not enough. Only the owner may delete a circle, add or remove caregivers, or change caregiver roles. A normal update cannot change `owner_id` or grant the owner role. Each caregiver can write only their own wrapped circle key. Consents and activity are insert-only for signed-in users.
 - A helper cookie is an HMAC (`HELPER_SESSION_SECRET`) of member id, circle id, and role. One browser can hold several circles. On every request the member row is loaded again: it must exist, `revoked_at` must be null, `expires_at` must be in the future, and the role is the one on the row. `last_seen_at` moves at most once a minute, and that same update pushes `expires_at` out 90 days.
 - Helpers use the service-role client, which bypasses row-level security. `can()` is the only lock on that path. Services call `can()` before `store/`. Do not query `store/` from `app/` or `components/`.
 

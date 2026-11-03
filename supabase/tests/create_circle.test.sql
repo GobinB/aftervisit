@@ -3,7 +3,7 @@
 
 begin;
 
-select plan(25);
+select plan(33);
 
 create function pg_temp.seed_user(p_id uuid, p_email text, p_name text, p_token text)
 returns void language plpgsql as $$
@@ -50,13 +50,15 @@ select pg_temp.seed_user('b2b2b2b2-b2b2-42b2-82b2-b2b2b2b2b2b2', 'sam.other@exam
 
 select is(
   (select prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.proname = 'create_circle'),
+    where n.nspname = 'public' and p.proname = 'create_circle'
+      and pg_get_function_identity_arguments(p.oid) = 'p_content jsonb, p_consents jsonb'),
   true,
   'create_circle is security definer'
 );
 select is(
   (select p.proconfig[1] from pg_proc p join pg_namespace n on n.oid = p.pronamespace
-    where n.nspname = 'public' and p.proname = 'create_circle'),
+    where n.nspname = 'public' and p.proname = 'create_circle'
+      and pg_get_function_identity_arguments(p.oid) = 'p_content jsonb, p_consents jsonb'),
   'search_path=""',
   'create_circle sets an empty search_path'
 );
@@ -203,6 +205,73 @@ select throws_ok(
   '42501',
   'new row violates row-level security policy for table "circles"',
   'a caregiver cannot insert a circle owned by someone else'
+);
+
+select ok(
+  (select prosecdef from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'create_circle'
+      and pg_get_function_identity_arguments(p.oid) = 'p_content jsonb, p_consents jsonb, p_wrapped text'),
+  'create_circle with a wrapped key is security definer'
+);
+select is(
+  (select p.proconfig[1] from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname = 'create_circle'
+      and pg_get_function_identity_arguments(p.oid) = 'p_content jsonb, p_consents jsonb, p_wrapped text'),
+  'search_path=""',
+  'create_circle with a wrapped key sets an empty search_path'
+);
+select ok(
+  has_function_privilege('authenticated', 'public.create_circle(jsonb, jsonb, text)', 'execute'),
+  'authenticated can create a circle with a wrapped key'
+);
+select ok(
+  not has_function_privilege('anon', 'public.create_circle(jsonb, jsonb, text)', 'execute')
+  and not has_function_privilege('service_role', 'public.create_circle(jsonb, jsonb, text)', 'execute'),
+  'anon and service_role cannot create a circle with a wrapped key'
+);
+
+create temp table wrapped_circle (id uuid);
+grant all on wrapped_circle to public;
+
+select lives_ok(
+  $$insert into wrapped_circle (id)
+    select public.create_circle(
+      '{"person_name":"Helen Ward"}'::jsonb,
+      jsonb_build_array(
+        jsonb_build_object('type', 'authorized_to_share', 'version', '2026-11-02', 'text_hash', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'),
+        jsonb_build_object('type', 'terms', 'version', '2026-11-02', 'text_hash', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'),
+        jsonb_build_object('type', 'privacy', 'version', '2026-11-02', 'text_hash', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc')
+      ),
+      'av1.600000.aaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc'
+    )$$,
+  'a signed-in caregiver creates a circle with a wrapped key'
+);
+select is(
+  (select circle_key_wrapped from public.circle_caregivers where circle_id = (select id from wrapped_circle)),
+  'av1.600000.aaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbb.cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc',
+  'the wrapped key is stored on the owner row'
+);
+select is(
+  (select c.key_version = g.key_version and c.key_version = 1
+     from public.circles c
+     join public.circle_caregivers g on g.circle_id = c.id
+    where c.id = (select id from wrapped_circle)),
+  true,
+  'a wrapped circle uses key version 1'
+);
+select throws_ok(
+  $$select public.create_circle(
+    '{"person_name":"Helen Ward"}'::jsonb,
+    jsonb_build_array(
+      jsonb_build_object('type', 'authorized_to_share', 'version', '2026-11-02', 'text_hash', 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'),
+      jsonb_build_object('type', 'terms', 'version', '2026-11-02', 'text_hash', 'bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb'),
+      jsonb_build_object('type', 'privacy', 'version', '2026-11-02', 'text_hash', 'cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc')
+    ),
+    'abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about'
+  )$$,
+  'P0001',
+  'wrapped key is not valid',
+  'a recovery phrase cannot be stored as the circle key'
 );
 
 reset role;

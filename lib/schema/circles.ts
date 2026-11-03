@@ -91,15 +91,66 @@ export const CONSENT_LABELS: Record<ConsentType, string> = {
   privacy: CONSENT_TEXT.privacy,
 };
 
-export const CreateCircleSchema = z.object({
-  content: CircleContentSchema,
-  consents: z.object({
-    authorized_to_share: z.literal(true),
-    terms: z.literal(true),
-    privacy: z.literal(true),
-  }),
-});
+/**
+ * av1 is PBKDF2-SHA256 with 600,000 iterations, a 16-byte salt, a 12-byte IV,
+ * and AES-GCM wrapping the raw circle key. A recovery phrase cannot match this.
+ */
+export const WRAPPED_CIRCLE_KEY = /^av1\.600000\.([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{16})\.([A-Za-z0-9_-]{64})$/;
+
+export const CircleKeyWrappedSchema = z.string().regex(WRAPPED_CIRCLE_KEY).max(200);
+
+export function nextCircleKeyVersion(current: number): number {
+  if (!Number.isInteger(current) || current < 1 || current >= 1000) throw new Error("Key version is not valid.");
+  return current + 1;
+}
+
+/** What the browser needs in order to keep or restore a circle key. The wrapped value is not the key. */
+export type CircleKeyStatus = {
+  circleId: string;
+  personName: string;
+  role: "owner" | "co_caregiver";
+  circleKeyVersion: number;
+  wrapped: string | null;
+  wrappedKeyVersion: number;
+};
+
+export const CreateCircleSchema = z
+  .object({
+    content: CircleContentSchema,
+    consents: z.object({
+      authorized_to_share: z.literal(true),
+      terms: z.literal(true),
+      privacy: z.literal(true),
+    }),
+    /** Already wrapped in the browser. The raw key, the recovery phrase, and a key version are not accepted. */
+    circleKeyWrapped: CircleKeyWrappedSchema,
+  })
+  .strict();
 export type CreateCircleInput = z.infer<typeof CreateCircleSchema>;
+
+export const StoreCircleKeySchema = z
+  .object({
+    circleId: z.string().uuid(),
+    circleKeyWrapped: CircleKeyWrappedSchema,
+    keyVersion: z.number().int().min(1).max(1000),
+  })
+  .strict();
+
+export const RotateCircleKeySchema = z
+  .object({
+    circleId: z.string().uuid(),
+    circleKeyWrapped: CircleKeyWrappedSchema,
+    keyVersion: z.number().int().min(2).max(1000),
+  })
+  .strict();
+
+/** Token and optional PIN only. A key fragment is not a field. */
+export const OpenMemberLinkSchema = z
+  .object({
+    token: z.string().regex(/^[A-Za-z0-9_-]{24}$/),
+    pin: z.string().regex(/^\d{4}$/).optional(),
+  })
+  .strict();
 
 const optionalEmail = z
   .string()
@@ -115,14 +166,16 @@ export const AddMemberSchema = z.object({
   email: optionalEmail,
   pin: z.string().regex(/^\d{4}$/).optional(),
   visibility: VisibilitySchema.optional(),
-});
+}).strict();
 
 export type AddMemberInput = z.infer<typeof AddMemberSchema>;
 
-export const MemberChangeSchema = z.object({
-  circleId: z.string().uuid(),
-  memberId: z.string().uuid(),
-});
+export const MemberChangeSchema = z
+  .object({
+    circleId: z.string().uuid(),
+    memberId: z.string().uuid(),
+  })
+  .strict();
 
 export const ChangeRoleSchema = MemberChangeSchema.extend({ role: HelperRoleSchema });
 export const SetVisibilitySchema = MemberChangeSchema.extend({ visibility: VisibilitySchema });

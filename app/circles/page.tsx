@@ -3,8 +3,9 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ButtonLink } from "@/components/ui/Button";
 import { CircleShell } from "@/components/circles/Shell";
+import { RestoreKeys } from "@/components/circles/RestoreKeys";
 import { getActor } from "@/lib/auth";
-import { listCircles } from "@/services/circles";
+import { listCircles, listOwnCircleKeys } from "@/services/circles";
 
 export const metadata: Metadata = { title: "Circles", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -13,10 +14,12 @@ export default async function CirclesPage() {
   const actor = await getActor();
   if (!actor || actor.kind !== "caregiver") redirect("/login?next=/circles");
   const circles = await listCircles(actor);
+  const keys = await listOwnCircleKeys(actor);
   return (
     <CircleShell>
       <h1 className="font-display text-page text-primary-900">Circles</h1>
       <p className="mt-2 text-ink-500">A circle is the people who help one person. You choose what is saved.</p>
+      <RestoreKeys circles={keys} />
       {circles.length ? (
         <ul className="mt-6 space-y-3">
           {circles.map((circle) => (

@@ -4,6 +4,7 @@ Notable changes to AfterVisit. The newest entries are at the top.
 
 ## Unreleased
 
+- Encrypt files in the browser. Each circle key is wrapped with a recovery phrase, and helper links carry the key after # so the server never sees it. Only the owner can rotate that key, and the new helper links are saved in the same step.
 - A signed-in caregiver can create a circle. The circle, the owner row, consent, and the activity note are saved in one step.
 - Strip share tokens, invite tokens, query strings, and hashes from Vercel Web Analytics before they are sent.
 - Add circles, caregiver Google sign-in, helper links, and role permissions. Ownership stays with the owner in the database, and sign-in returns only to this site. The public demo and existing handoff links stay as they are.
