@@ -135,15 +135,24 @@ export function CircleForm() {
       <form onSubmit={onSubmit} hidden={phrase ? true : undefined} className="space-y-8">
       <div>
         <label htmlFor="person_name" className="font-medium text-ink-900">
-          Name
+          Who are you caring for?
         </label>
-        <input id="person_name" name="person_name" required autoComplete="name" className={field} />
-        <p className="mt-1 text-sm text-ink-500">Saved exactly as you type it.</p>
+        <input
+          id="person_name"
+          name="person_name"
+          required
+          autoComplete="off"
+          aria-describedby="person_name-hint"
+          className={field}
+        />
+        <p id="person_name-hint" className="mt-1 text-sm text-ink-500">
+          Their name, not yours. For example, Margaret Lee or Mom. Helpers see it at the top of the page.
+        </p>
       </div>
 
       <div>
         <label htmlFor="allergies" className="font-medium text-ink-900">
-          Allergies
+          Their allergies
         </label>
         <textarea id="allergies" name="allergies" rows={3} className={`${field} min-h-24 py-2`} />
         <p className="mt-1 text-sm text-ink-500">One per line. Leave blank if you have nothing to record.</p>

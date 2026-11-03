@@ -11,7 +11,7 @@ export function Footer() {
           <div className="flex items-center gap-3">
             <LogoMark size={28} />
             <p className="text-ink-500">
-              <Wordmark className="text-lg" /> <span className="ml-1">After-visit summaries, in plain language.</span>
+              <Wordmark className="text-lg" /> <span className="ml-1">A shared care page for the person you look after.</span>
             </p>
           </div>
           <nav className="flex flex-wrap gap-x-6 gap-y-2 font-medium text-ink-900/80" aria-label="Footer">

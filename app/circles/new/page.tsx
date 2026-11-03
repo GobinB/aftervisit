@@ -4,7 +4,7 @@ import { CircleForm } from "@/components/circles/CircleForm";
 import { CircleShell } from "@/components/circles/Shell";
 import { getActor } from "@/lib/auth";
 
-export const metadata: Metadata = { title: "New circle", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Start a care circle", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function NewCirclePage() {
@@ -12,8 +12,11 @@ export default async function NewCirclePage() {
   if (!actor || actor.kind !== "caregiver") redirect("/login?next=/circles/new");
   return (
     <CircleShell>
-      <h1 className="font-display text-page text-primary-900">New circle</h1>
-      <p className="mt-2 mb-6 text-ink-500">Record what you want the circle to hold. AfterVisit stores your words and does not interpret them.</p>
+      <h1 className="font-display text-page text-primary-900">Start a care circle</h1>
+      <p className="mt-2 mb-6 text-ink-500">
+        A care circle is one shared page for the person you look after. You add the people who help after this step. AfterVisit stores your
+        words as you type them and does not interpret them.
+      </p>
       <CircleForm />
     </CircleShell>
   );

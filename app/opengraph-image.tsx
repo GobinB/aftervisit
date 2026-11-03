@@ -1,7 +1,7 @@
 import { ImageResponse } from "next/og";
 import { LOGO_PATHS } from "@/components/Logo";
 
-export const alt = "AfterVisit: share the doctor's plan with everyone who helps";
+export const alt = "AfterVisit: one shared care page for the person you look after";
 export const size = { width: 1200, height: 630 };
 export const contentType = "image/png";
 
@@ -19,7 +19,7 @@ export default function Image() {
             After<span style={{ color: "#C9DEF7", fontWeight: 500 }}>Visit</span>
           </div>
         </div>
-        <div style={{ marginTop: 48, fontSize: 60, lineHeight: 1.15, maxWidth: 980 }}>Share the doctor&apos;s plan with everyone who helps.</div>
+        <div style={{ marginTop: 48, fontSize: 60, lineHeight: 1.15, maxWidth: 980 }}>One shared care page for the person you look after.</div>
       </div>
     ),
     size,
