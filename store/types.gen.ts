@@ -455,6 +455,7 @@ export type Database = {
         Args: { p_circle: string; p_wrapped: string; p_version: number; p_member_tokens: Json }
         Returns: number
       }
+      delete_circle: { Args: { p_circle: string }; Returns: undefined }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

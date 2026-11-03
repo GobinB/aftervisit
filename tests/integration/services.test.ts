@@ -56,18 +56,21 @@ describe("services call can() before store", () => {
   });
 
   test("the owner reaches the database only after the permission check", async () => {
-    const calls: string[] = [];
+    const calls: { fn: string; args: unknown }[] = [];
     clientFor.mockImplementation(() => ({
-      from(table: string) {
-        calls.push(table);
-        return {
-          insert: async () => ({ error: null }),
-          update: () => ({ eq: () => ({ is: async () => ({ error: null }) }) }),
-        };
+      async rpc(fn: string, args: unknown) {
+        calls.push({ fn, args });
+        return { error: null };
       },
     }));
     const result = await deleteCircle(owner, circleId);
     expect(result.ok).toBe(true);
-    expect(calls).toContain("circles");
+    expect(calls).toEqual([{ fn: "delete_circle", args: { p_circle: circleId } }]);
+  });
+
+  test("a failed delete reports an error", async () => {
+    clientFor.mockImplementation(() => ({ rpc: async () => ({ error: { message: "only the owner can delete a circle" } }) }));
+    const result = await deleteCircle(owner, circleId);
+    expect(result).toEqual({ ok: false, error: "The circle could not be deleted. Try again." });
   });
 });

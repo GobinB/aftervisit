@@ -25,7 +25,7 @@ export default async function CircleHome({ params }: { params: Promise<{ id: str
   const keys = actor.kind === "caregiver" ? await listOwnCircleKeys(actor) : [];
   const key = keys.find((item) => item.circleId === id) ?? null;
   return (
-    <CircleShell>
+    <CircleShell signedIn={actor.kind === "caregiver"}>
       <p className="text-sm font-semibold tracking-wide text-primary-700 uppercase">{actor.kind === "caregiver" ? (actor.role === "owner" ? "Owner" : "Co-caregiver") : "Personal link"}</p>
       <h1 className="font-display mt-2 text-page text-primary-900">{content?.person_name ?? "Circle"}</h1>
       {key ? <RestoreKeys circles={[key]} /> : null}

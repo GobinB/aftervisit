@@ -6,6 +6,16 @@ import { NextResponse, type NextRequest } from "next/server";
  * When auth env is unset, the public demo keeps working.
  */
 export async function middleware(request: NextRequest) {
+  // A Google sign-in that Supabase rejects (for example, one left open too long) comes back
+  // to the site address with the error only in the query. Show it on the sign-in page.
+  const { pathname, searchParams } = request.nextUrl;
+  if (pathname === "/" && searchParams.has("error_code")) {
+    const target = request.nextUrl.clone();
+    target.pathname = "/login";
+    target.search = searchParams.get("error_code") === "bad_oauth_state" ? "?error=expired" : "?error=google";
+    return NextResponse.redirect(target);
+  }
+
   const url = process.env.SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !key) return NextResponse.next({ request });

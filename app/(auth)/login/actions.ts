@@ -40,3 +40,14 @@ export async function signInWithGoogle(formData: FormData) {
     redirect("/login?error=config");
   }
 }
+
+/** Ends the caregiver session on this device only. Other devices stay signed in. */
+export async function signOut() {
+  try {
+    const supabase = await createAuthClient();
+    await supabase.auth.signOut({ scope: "local" });
+  } catch {
+    // Nothing to end when auth is not set up.
+  }
+  redirect("/");
+}

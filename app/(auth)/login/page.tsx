@@ -10,6 +10,7 @@ export const dynamic = "force-dynamic";
 
 const ERRORS: Record<string, string> = {
   google: "Google sign-in did not complete. Try again.",
+  expired: "Google sign-in took too long, so it stopped. Try again.",
   config: "Google sign-in is not set up yet.",
 };
 
