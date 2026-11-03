@@ -1,15 +1,16 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { DeleteCircle } from "@/components/circles/DeleteCircle";
+import { CircleFrame, circleTabs, roleLine } from "@/components/circles/CircleFrame";
+import { GettingStarted } from "@/components/circles/GettingStarted";
+import { Panel } from "@/components/circles/Panel";
+import { PeopleList } from "@/components/circles/PeopleList";
 import { RestoreKeys } from "@/components/circles/RestoreKeys";
-import { RotateKey } from "@/components/circles/RotateKey";
 import { CircleShell } from "@/components/circles/Shell";
-import { ButtonLink } from "@/components/ui/Button";
+import { SummaryView } from "@/components/circles/SummaryView";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { getCircle, listOwnCircleKeys } from "@/services/circles";
-import type { CircleContent } from "@/lib/schema/circles";
+import { listPeople } from "@/services/members";
 
 export const metadata: Metadata = { title: "Circle", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -20,101 +21,34 @@ export default async function CircleHome({ params }: { params: Promise<{ id: str
   if (!actor) redirect(`/login?next=/circles/${id}`);
   const content = await getCircle(actor, id);
   if (!content && actor.kind === "caregiver") notFound();
-  const showSummary = can(actor, "summary:read", { circleId: id });
-  const showPeople = can(actor, "members:read", { circleId: id }) || can(actor, "members:read:caregivers", { circleId: id }) || can(actor, "members:manage", { circleId: id });
+  const tabs = circleTabs(actor, id);
+  const listed = await listPeople(actor, id);
+  const people = listed.ok ? listed.people : null;
+  const canManage = listed.ok && listed.canManage;
   const keys = actor.kind === "caregiver" ? await listOwnCircleKeys(actor) : [];
   const key = keys.find((item) => item.circleId === id) ?? null;
+  const isOwner = actor.kind === "caregiver" && actor.role === "owner";
   return (
     <CircleShell signedIn={actor.kind === "caregiver"}>
-      <p className="text-sm font-semibold tracking-wide text-primary-700 uppercase">{actor.kind === "caregiver" ? (actor.role === "owner" ? "Owner" : "Co-caregiver") : "Personal link"}</p>
-      <h1 className="font-display mt-2 text-page text-primary-900">{content?.person_name ?? "Circle"}</h1>
-      {key ? <RestoreKeys circles={[key]} /> : null}
-      {showSummary && content ? <Summary content={content} /> : <p className="mt-4 text-ink-500">The summary is not shared with you.</p>}
-      <div className="mt-8 grid gap-3">
-        {showPeople ? (
-          <ButtonLink href={`/circles/${id}/members`} variant="secondary" className="w-full">
-            People
-          </ButtonLink>
+      <CircleFrame personName={content?.person_name ?? "Your care circle"} subtitle={roleLine(actor)} tabs={tabs} active="overview">
+        {key ? <RestoreKeys circles={[key]} /> : null}
+        {isOwner && people ? (
+          <div className="mb-8">
+            <GettingStarted circleId={id} people={people} />
+          </div>
         ) : null}
-        <Link href="/circles" className="inline-flex min-h-12 items-center justify-center font-semibold text-primary-700">
-          All circles
-        </Link>
-        {key && actor.kind === "caregiver" && actor.role === "owner" && can(actor, "circle:rotate_key", { circleId: id }) ? <RotateKey circle={key} /> : null}
-        {can(actor, "circle:delete", { circleId: id }) ? <DeleteCircle circleId={id} /> : null}
-      </div>
+        <div className="grid gap-10 lg:grid-cols-[1.25fr_1fr] lg:gap-12">
+          <Panel title="Care summary" href={can(actor, "summary:read", { circleId: id }) ? `/circles/${id}/summary` : null} linkLabel="See the full summary">
+            {content ? <SummaryView content={content} compact /> : <p className="text-ink-500">The care summary is not shared with you.</p>}
+          </Panel>
+          {people ? (
+            <Panel title="People" href={`/circles/${id}/members`} linkLabel={canManage ? "Add or manage people" : "See everyone"}>
+              <PeopleList people={people.slice(0, 6)} showSeen={canManage} />
+              {people.length > 6 ? <p className="mt-2 text-sm text-ink-500">And {people.length - 6} more.</p> : null}
+            </Panel>
+          ) : null}
+        </div>
+      </CircleFrame>
     </CircleShell>
-  );
-}
-
-function Summary({ content }: { content: CircleContent }) {
-  return (
-    <dl className="mt-6 space-y-5">
-      <Block label="Allergies">
-        {content.allergies.length ? (
-          <ul className="list-disc pl-5">
-            {content.allergies.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
-        ) : (
-          <p>None recorded.</p>
-        )}
-      </Block>
-      <Block label="Doctors">
-        {content.doctors.length ? (
-          <ul className="space-y-2">
-            {content.doctors.map((doctor) => (
-              <li key={`${doctor.name}-${doctor.phone ?? ""}`}>
-                {doctor.name}
-                {doctor.specialty ? `, ${doctor.specialty}` : ""}
-                {doctor.phone ? ` · ${doctor.phone}` : ""}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>None recorded.</p>
-        )}
-      </Block>
-      <Block label="Pharmacy">
-        {content.pharmacy?.name ? (
-          <p>
-            {content.pharmacy.name}
-            {content.pharmacy.phone ? ` · ${content.pharmacy.phone}` : ""}
-            {content.pharmacy.address ? ` · ${content.pharmacy.address}` : ""}
-          </p>
-        ) : (
-          <p>None recorded.</p>
-        )}
-      </Block>
-      <Block label="Emergency contacts">
-        {content.emergency_contacts.length ? (
-          <ul className="space-y-2">
-            {content.emergency_contacts.map((contact) => (
-              <li key={`${contact.name}-${contact.phone ?? ""}`}>
-                {contact.name}
-                {contact.relationship ? `, ${contact.relationship}` : ""}
-                {contact.phone ? ` · ${contact.phone}` : ""}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p>None recorded.</p>
-        )}
-      </Block>
-      {content.poa_location ? (
-        <Block label="Where the power of attorney is kept">
-          <p>{content.poa_location}</p>
-        </Block>
-      ) : null}
-    </dl>
-  );
-}
-
-function Block({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div>
-      <dt className="font-semibold text-ink-900">{label}</dt>
-      <dd className="mt-1 text-ink-900">{children}</dd>
-    </div>
   );
 }

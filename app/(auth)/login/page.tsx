@@ -22,7 +22,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const next = safeNext(query.next, `${proto}://${host}`);
   const message = query.error ? ERRORS[query.error] : undefined;
   return (
-    <CircleShell>
+    <CircleShell narrow>
       <h1 className="font-display text-page text-primary-900">Sign in</h1>
       <p className="mt-3 text-ink-500">Use the Google account you use for caregiving. There is no password and no email sign-in.</p>
       {message ? (

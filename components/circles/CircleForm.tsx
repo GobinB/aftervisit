@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createCircle } from "@/app/actions/circles";
 import { RecoveryPhrase } from "@/components/circles/RecoveryPhrase";
@@ -12,6 +12,8 @@ const field =
   "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500";
 
 type Row = { name: string; extra: string; phone: string };
+
+const STEPS = ["Who", "Care summary", "Agree", "Recovery words"] as const;
 
 const empty = (): Row => ({ name: "", extra: "", phone: "" });
 
@@ -42,10 +44,37 @@ export function CircleForm() {
   const [phrase, setPhrase] = useState<string[] | null>(null);
   const [circleKey, setCircleKey] = useState<CryptoKey | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const shown = phrase ? 3 : step;
+
+  // Move focus to the new step's title so a screen reader hears where it is.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    heading.current?.focus();
+  }, [shown]);
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const form = new FormData(event.currentTarget);
+    if (step === 0) {
+      if (!String(form.get("person_name") ?? "").trim()) {
+        setError("Enter the name of the person you care for.");
+        return;
+      }
+      setError(null);
+      setStep(1);
+      return;
+    }
+    if (step === 1) {
+      setError(null);
+      setStep(2);
+      return;
+    }
     if (CONSENT_TYPES.some((type) => !consents[type])) {
       setError("Confirm each statement to continue.");
       return;
@@ -110,6 +139,17 @@ export function CircleForm() {
 
   return (
     <>
+      <Progress current={shown} />
+      {phrase ? (
+        <div className="mt-8" />
+      ) : (
+        <>
+          <h2 ref={heading} tabIndex={-1} className="font-display mt-8 text-section text-ink-900 outline-none sm:text-page">
+            {TITLES[shown]}
+          </h2>
+          <p className="mt-2 mb-8 text-ink-500">{HINTS[shown]}</p>
+        </>
+      )}
       {phrase ? (
         <div className="space-y-4">
           <RecoveryPhrase
@@ -133,9 +173,9 @@ export function CircleForm() {
         </div>
       ) : null}
       <form onSubmit={onSubmit} hidden={phrase ? true : undefined} className="space-y-8">
-      <div>
+      <div hidden={step !== 0 ? true : undefined}>
         <label htmlFor="person_name" className="font-medium text-ink-900">
-          Who are you caring for?
+          Their name
         </label>
         <input
           id="person_name"
@@ -150,6 +190,7 @@ export function CircleForm() {
         </p>
       </div>
 
+      <div hidden={step !== 1 ? true : undefined} className="space-y-8">
       <div>
         <label htmlFor="allergies" className="font-medium text-ink-900">
           Their allergies
@@ -236,9 +277,10 @@ export function CircleForm() {
         </label>
         <input id="poa_location" name="poa_location" className={field} />
       </div>
+      </div>
 
-      <fieldset className="space-y-3">
-        <legend className="font-medium text-ink-900">Before you save</legend>
+      <fieldset hidden={step !== 2 ? true : undefined} className="space-y-3">
+        <legend className="sr-only">Before you save</legend>
         {CONSENT_TYPES.map((type) => (
           <label key={type} className="flex items-start gap-3 text-ink-900">
             <input
@@ -257,11 +299,46 @@ export function CircleForm() {
           {error}
         </p>
       ) : null}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Saving" : "Create circle"}
-      </Button>
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+        {step > 0 ? (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setError(null);
+              setStep(step - 1);
+            }}
+          >
+            Back
+          </Button>
+        ) : (
+          <span />
+        )}
+        <Button type="submit" className="sm:min-w-48" disabled={pending}>
+          {step < 2 ? "Continue" : pending ? "Saving" : "Create circle"}
+        </Button>
+      </div>
     </form>
     </>
+  );
+}
+
+const TITLES = ["Who are you caring for?", "Their care summary", "Before you save"];
+const HINTS = [
+  "One circle is for one person. You add the people who help after this.",
+  "What a helper needs in a hurry. Leave anything blank that you don't want to record.",
+  "Confirm each statement to create the circle.",
+];
+
+function Progress({ current }: { current: number }) {
+  return (
+    <ol className="grid grid-cols-4 gap-2" aria-label={`Step ${current + 1} of ${STEPS.length}`}>
+      {STEPS.map((label, index) => (
+        <li key={label} aria-current={index === current ? "step" : undefined}>
+          <span className={`block h-1 rounded-full ${index <= current ? "bg-primary-700" : "bg-border-200"}`} />
+          <span className={`mt-2 hidden text-sm sm:block ${index === current ? "font-semibold text-ink-900" : "text-ink-500"}`}>{label}</span>
+        </li>
+      ))}
+    </ol>
   );
 }
 

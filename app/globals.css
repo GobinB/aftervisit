@@ -106,6 +106,10 @@ body {
   outline-offset: 2px;
   border-radius: 6px;
 }
+/* Headings that receive focus from script (a new step) are not controls. */
+[tabindex="-1"]:focus-visible {
+  outline: none;
+}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after {

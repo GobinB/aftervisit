@@ -1,8 +1,8 @@
-import { ArrowRight, FileText, MessagesSquare, Pill } from "lucide-react";
+import { ArrowRight, Check, FileText, MessagesSquare, Pill } from "lucide-react";
 import Link from "next/link";
 import { SOURCE_URL } from "@/components/AppBar";
 import { ButtonLink } from "@/components/Button";
-import { HeroArtifact } from "@/components/home/HeroArtifact";
+import { AppPreview } from "@/components/home/AppPreview";
 import { Walkthrough } from "@/components/home/Walkthrough";
 import { PageShell } from "@/components/PageShell";
 import { StartSample } from "@/components/StartSample";
@@ -37,14 +37,21 @@ const PROBLEMS = [
 ];
 
 /**
- * What the page may promise. Set `ready: true` in the pull request that ships a module:
- * its "Not available yet" label goes away, and any step that needs it appears.
+ * What the page may promise. The pull request that ships a module sets `ready: true` and adds
+ * its section below, with a real screen in <AppPreview>. Until then it is listed as "Not available yet",
+ * and any step that needs it stays hidden.
  */
 const MODULES = [
   {
     key: "people",
     title: "The people who help",
     body: "Family, home aides, the day program and care managers. Each gets a role and a personal link, and you can turn any link off.",
+    ready: true,
+  },
+  {
+    key: "summary",
+    title: "Care summary",
+    body: "Allergies, doctors, the pharmacy and emergency contacts, so whoever is helping has them in a hurry.",
     ready: true,
   },
   {
@@ -86,6 +93,19 @@ const STEPS: { title: string; body: string; needs?: ModuleKey }[] = [
   },
 ];
 
+const PEOPLE_POINTS = [
+  "Pick each person’s role, and the parts of the page they see.",
+  "Add a 4-digit PIN to any link if you want one.",
+  "See when each person last opened their link.",
+  "Turn off any link, or make a new one, at any time.",
+];
+
+const SUMMARY_POINTS = [
+  "Allergies come first, where nobody can miss them.",
+  "Doctors, the pharmacy and emergency contacts, with their phone numbers.",
+  "Hide it from anyone who doesn’t need it.",
+];
+
 const PROMISES = [
   { title: "Only what you choose.", body: "Each person sees only the parts you pick for them. You can turn off anyone’s link at any time." },
   {
@@ -104,6 +124,19 @@ function Eyebrow({ children, showLine = true }: { children: React.ReactNode; sho
       {showLine && <span aria-hidden="true" className="h-px w-6 bg-primary-700" />}
       {children}
     </p>
+  );
+}
+
+function Points({ items }: { items: string[] }) {
+  return (
+    <ul className="mt-8 space-y-4">
+      {items.map((point) => (
+        <li key={point} className="flex gap-3 border-t border-border-200 pt-4 text-ink-900">
+          <Check size={20} strokeWidth={2.5} className="mt-0.5 shrink-0 text-primary-700" aria-hidden="true" />
+          {point}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -142,7 +175,7 @@ export default function Home() {
                 {DEMO_MODE ? " This is an early version, so please use made-up details for now." : ""}
               </p>
             </div>
-            <HeroArtifact />
+            <AppPreview screen="overview" className="lg:pl-4" />
           </div>
         </section>
 
@@ -179,28 +212,59 @@ export default function Home() {
           </div>
         </section>
 
-        {/* What's in a care circle */}
-        <section aria-labelledby="circle-title" className="bg-surface-50 py-20 sm:py-28">
+        {/* The modules: one section for each part that is built */}
+        <section aria-labelledby="circle-title" className="border-t border-border-200 bg-surface-50 py-20 sm:py-28">
           <div className="mx-auto max-w-[1120px] px-4 sm:px-6">
             <Eyebrow>The care circle</Eyebrow>
             <SectionTitle id="circle-title" className="mt-5 max-w-3xl">
-              Everything about their care, on one page.
+              One page, with a part for each piece of their care.
             </SectionTitle>
-            <ul className="mt-12 grid gap-10 md:grid-cols-2 md:gap-x-12">
-              {MODULES.map(({ title, body, ready }) => (
-                <li key={title} className="border-t-2 border-ink-900 pt-5">
-                  <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <h3 className="text-item font-bold text-ink-900">{title}</h3>
-                    {ready ? null : (
-                      <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-tag font-bold tracking-wider text-primary-900 uppercase">
+            <ul className="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-b border-border-200 pb-5">
+              {MODULES.map(({ key, title, ready }) => (
+                <li key={key} className="flex items-center gap-2">
+                  {ready ? (
+                    <a href={`#module-${key}`} className="inline-flex items-center gap-2 font-semibold text-ink-900 hover:text-primary-700">
+                      <Check size={18} strokeWidth={2.5} className="text-ok" aria-hidden="true" />
+                      {title}
+                    </a>
+                  ) : (
+                    <>
+                      <span className="text-ink-500">{title}</span>
+                      <span className="rounded-full bg-white px-2.5 py-0.5 text-tag font-bold tracking-wider text-primary-900 uppercase ring-1 ring-border-200">
                         Not available yet
                       </span>
-                    )}
-                  </div>
-                  <p className="mt-2 text-ink-500">{body}</p>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>
+
+            <article id="module-people" aria-labelledby="module-people-title" className="mt-16 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              <div>
+                <h3 id="module-people-title" className="font-display text-heading text-ink-900">
+                  Everyone who helps, with their own link.
+                </h3>
+                <p className="mt-4 text-lg text-ink-500">
+                  Add family, home aides, the day program and care managers. Nobody needs an account or an app: each person opens a private link.
+                </p>
+                <Points items={PEOPLE_POINTS} />
+              </div>
+              <AppPreview screen="people" />
+            </article>
+
+            <article id="module-summary" aria-labelledby="module-summary-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              <div className="lg:order-2">
+                <h3 id="module-summary-title" className="font-display text-heading text-ink-900">
+                  What to know in a hurry.
+                </h3>
+                <p className="mt-4 text-lg text-ink-500">
+                  Write it once: allergies, doctors, the pharmacy, emergency contacts and where the power of attorney is kept. Everyone you
+                  allow sees the same page, in your words.
+                </p>
+                <Points items={SUMMARY_POINTS} />
+              </div>
+              <AppPreview screen="summary" className="lg:order-1" />
+            </article>
           </div>
         </section>
 
