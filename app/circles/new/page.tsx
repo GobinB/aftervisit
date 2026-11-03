@@ -12,11 +12,13 @@ export default async function NewCirclePage() {
   if (!actor || actor.kind !== "caregiver") redirect("/login?next=/circles/new");
   return (
     <CircleShell signedIn narrow>
-      <p className="text-eyebrow font-bold tracking-[0.14em] text-primary-700 uppercase">Start a care circle</p>
-      <p className="mt-2 mb-8 text-ink-500">
-        One shared page for the person you look after. AfterVisit stores your words as you type them and does not interpret them.
-      </p>
-      <CircleForm />
+      <div className="rounded-2xl border border-border-200 bg-white p-5 sm:p-8">
+        <h1 className="font-display text-page text-primary-900">Start a care circle</h1>
+        <p className="mt-2 text-ink-500">
+          One shared page for the person you look after. AfterVisit stores your words as you type them and does not interpret them.
+        </p>
+        <CircleForm />
+      </div>
     </CircleShell>
   );
 }

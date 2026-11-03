@@ -39,17 +39,17 @@ export function CircleFrame({
     <>
       <div>
         <p className="text-eyebrow font-bold tracking-[0.14em] text-primary-700 uppercase">Care circle</p>
-        <h1 className="font-display mt-2 text-heading text-ink-900 sm:text-heading-lg">{personName}</h1>
+        <h1 className="font-display mt-2 text-heading text-primary-900 sm:text-heading-lg">{personName}</h1>
         <p className="mt-1 text-ink-500">{subtitle}</p>
       </div>
-      <nav aria-label="Circle" className="no-print mt-6 -mx-4 overflow-x-auto px-4 [scrollbar-width:none] sm:mx-0 sm:px-0">
-        <ul className="flex w-max min-w-full gap-6 whitespace-nowrap shadow-[inset_0_-1px_0_var(--color-border-200)]">
+      <nav aria-label="Circle" className="no-print mt-6">
+        <ul className="flex flex-wrap gap-x-6 border-b border-border-200">
           {tabs.map((tab) => (
             <li key={tab.key}>
               <Link
                 href={tab.href}
                 aria-current={tab.key === active ? "page" : undefined}
-                className={`inline-flex min-h-12 items-center border-b-2 font-semibold ${
+                className={`-mb-px inline-flex min-h-12 items-center border-b-2 font-semibold ${
                   tab.key === active ? "border-primary-700 text-primary-900" : "border-transparent text-ink-500 hover:text-ink-900"
                 }`}
               >

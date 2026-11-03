@@ -4,12 +4,16 @@ import "server-only";
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getActor } from "@/lib/auth";
+import { explainCreateFailure } from "@/lib/circle-form";
 import { CreateCircleSchema, RotateCircleKeySchema, StoreCircleKeySchema } from "@/lib/schema/circles";
 import { createCircle as create, deleteCircle as remove, rotateCircleKey as rotate, storeOwnCircleKey as storeKey } from "@/services/circles";
 
 export async function createCircle(input: unknown) {
   const parsed = CreateCircleSchema.safeParse(input);
-  if (!parsed.success) return { ok: false as const, error: "Check the form and try again." };
+  if (!parsed.success) {
+    const failure = explainCreateFailure(parsed.error);
+    return { ok: false as const, error: failure.error, step: failure.step };
+  }
   const actor = await getActor();
   if (!actor) return { ok: false as const, error: "Sign in to continue." };
   return create(actor, parsed.data);
