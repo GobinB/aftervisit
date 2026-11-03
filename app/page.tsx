@@ -100,7 +100,7 @@ const PROMISES = [
 
 function Eyebrow({ children, showLine = true }: { children: React.ReactNode; showLine?: boolean }) {
   return (
-    <p className="flex items-center gap-3 text-[0.8rem] font-bold tracking-[0.14em] text-primary-700 uppercase">
+    <p className="flex items-center gap-3 text-eyebrow font-bold tracking-[0.14em] text-primary-700 uppercase">
       {showLine && <span aria-hidden="true" className="h-px w-6 bg-primary-700" />}
       {children}
     </p>
@@ -109,7 +109,7 @@ function Eyebrow({ children, showLine = true }: { children: React.ReactNode; sho
 
 function SectionTitle({ id, children, className = "" }: { id: string; children: React.ReactNode; className?: string }) {
   return (
-    <h2 id={id} className={`font-display text-[2.1rem] leading-[1.1] text-ink-900 sm:text-[2.8rem] ${className}`}>
+    <h2 id={id} className={`font-display text-heading text-ink-900 sm:text-heading-lg ${className}`}>
       {children}
     </h2>
   );
@@ -124,7 +124,7 @@ export default function Home() {
           <div className="mx-auto grid max-w-[1120px] items-center gap-14 px-4 pt-12 pb-14 sm:px-6 sm:pt-20 lg:grid-cols-[1.08fr_0.92fr] lg:gap-10 lg:pt-24 lg:pb-16">
             <div>
               <Eyebrow showLine={false}>Free · Private by design · Nonprofit</Eyebrow>
-              <h1 className="font-display mt-6 text-[2.45rem] leading-[1.04] font-normal text-ink-900 sm:text-[4.1rem]">
+              <h1 className="font-display mt-6 text-hero font-normal text-ink-900 sm:text-hero-lg">
                 One shared care page for the person you look after.
               </h1>
               <p className="mt-6 max-w-[36rem] text-lg leading-relaxed text-ink-500 sm:text-item">
@@ -132,12 +132,12 @@ export default function Home() {
                 opened it.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
-                <ButtonLink href={START_HREF} variant="primary" className="min-h-14 px-6 text-[1.05rem]">
+                <ButtonLink href={START_HREF} variant="primary" className="min-h-14 px-6 text-cta">
                   Start a care circle <ArrowRight size={20} aria-hidden="true" />
                 </ButtonLink>
-                <StartSample variant="soft" label="Try a sample visit" className="min-h-14 px-6 text-[1.05rem]" />
+                <StartSample variant="soft" label="Try a sample visit" className="min-h-14 px-6 text-cta" />
               </div>
-              <p className="mt-5 max-w-[36rem] text-[0.95rem] text-ink-500">
+              <p className="mt-5 max-w-[36rem] text-ui text-ink-500">
                 Caregivers sign in with Google. Everyone else opens their own link, with no account.
                 {DEMO_MODE ? " This is an early version, so please use made-up details for now." : ""}
               </p>
@@ -171,7 +171,7 @@ export default function Home() {
               {PROBLEMS.map(({ icon: Icon, title, body }) => (
                 <li key={title}>
                   <Icon size={28} strokeWidth={1.6} className="text-med" aria-hidden="true" />
-                  <h3 className="font-display mt-4 text-[1.45rem] leading-snug text-ink-900">{title}</h3>
+                  <h3 className="font-display mt-4 text-card text-ink-900">{title}</h3>
                   <p className="mt-2 text-ink-500">{body}</p>
                 </li>
               ))}
@@ -221,7 +221,7 @@ export default function Home() {
               ))}
             </ol>
             <div className="mt-12 flex flex-col gap-3 sm:flex-row sm:items-center">
-              <ButtonLink href={START_HREF} variant="primary" className="min-h-14 px-6 text-[1.05rem]">
+              <ButtonLink href={START_HREF} variant="primary" className="min-h-14 px-6 text-cta">
                 Start a care circle <ArrowRight size={20} aria-hidden="true" />
               </ButtonLink>
               <p className="text-ink-500">Free. You need a Google account to sign in.</p>
@@ -288,7 +288,7 @@ export default function Home() {
               <p className="mt-2 text-sm text-ink-500">Open source under the AGPL-3.0 license.</p>
             </div>
             <figure>
-              <blockquote id="founder-title" className="font-display text-section leading-[1.35] text-ink-900 sm:text-[2rem]">
+              <blockquote id="founder-title" className="font-display text-section leading-[1.35] text-ink-900 sm:text-page">
                 &ldquo;After five years working with Medicaid billing for an adult day health center, I&apos;ve seen how many different people
                 are involved in supporting aging adults. AfterVisit started with a simple question: what if the important information from a
                 medical appointment reached everyone helping with care, without families having to explain it over and over?&rdquo;
@@ -300,15 +300,15 @@ export default function Home() {
         {/* Closing */}
         <section aria-labelledby="cta-title" className="px-4 pb-20 sm:px-6">
           <div className="mx-auto max-w-[1120px] rounded-3xl bg-primary-900 px-6 py-14 text-center sm:px-12 sm:py-20">
-            <h2 id="cta-title" className="font-display mx-auto max-w-2xl text-[2.2rem] leading-[1.08] text-white sm:text-[3.2rem]">
+            <h2 id="cta-title" className="font-display mx-auto max-w-2xl text-closing text-white sm:text-closing-lg">
               Start a care page for someone you look after.
             </h2>
             <p className="mt-4 text-lg text-white/75">Free. Sign in with Google. Helpers never need an account.</p>
             <div className="mt-9 flex flex-col justify-center gap-3 sm:flex-row">
-              <ButtonLink href={START_HREF} variant="light" className="min-h-14 px-6 text-[1.05rem]">
+              <ButtonLink href={START_HREF} variant="light" className="min-h-14 px-6 text-cta">
                 Start a care circle <ArrowRight size={20} aria-hidden="true" />
               </ButtonLink>
-              <StartSample variant="navy" label="Try a sample visit" className="min-h-14 px-6 text-[1.05rem]" />
+              <StartSample variant="navy" label="Try a sample visit" className="min-h-14 px-6 text-cta" />
             </div>
           </div>
         </section>

@@ -18,10 +18,10 @@ function Step({ n, title, body, children }: { n: number; title: string; body: st
   return (
     <li className="grid gap-6 border-t border-border-200 py-10 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
       <div>
-        <span className="font-display text-[2.6rem] leading-none text-primary-700/80" aria-hidden="true">
+        <span className="font-display text-numeral-lg text-primary-700/80" aria-hidden="true">
           {n}
         </span>
-        <h3 className="mt-3 text-[1.3rem] font-bold text-ink-900">
+        <h3 className="mt-3 text-step font-bold text-ink-900">
           <span className="sr-only">Step {n}: </span>
           {title}
         </h3>
@@ -88,7 +88,7 @@ export function Walkthrough() {
             {tasks.map((t) => {
               const role = roleOf(t.assignee);
               return (
-                <li key={t.id} className="grid grid-cols-[7.5rem_1fr] gap-3 text-[0.95rem] sm:grid-cols-[9rem_1fr]">
+                <li key={t.id} className="grid grid-cols-[7.5rem_1fr] gap-3 text-ui sm:grid-cols-[9rem_1fr]">
                   <div>
                     <p className="font-semibold">{t.assignee}</p>
                     <p className="text-xs text-ink-500">{ROLE_NOTE[t.assignee ?? ""] ?? (role ? ROLE_LABELS[role] : "")}</p>
@@ -156,7 +156,7 @@ export function Walkthrough() {
               );
             })}
           </ul>
-          <div className="mt-4 rounded-xl bg-ok-bg/60 px-3.5 py-2.5 text-[0.95rem]">
+          <div className="mt-4 rounded-xl bg-ok-bg/60 px-3.5 py-2.5 text-ui">
             <p className="flex items-center gap-2 font-medium text-ok-ink">
               <CheckCircle2 size={16} aria-hidden="true" /> Completed: Call to schedule physical therapy
             </p>

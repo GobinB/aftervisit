@@ -20,7 +20,7 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
   const circle = await getCircle(actor, id);
   const keys = actor.kind === "caregiver" ? (await listOwnCircleKeys(actor)).filter((item) => item.circleId === id) : [];
   return (
-    <CircleShell>
+    <CircleShell signedIn={actor.kind === "caregiver"}>
       <Link href={`/circles/${id}`} className="font-semibold text-primary-700">
         Back
       </Link>

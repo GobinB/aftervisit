@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { dateTime } from "@/lib/format";
 import { SHARE_SECTION_LABELS, SHARE_SECTIONS, type ShareSection } from "@/lib/schema";
-import { AREA_LABELS, HELPER_ROLES, HELPER_ROLE_LABELS, VISIBILITY_AREAS, type HelperRole, type PersonView, type Visibility, type VisibilityArea } from "@/lib/schema/circles";
+import { AREA_LABELS, HELPER_ROLES, HELPER_ROLE_LABELS, READY_AREAS, type HelperRole, type PersonView, type Visibility, type VisibilityArea } from "@/lib/schema/circles";
 
 const field =
   "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500";
@@ -237,7 +237,7 @@ function SectionPicker({
       <fieldset>
         <legend className="text-sm font-medium text-ink-500">Areas</legend>
         <div className="mt-2 grid gap-2">
-          {VISIBILITY_AREAS.map((area) => {
+          {READY_AREAS.map((area) => {
             const shown = !hidden.includes(area);
             return (
               <label key={area} className="flex min-h-11 items-center justify-between gap-3">
@@ -253,23 +253,26 @@ function SectionPicker({
             );
           })}
         </div>
+        <p className="mt-1 text-sm text-ink-500">Other areas appear here once they are available.</p>
       </fieldset>
-      <fieldset>
-        <legend className="text-sm font-medium text-ink-500">Handoff sections</legend>
-        <div className="mt-2 grid gap-2">
-          {SHARE_SECTIONS.map((section) => (
-            <label key={section} className="flex min-h-11 items-center gap-3">
-              <input
-                type="checkbox"
-                checked={sections.includes(section)}
-                onChange={() => setSections(sections.includes(section) ? sections.filter((item) => item !== section) : [...sections, section])}
-                className="h-5 w-5 accent-primary-700"
-              />
-              {SHARE_SECTION_LABELS[section]}
-            </label>
-          ))}
-        </div>
-      </fieldset>
+      {READY_AREAS.includes("handoff") ? (
+        <fieldset>
+          <legend className="text-sm font-medium text-ink-500">Handoff sections</legend>
+          <div className="mt-2 grid gap-2">
+            {SHARE_SECTIONS.map((section) => (
+              <label key={section} className="flex min-h-11 items-center gap-3">
+                <input
+                  type="checkbox"
+                  checked={sections.includes(section)}
+                  onChange={() => setSections(sections.includes(section) ? sections.filter((item) => item !== section) : [...sections, section])}
+                  className="h-5 w-5 accent-primary-700"
+                />
+                {SHARE_SECTION_LABELS[section]}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      ) : null}
     </div>
   );
 }

@@ -32,15 +32,8 @@ export async function createCircle(actor: Actor, input: CreateCircleInput): Prom
 
 export async function deleteCircle(actor: Actor, circleId: string): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!can(actor, "circle:delete", { circleId })) return { ok: false, error: "Only the owner can delete a circle." };
-  const db = clientFor(actor);
-  await db.from("activity").insert({
-    circle_id: circleId,
-    actor: actor.kind === "caregiver" ? `caregiver:${actor.userId}` : "member",
-    action: "circle_deleted",
-    subject_type: "circle",
-    subject_id: circleId,
-  });
-  const { error } = await db.from("circles").update({ deleted_at: new Date().toISOString() }).eq("id", circleId).is("deleted_at", null);
+  // One transaction: the circle, every helper link, and the activity row.
+  const { error } = await clientFor(actor).rpc("delete_circle", { p_circle: circleId });
   if (error) return { ok: false, error: "The circle could not be deleted. Try again." };
   return { ok: true };
 }

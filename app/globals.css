@@ -35,6 +35,25 @@
   --text-tag--line-height: 1.5;
   --text-numeral: 2.4rem; /* step numbers */
   --text-numeral--line-height: 1;
+  --text-numeral-lg: 2.6rem; /* walkthrough step numbers */
+  --text-numeral-lg--line-height: 1;
+  --text-eyebrow: 0.8rem; /* uppercase label above a section title */
+  --text-cta: 1.05rem; /* large call-to-action buttons */
+  --text-step: 1.3rem; /* walkthrough step titles */
+  --text-card: 1.45rem; /* titles inside the problem cards */
+  --text-card--line-height: 1.375;
+  --text-heading: 2.1rem; /* home page section titles */
+  --text-heading--line-height: 1.1;
+  --text-heading-lg: 2.8rem;
+  --text-heading-lg--line-height: 1.1;
+  --text-closing: 2.2rem; /* closing call to action */
+  --text-closing--line-height: 1.08;
+  --text-closing-lg: 3.2rem;
+  --text-closing-lg--line-height: 1.08;
+  --text-hero: 2.45rem; /* home page headline */
+  --text-hero--line-height: 1.04;
+  --text-hero-lg: 4.1rem;
+  --text-hero-lg--line-height: 1.04;
   --color-link-on-ink: #9cc3ff; /* toast action on ink */
 
   --animate-fade-in: fade-in 0.35s ease-out both;

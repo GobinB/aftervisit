@@ -5,5 +5,5 @@ export { decryptFile, encryptFile, exportKeyBytes, generateCircleKey, generateFi
 export type { FilePayload, StoredFileKey } from "@/lib/crypto/keys";
 export { buildHelperLink, helperLinkForServer, parseLinkKey } from "@/lib/crypto/link";
 export { captureHelperKeyFromLocation, readHelperKey, rememberHelperKey } from "@/lib/crypto/session";
-export { loadCircleKey, saveCircleKey } from "@/lib/crypto/idb";
+export { clearCircleKeys, loadCircleKey, saveCircleKey } from "@/lib/crypto/idb";
 export type { LocalCircleKey } from "@/lib/crypto/idb";

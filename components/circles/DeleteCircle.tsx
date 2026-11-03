@@ -19,7 +19,7 @@ export function DeleteCircle({ circleId }: { circleId: string }) {
 
   return (
     <div className="rounded-2xl border border-attn bg-attn-bg p-4" role="group" aria-label="Confirm delete">
-      <p className="text-attn-ink">This removes the circle for everyone on it.</p>
+      <p className="text-attn-ink">This removes the circle for everyone on it and turns off every helper link.</p>
       {error ? (
         <p role="alert" className="mt-2 text-attn-ink">
           {error}
