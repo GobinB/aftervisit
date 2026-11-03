@@ -15,7 +15,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: { default: "AfterVisit: one shared care page for the person you look after", template: "%s · AfterVisit" },
   description:
-    "Keep medications, tasks and the latest doctor's visit in one place, and give family, home aides and the day program their own private link. Free, private by design and nonprofit.",
+    "One shared care page for the person you look after. Family, home aides and the day program each get their own private link. Free, private by design and nonprofit.",
   openGraph: { siteName: "AfterVisit", type: "website" },
   formatDetection: { telephone: false },
 };

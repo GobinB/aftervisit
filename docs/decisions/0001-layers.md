@@ -18,7 +18,7 @@ ESLint enforces the direction with `no-restricted-imports` (`eslint.config.mjs`)
 - `lib/crypto/` runs in the browser only. Server code (`services/`, `store/`, actions, API routes, `app/(auth)/`) cannot import it.
 - Files that read secrets start with `import "server-only"`.
 
-New code goes into these folders from the first week. Prototype files move when they are next touched.
+New code goes into these folders. Prototype files move when they are next touched.
 
 ## Considered
 

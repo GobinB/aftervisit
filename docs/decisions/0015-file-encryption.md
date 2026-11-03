@@ -8,7 +8,7 @@ The recovery phrase is 12 BIP39 English words (128 bits plus a checksum). It is 
 
 The circle key stored on the device is extractable. Helper links have to carry it. Where a key does not need to be copied out, it is non-extractable: the phrase wrapping key, and a file key after it is unwrapped for decrypt.
 
-A file will have its own key, wrapped by the circle key. The wrap, the IV, and `key_version` are what a file row will store. There is no files table yet. `rewrapFileKeys` has the signature for a later change and is not called from the app.
+Planned, not built: each file gets its own key, wrapped by the circle key. The wrap, the IV, and `key_version` are what a file row will store. There is no files table yet. `rewrapFileKeys` has the signature for a later change and is not called from the app.
 
 The browser keeps the circle key in IndexedDB. On a new device, after Google sign-in, the person enters the phrase and the browser unwraps the stored copy.
 
@@ -18,9 +18,9 @@ The PIN protects server access. It does not wrap or hide the key. A forwarded li
 
 Only the owner rotates the key. The database rejects a direct change to `circles.key_version` and a call to `rotate_own_circle_key` from anyone else. Rotation creates a new circle key, moves `key_version` forward by one, rewraps it for the owner, and replaces every active helper token in that same transaction. The screen says every helper needs a new link and shows those links. A helper link is built only when the key stored on this device is the circle's current version.
 
-## Open
+## Not decided
 
-Per-caregiver key pairs are deferred. That decision waits until before co-caregivers land in week 5. This change does not build a key pair for each caregiver.
+Per-caregiver key pairs. Only the owner holds and changes the circle key today. This change does not build a key pair for each caregiver.
 
 ## Why
 

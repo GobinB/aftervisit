@@ -14,7 +14,7 @@ const START_HREF = "/circles/new";
 
 const PILLARS = [
   { title: "Free", body: "No cost for families, or for anyone helping them." },
-  { title: "Private by design", body: "Each person sees only what you choose. Files are encrypted on your phone before they are uploaded." },
+  { title: "Private by design", body: "Each person sees only what you choose, and you can turn off anyone’s link at any time." },
   { title: "Nonprofit and open source", body: "Built to help families, not to sell their data. Anyone can read the code." },
 ];
 
@@ -36,34 +36,44 @@ const PROBLEMS = [
   },
 ];
 
-/** `ready: false` shows "Coming this month". Flip it when the module ships. */
+/**
+ * What the page may promise. Set `ready: true` in the pull request that ships a module:
+ * its "Not available yet" label goes away, and any step that needs it appears.
+ */
 const MODULES = [
   {
+    key: "people",
     title: "The people who help",
     body: "Family, home aides, the day program and care managers. Each gets a role and a personal link, and you can turn any link off.",
     ready: true,
   },
   {
+    key: "medications",
     title: "Medication list",
     body: "Which pills, which dose, as of today. Every change is dated with where it came from, and the list prints on one page.",
     ready: false,
   },
   {
+    key: "tasks",
     title: "Tasks",
     body: "Who is calling the insurance company, and by when. Anyone you allow can tap “I’ll do it.”",
     ready: false,
   },
   {
+    key: "handoff",
     title: "After-visit handoff",
     body: "Upload the visit summary, check it and confirm. The medication list and tasks update, and everyone sees what changed.",
     ready: false,
   },
-];
+] as const;
 
-const STEPS = [
+type ModuleKey = (typeof MODULES)[number]["key"];
+const ready = (key: ModuleKey) => MODULES.some((item) => item.key === key && item.ready);
+
+const STEPS: { title: string; body: string; needs?: ModuleKey }[] = [
   {
     title: "Sign in and start the page.",
-    body: "Sign in with Google and add the person you care for. You get 12 recovery words to keep somewhere safe. They open your files on a new phone.",
+    body: "Sign in with Google and add the person you care for. You get 12 recovery words to keep somewhere safe. They restore your circle’s private key on a new phone.",
   },
   {
     title: "Add the people who help.",
@@ -72,18 +82,19 @@ const STEPS = [
   {
     title: "Keep it current after each visit.",
     body: "Upload the after-visit summary. The medication list and tasks update, so nobody has to explain it five times.",
+    needs: "handoff",
   },
 ];
 
 const PROMISES = [
   { title: "Only what you choose.", body: "Each person sees only the parts you pick for them. You can turn off anyone’s link at any time." },
   {
-    title: "Files encrypted on your phone.",
-    body: "Documents and photos are encrypted before they leave your phone. AfterVisit stores them but can’t open them.",
+    title: "A PIN if you want one.",
+    body: "Add a 4-digit PIN to any link. Three wrong tries lock that link, and nobody else’s.",
   },
   {
     title: "Links that expire.",
-    body: `Every link is a long random code, saved only as a one-way hash. Links stop working after ${MEMBER_TTL_DAYS} days unless you renew them.`,
+    body: `Every link is a long random code, saved only as a one-way hash. A link stops working after ${MEMBER_TTL_DAYS} days without being opened.`,
   },
 ];
 
@@ -116,9 +127,9 @@ export default function Home() {
               <h1 className="font-display mt-6 text-[2.45rem] leading-[1.04] font-normal text-ink-900 sm:text-[4.1rem]">
                 One shared care page for the person you look after.
               </h1>
-              <p className="mt-6 max-w-[36rem] text-lg leading-relaxed text-ink-500 sm:text-[1.15rem]">
-                Keep their medications, tasks and the latest doctor&apos;s visit in one place. Give family, home aides and the day program
-                their own private link to just the parts they need.
+              <p className="mt-6 max-w-[36rem] text-lg leading-relaxed text-ink-500 sm:text-item">
+                Give family, home aides and the day program their own private link to just the parts they need, and see when each one last
+                opened it.
               </p>
               <div className="mt-9 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <ButtonLink href={START_HREF} variant="primary" className="min-h-14 px-6 text-[1.05rem]">
@@ -140,7 +151,7 @@ export default function Home() {
           <ul className="grid gap-8 border-y border-border-200 py-10 md:grid-cols-3 md:gap-10">
             {PILLARS.map(({ title, body }) => (
               <li key={title}>
-                <h2 className="font-display text-[1.6rem] leading-tight text-primary-900">{title}</h2>
+                <h2 className="font-display text-section leading-tight text-primary-900">{title}</h2>
                 <p className="mt-2 text-ink-500">{body}</p>
               </li>
             ))}
@@ -179,10 +190,10 @@ export default function Home() {
               {MODULES.map(({ title, body, ready }) => (
                 <li key={title} className="border-t-2 border-ink-900 pt-5">
                   <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                    <h3 className="text-[1.15rem] font-bold text-ink-900">{title}</h3>
+                    <h3 className="text-item font-bold text-ink-900">{title}</h3>
                     {ready ? null : (
-                      <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-[0.75rem] font-bold tracking-wider text-primary-900 uppercase">
-                        Coming this month
+                      <span className="rounded-full bg-sky-100 px-2.5 py-0.5 text-tag font-bold tracking-wider text-primary-900 uppercase">
+                        Not available yet
                       </span>
                     )}
                   </div>
@@ -201,10 +212,10 @@ export default function Home() {
               Set it up once. Everyone stays up to date.
             </SectionTitle>
             <ol className="mt-12 grid gap-10 md:grid-cols-3">
-              {STEPS.map(({ title, body }, index) => (
+              {STEPS.filter((step) => !step.needs || ready(step.needs)).map(({ title, body }, index) => (
                 <li key={title}>
-                  <p className="font-display text-[2.4rem] leading-none text-primary-700">{index + 1}</p>
-                  <h3 className="mt-4 text-[1.15rem] font-bold text-ink-900">{title}</h3>
+                  <p className="font-display text-numeral leading-none text-primary-700">{index + 1}</p>
+                  <h3 className="mt-4 text-item font-bold text-ink-900">{title}</h3>
                   <p className="mt-2 text-ink-500">{body}</p>
                 </li>
               ))}
@@ -251,7 +262,7 @@ export default function Home() {
             <ul className="mt-12 grid gap-10 md:grid-cols-3">
               {PROMISES.map(({ title, body }) => (
                 <li key={title} className="border-t-2 border-ink-900 pt-5">
-                  <h3 className="text-[1.15rem] font-bold text-ink-900">{title}</h3>
+                  <h3 className="text-item font-bold text-ink-900">{title}</h3>
                   <p className="mt-2 text-ink-500">{body}</p>
                 </li>
               ))}
@@ -277,7 +288,7 @@ export default function Home() {
               <p className="mt-2 text-sm text-ink-500">Open source under the AGPL-3.0 license.</p>
             </div>
             <figure>
-              <blockquote id="founder-title" className="font-display text-[1.6rem] leading-[1.35] text-ink-900 sm:text-[2rem]">
+              <blockquote id="founder-title" className="font-display text-section leading-[1.35] text-ink-900 sm:text-[2rem]">
                 &ldquo;After five years working with Medicaid billing for an adult day health center, I&apos;ve seen how many different people
                 are involved in supporting aging adults. AfterVisit started with a simple question: what if the important information from a
                 medical appointment reached everyone helping with care, without families having to explain it over and over?&rdquo;

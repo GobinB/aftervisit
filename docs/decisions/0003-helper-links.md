@@ -15,7 +15,7 @@ Family members, home aides, day programs and care managers do not create account
 
 ## Considered
 
-Accounts for helpers. Many helpers are aides or day program staff who will not create an account for each family. An optional Google login for helpers is planned for V2.
+Accounts for helpers. Many helpers are aides or day program staff who will not create an account for each family.
 
 ## Why
 

@@ -2,7 +2,7 @@
 
 ## Decision
 
-Caregivers sign in with Google through Supabase Auth. It is the only sign-in method in V1, and AfterVisit sends no email or text messages.
+Caregivers sign in with Google through Supabase Auth. It is the only sign-in method, and AfterVisit sends no email or text messages.
 
 - The login page has one button. It calls `signInWithOAuth({ provider: "google" })` with `redirectTo` set to the site's own `/callback`.
 - `app/(auth)/callback` exchanges the code for a session cookie with `@supabase/ssr`. `middleware.ts` keeps the session fresh.
@@ -21,4 +21,4 @@ The Google OAuth clients, the hosted provider settings and the redirect allow-li
 
 ## Why
 
-Most family caregivers already have a Google account on their phone, so there is nothing new to remember. If pilot families turn out not to have one, we add another option then and record it as a new decision.
+Most family caregivers already have a Google account on their phone, so there is nothing new to remember. Adding another sign-in method would be a new decision.

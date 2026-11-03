@@ -12,7 +12,7 @@ Every table has row security turned on. `supabase/tests/` checks in CI that one 
 ## Considered
 
 - The service role for everyone. Simpler, but then a single missed check in app code exposes every family.
-- Short-lived tokens minted for each helper request, so row security covers helpers too. This is the V2 plan, once we confirm the project's Supabase key setup allows it.
+- Short-lived tokens minted for each helper request, so row security covers helpers too. Not built: it depends on whether the project's Supabase key setup allows minting them.
 
 ## Why
 

@@ -59,8 +59,8 @@ npm install
 cp .env.example .env.local
 ```
 
-1. Apply every migration in order, including `supabase/migrations/0004_circles_members.sql`, `supabase/migrations/0005_create_circle.sql`, and `supabase/migrations/0006_circle_key_guard.sql`. With the Supabase CLI: `supabase link` (the project ref stays on your machine, not in git) then `supabase db push`. `supabase/seed.sql` loads a fictional family and is what a future preview branch will run. Do not put real family data in it.
-2. Fill in `.env.local`. This week, production and preview deployments share one Supabase project. The URL and keys are environment variables only. Before any real family data is stored, preview deployments move to Supabase Branching so each pull request gets its own database from the migrations and the seed. See [docs/decisions/0005-code-vs-data.md](docs/decisions/0005-code-vs-data.md).
+1. Apply every migration in order, including `supabase/migrations/0004_circles_members.sql`, `supabase/migrations/0005_create_circle.sql`, and `supabase/migrations/0006_circle_key_guard.sql`. With the Supabase CLI: `supabase link` (the project ref stays on your machine, not in git) then `supabase db push`. `supabase/seed.sql` loads a fictional family and is what a preview branch will run. Do not put real family data in it.
+2. Fill in `.env.local`. Today, production and preview deployments share one Supabase project. The URL and keys are environment variables only. Planned: preview deployments move to Supabase Branching so each pull request gets its own database from the migrations and the seed. See [docs/decisions/0005-code-vs-data.md](docs/decisions/0005-code-vs-data.md).
 
 | Variable | Notes |
 | --- | --- |
