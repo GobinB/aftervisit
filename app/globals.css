@@ -29,6 +29,12 @@
   --text-section: 1.6rem;
   --text-section--line-height: 1.15;
   --text-ui: 0.95rem;
+  --text-item: 1.15rem; /* titles of list items: modules, steps, promises */
+  --text-item--line-height: 1.5;
+  --text-tag: 0.75rem; /* small uppercase status labels */
+  --text-tag--line-height: 1.5;
+  --text-numeral: 2.4rem; /* step numbers */
+  --text-numeral--line-height: 1;
   --color-link-on-ink: #9cc3ff; /* toast action on ink */
 
   --animate-fade-in: fade-in 0.35s ease-out both;

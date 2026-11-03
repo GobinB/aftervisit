@@ -34,7 +34,7 @@ export default async function CirclesPage() {
         <p className="mt-6 text-ink-500">No circle yet.</p>
       )}
       <ButtonLink href="/circles/new" className="mt-6 w-full">
-        New circle
+        Start a care circle
       </ButtonLink>
     </CircleShell>
   );
