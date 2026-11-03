@@ -3,6 +3,7 @@ import { SOURCE_URL } from "@/components/AppBar";
 import { DemoNotice } from "@/components/DemoNotice";
 import { PageShell } from "@/components/PageShell";
 import { providerDisclosure } from "@/lib/extract/provider";
+import { MEMBER_TTL_DAYS } from "@/lib/schema/circles";
 
 export const metadata: Metadata = { title: "Privacy" };
 export const dynamic = "force-dynamic";
@@ -103,7 +104,16 @@ export default function PrivacyPage() {
           <section>
             <h2>Accounts, cookies and services we use</h2>
             <ul>
-              <li>There are no accounts and no tracking cookies.</li>
+              <li>You don&apos;t need an account to build, share or open a handoff.</li>
+              <li>
+                Caregivers who start a care circle sign in with Google. Google shares your name, email address and profile photo with
+                AfterVisit&apos;s sign-in service, Supabase. AfterVisit never sees your Google password.
+              </li>
+              <li>
+                People added to a circle don&apos;t need an account. They open their personal link, and their browser keeps a signed cookie
+                for up to {MEMBER_TTL_DAYS} days so they stay signed in to that circle.
+              </li>
+              <li>Cookies are used only to keep you signed in. There are no tracking cookies.</li>
               <li>The site is hosted on Vercel. Handoffs and attached originals are stored with Supabase in the United States.</li>
               <li>Page visits are counted with Vercel Web Analytics, which does not use cookies.</li>
               <li>To prevent abuse, a salted one-way hash of your IP address is kept for one day to count requests per hour.</li>
