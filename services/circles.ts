@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { Actor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { CONSENT_TEXT, CONSENT_TYPES, CONSENT_VERSION, CircleContentSchema, type CircleContent, type CreateCircleInput } from "@/lib/schema/circles";
-import { clientFor } from "@/store/db";
+import { clientFor, createCircleRecord } from "@/store/db";
 
 const generic = "That could not be saved. Try again.";
 
@@ -13,38 +13,19 @@ function textHash(type: (typeof CONSENT_TYPES)[number]): string {
 
 export async function createCircle(actor: Actor, input: CreateCircleInput): Promise<{ ok: true; circleId: string } | { ok: false; error: string }> {
   if (actor.kind !== "caregiver") return { ok: false, error: "Sign in with Google to create a circle." };
-  const db = clientFor(actor);
-  const { data, error } = await db.from("circles").insert({ owner_id: actor.userId, key_version: 1, content: input.content }).select("id").single();
-  if (error || !data) return { ok: false, error: generic };
-  const circleId = data.id as string;
-  const caregiver = await db.from("circle_caregivers").insert({ circle_id: circleId, user_id: actor.userId, role: "owner", key_version: 1 });
-  if (caregiver.error) {
-    await db.from("circles").delete().eq("id", circleId);
+  try {
+    const circleId = await createCircleRecord(actor, {
+      content: input.content,
+      consents: CONSENT_TYPES.map((type) => ({
+        type,
+        version: CONSENT_VERSION,
+        text_hash: textHash(type),
+      })),
+    });
+    return { ok: true, circleId };
+  } catch {
     return { ok: false, error: generic };
   }
-  const agreed_at = new Date().toISOString();
-  const consents = await db.from("consents").insert(
-    CONSENT_TYPES.map((type) => ({
-      circle_id: circleId,
-      user_id: actor.userId,
-      type,
-      version: CONSENT_VERSION,
-      text_hash: textHash(type),
-      agreed_at,
-    })),
-  );
-  if (consents.error) {
-    await db.from("circles").delete().eq("id", circleId);
-    return { ok: false, error: generic };
-  }
-  await db.from("activity").insert({
-    circle_id: circleId,
-    actor: `caregiver:${actor.userId}`,
-    action: "circle_created",
-    subject_type: "circle",
-    subject_id: circleId,
-  });
-  return { ok: true, circleId };
 }
 
 export async function deleteCircle(actor: Actor, circleId: string): Promise<{ ok: true } | { ok: false; error: string }> {

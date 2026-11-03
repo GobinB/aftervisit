@@ -3,6 +3,7 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import type { Actor } from "@/lib/auth";
 import { env } from "@/lib/env";
 import type { Ack, HandoffPayload, HandoffView, Recipient } from "@/lib/schema";
+import type { CircleContent, ConsentType } from "@/lib/schema/circles";
 
 /** Row shape of public.handoffs (supabase/migrations/0001_init.sql). */
 export interface HandoffRow {
@@ -61,6 +62,26 @@ export function userClient(accessToken: string): SupabaseClient {
 export function clientFor(actor: Actor): SupabaseClient {
   if (actor.kind === "helper") return serviceClient();
   return userClient(actor.accessToken);
+}
+
+/**
+ * One RPC writes the circle, the owner row, consents, and activity.
+ * owner_id and role are fixed in the database from auth.uid().
+ */
+export async function createCircleRecord(
+  actor: Actor,
+  input: {
+    content: CircleContent;
+    consents: { type: ConsentType; version: string; text_hash: string }[];
+  },
+): Promise<string> {
+  if (actor.kind !== "caregiver") throw new Error("create_circle failed");
+  const { data, error } = await clientFor(actor).rpc("create_circle", {
+    p_content: input.content,
+    p_consents: input.consents,
+  });
+  if (error || typeof data !== "string" || data === "") throw new Error("create_circle failed");
+  return data;
 }
 
 export async function getHandoff(token: string): Promise<HandoffRow | null> {
