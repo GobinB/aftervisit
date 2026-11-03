@@ -39,7 +39,7 @@ export default async function CircleHome({ params }: { params: Promise<{ id: str
         <Link href="/circles" className="inline-flex min-h-12 items-center justify-center font-semibold text-primary-700">
           All circles
         </Link>
-        {key && can(actor, "circle:rotate_key", { circleId: id }) ? <RotateKey circle={key} /> : null}
+        {key && actor.kind === "caregiver" && actor.role === "owner" && can(actor, "circle:rotate_key", { circleId: id }) ? <RotateKey circle={key} /> : null}
         {can(actor, "circle:delete", { circleId: id }) ? <DeleteCircle circleId={id} /> : null}
       </div>
     </CircleShell>

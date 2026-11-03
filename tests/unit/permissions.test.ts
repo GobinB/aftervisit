@@ -90,7 +90,7 @@ describe("permissions grid", () => {
     expect(can(caregiver("owner"), "circle:delete", { circleId: CIRCLE })).toBe(true);
     expect(can(caregiver("co_caregiver"), "circle:delete", { circleId: CIRCLE })).toBe(false);
     expect(can(caregiver("owner"), "circle:rotate_key", { circleId: CIRCLE })).toBe(true);
-    expect(can(caregiver("co_caregiver"), "circle:rotate_key", { circleId: CIRCLE })).toBe(true);
+    expect(can(caregiver("co_caregiver"), "circle:rotate_key", { circleId: CIRCLE })).toBe(false);
     expect(can(helper("family"), "circle:rotate_key", { circleId: CIRCLE })).toBe(false);
     expect(can(helper("home_aide"), "circle:rotate_key", { circleId: CIRCLE })).toBe(false);
     expect(can(caregiver("owner"), "export:download", { circleId: CIRCLE })).toBe(true);

@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import type { ReactNode } from "react";
+import { CaptureLinkKey } from "@/components/circles/CaptureLinkKey";
 import { OpenMemberLink } from "@/components/circles/OpenMemberLink";
 import { InviteHandoff } from "@/components/handoff/clients";
 import { GonePage } from "@/components/handoff/GonePage";
@@ -31,6 +33,15 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 /** A person's own link. Member links set a helper session. Older handoff invites keep working. */
 export default async function InvitePage({ params }: Props) {
   const { invite } = await params;
+  return (
+    <>
+      <CaptureLinkKey token={invite} />
+      {await inviteBody(invite)}
+    </>
+  );
+}
+
+async function inviteBody(invite: string): Promise<ReactNode> {
   const member = await previewMemberLink(invite);
   if (member.status === "revoked" || member.status === "expired") return <GonePage status={member.status} />;
   if (member.status === "locked") {

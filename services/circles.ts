@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 import type { Actor } from "@/lib/auth";
 import { hashInvite, newInviteToken } from "@/lib/invites";
 import { can } from "@/lib/permissions";
-import { CONSENT_TEXT, CONSENT_TYPES, CONSENT_VERSION, CircleContentSchema, MEMBER_TTL_DAYS, nextCircleKeyVersion, type CircleContent, type CircleKeyStatus, type CreateCircleInput } from "@/lib/schema/circles";
+import { CONSENT_TEXT, CONSENT_TYPES, CONSENT_VERSION, CircleContentSchema, nextCircleKeyVersion, type CircleContent, type CircleKeyStatus, type CreateCircleInput } from "@/lib/schema/circles";
 import { clientFor } from "@/store/db";
 
 const generic = "That could not be saved. Try again.";
@@ -141,16 +141,16 @@ export async function storeOwnCircleKey(
 export type PreparedLink = { token: string; name: string; email: string | null };
 
 /**
- * New circle key for this caregiver only. The database moves key_version forward by one.
- * Other caregivers keep their old wrapped key until a later change can share the new one.
+ * New circle key for the owner. The database moves key_version forward by one and
+ * replaces every active helper token in that same transaction. Only token hashes are sent.
  */
 export async function rotateCircleKey(
   actor: Actor,
   circleId: string,
   circleKeyWrapped: string,
   keyVersion: number,
-): Promise<{ ok: true; keyVersion: number; links: PreparedLink[]; linksReady: boolean } | { ok: false; error: string }> {
-  if (!can(actor, "circle:rotate_key", { circleId })) return { ok: false, error: "You cannot change the key for this circle." };
+): Promise<{ ok: true; keyVersion: number; links: PreparedLink[] } | { ok: false; error: string }> {
+  if (!can(actor, "circle:rotate_key", { circleId })) return { ok: false, error: "Only the owner can change the key for this circle." };
   if (actor.kind !== "caregiver") return { ok: false, error: "Sign in with Google to change a key." };
   const db = clientFor(actor);
   const current = await db.from("circles").select("key_version").eq("id", circleId).is("deleted_at", null).maybeSingle();
@@ -162,35 +162,30 @@ export async function rotateCircleKey(
     return { ok: false, error: "The key was already changed. Reload this page and try again." };
   }
   if (keyVersion !== expected) return { ok: false, error: "The key was already changed. Reload this page and try again." };
-  const { error } = await db.rpc("rotate_own_circle_key", { p_circle: circleId, p_wrapped: circleKeyWrapped, p_version: keyVersion });
+  const members = await db.from("members").select("id, name, email").eq("circle_id", circleId).is("revoked_at", null);
+  if (members.error || !members.data) return { ok: false, error: generic };
+  const links = members.data.map((member) => {
+    const token = newInviteToken();
+    return {
+      id: member.id as string,
+      token,
+      tokenHash: hashInvite(token),
+      name: member.name as string,
+      email: (member.email as string | null) ?? null,
+    };
+  });
+  const { error } = await db.rpc("rotate_own_circle_key", {
+    p_circle: circleId,
+    p_wrapped: circleKeyWrapped,
+    p_version: keyVersion,
+    p_member_tokens: links.map((link) => ({ id: link.id, token_hash: link.tokenHash })),
+  });
   if (error) {
     if (/key version/i.test(error.message ?? "")) return { ok: false, error: "The key was already changed. Reload this page and try again." };
+    if (/only the owner/i.test(error.message ?? "")) return { ok: false, error: "Only the owner can change the key for this circle." };
     return { ok: false, error: generic };
   }
-  const members = await db.from("members").select("id, name, email").eq("circle_id", circleId).is("revoked_at", null);
-  if (members.error || !members.data) return { ok: true, keyVersion, links: [], linksReady: false };
-  const expiresAt = new Date(Date.now() + MEMBER_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-  const links: PreparedLink[] = [];
-  for (const member of members.data) {
-    const token = newInviteToken();
-    const updated = await db
-      .from("members")
-      .update({ token_hash: hashInvite(token), pin_failures: 0, locked_until: null, lock_count: 0, expires_at: expiresAt })
-      .eq("id", member.id as string)
-      .eq("circle_id", circleId)
-      .select("id")
-      .maybeSingle();
-    if (!updated.data) return { ok: true, keyVersion, links, linksReady: false };
-    links.push({ token, name: member.name as string, email: (member.email as string | null) ?? null });
-    await db.from("activity").insert({
-      circle_id: circleId,
-      actor: `caregiver:${actor.userId}`,
-      action: "member_link",
-      subject_type: "member",
-      subject_id: member.id as string,
-    });
-  }
-  return { ok: true, keyVersion, links, linksReady: true };
+  return { ok: true, keyVersion, links: links.map(({ token, name, email }) => ({ token, name, email })) };
 }
 
 export async function getCircle(actor: Actor, circleId: string): Promise<CircleContent | null> {

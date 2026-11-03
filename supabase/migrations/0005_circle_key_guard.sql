@@ -1,8 +1,8 @@
 -- Who may write a circle key. Columns already exist (0004): circles.key_version,
 -- circle_caregivers.circle_key_wrapped, circle_caregivers.key_version.
--- A caregiver may change only their own wrapped key. A new co-caregiver row may be
--- inserted without one. The owner and a co-caregiver may move the circle key version
--- forward by one step. The raw key and the recovery phrase are never stored.
+-- A caregiver may change only their own wrapped key, and that version must match the
+-- circle. circles.key_version moves only inside rotate_own_circle_key, and only the
+-- owner may call it. The raw key and the recovery phrase are never stored.
 -- Safe to re-run.
 
 create or replace function public.circle_caregivers_own_key()
@@ -31,6 +31,10 @@ begin
     if new.circle_key_wrapped is not null and new.user_id is distinct from auth.uid() then
       raise exception 'a wrapped circle key can only be stored by that caregiver';
     end if;
+    if new.circle_key_wrapped is not null
+       and new.key_version is distinct from (select c.key_version from public.circles c where c.id = new.circle_id) then
+      raise exception 'the wrapped key version must match the circle';
+    end if;
     return new;
   end if;
 
@@ -42,6 +46,9 @@ begin
      or new.key_version is distinct from old.key_version then
     if auth.uid() is distinct from old.user_id then
       raise exception 'a wrapped circle key can only be changed by that caregiver';
+    end if;
+    if new.key_version is distinct from (select c.key_version from public.circles c where c.id = new.circle_id) then
+      raise exception 'the wrapped key version must match the circle';
     end if;
   end if;
 
@@ -68,6 +75,10 @@ begin
     raise exception 'only the owner can change circle ownership';
   end if;
   if new.key_version is distinct from old.key_version then
+    -- Set only by rotate_own_circle_key, for this transaction.
+    if coalesce(current_setting('aftervisit.rotate_circle_key', true), '') is distinct from 'on' then
+      raise exception 'key version changes only when the circle key is rotated';
+    end if;
     if new.key_version is distinct from old.key_version + 1 then
       raise exception 'key version moves forward one step';
     end if;
@@ -76,9 +87,9 @@ begin
       from public.circle_caregivers
       where circle_id = old.id
         and user_id = auth.uid()
-        and role in ('owner', 'co_caregiver')
+        and role = 'owner'
     ) then
-      raise exception 'only a caregiver can change the circle key version';
+      raise exception 'only the owner can change the circle key';
     end if;
   end if;
   return new;
@@ -90,8 +101,18 @@ create trigger circles_protect_owner_and_key
   before update on public.circles
   for each row execute function public.circles_protect_owner_and_key();
 
--- One transaction so the wrapped key and the circle version cannot diverge.
-create or replace function public.rotate_own_circle_key(p_circle uuid, p_wrapped text, p_version int)
+-- One transaction: the new circle version, the owner's wrapped key, and every active helper token.
+-- p_member_tokens is [{"id": uuid, "token_hash": text}, ...] for each member with revoked_at null.
+-- 90 days matches MEMBER_TTL_DAYS in lib/schema/circles.ts.
+drop function if exists public.rotate_own_circle_key(uuid, text, int);
+drop function if exists public.rotate_own_circle_key(uuid, text, int, jsonb);
+
+create or replace function public.rotate_own_circle_key(
+  p_circle uuid,
+  p_wrapped text,
+  p_version int,
+  p_member_tokens jsonb
+)
 returns int
 language plpgsql
 security invoker
@@ -100,6 +121,8 @@ as $$
 declare
   v_role text;
   v_current int;
+  v_expected int;
+  v_updated int;
 begin
   if p_wrapped is null
      or char_length(p_wrapped) > 200
@@ -110,8 +133,8 @@ begin
   select role into v_role
   from public.circle_caregivers
   where circle_id = p_circle and user_id = auth.uid();
-  if v_role is null or v_role not in ('owner', 'co_caregiver') then
-    raise exception 'only a caregiver can change the circle key';
+  if v_role is distinct from 'owner' then
+    raise exception 'only the owner can change the circle key';
   end if;
 
   select key_version into v_current
@@ -125,18 +148,51 @@ begin
     raise exception 'key version moves forward one step';
   end if;
 
+  v_expected := coalesce(jsonb_array_length(p_member_tokens), 0);
+  if exists (
+    select 1
+    from jsonb_to_recordset(coalesce(p_member_tokens, '[]'::jsonb)) as t(id uuid, token_hash text)
+    where t.id is null or t.token_hash is null or char_length(t.token_hash) < 32
+  ) or v_expected is distinct from (
+    select count(*)::int from public.members where circle_id = p_circle and revoked_at is null
+  ) then
+    raise exception 'helper links could not be replaced';
+  end if;
+
+  -- The flag lets this transaction move circles.key_version. A plain update cannot.
+  perform set_config('aftervisit.rotate_circle_key', 'on', true);
+
+  update public.circles
+     set key_version = p_version
+   where id = p_circle;
+
   update public.circle_caregivers
      set circle_key_wrapped = p_wrapped,
          key_version = p_version
    where circle_id = p_circle
      and user_id = auth.uid();
 
-  update public.circles
-     set key_version = p_version
-   where id = p_circle;
+  update public.members m
+     set token_hash = t.token_hash,
+         pin_failures = 0,
+         locked_until = null,
+         lock_count = 0,
+         expires_at = now() + interval '90 days'
+    from jsonb_to_recordset(coalesce(p_member_tokens, '[]'::jsonb)) as t(id uuid, token_hash text)
+   where m.id = t.id
+     and m.circle_id = p_circle
+     and m.revoked_at is null;
+  get diagnostics v_updated = row_count;
+  if v_updated is distinct from v_expected then
+    raise exception 'helper links could not be replaced';
+  end if;
 
   insert into public.activity (circle_id, actor, action, subject_type, subject_id)
   values (p_circle, 'caregiver:' || auth.uid()::text, 'circle_key_rotated', 'circle', p_circle);
+
+  insert into public.activity (circle_id, actor, action, subject_type, subject_id)
+  select p_circle, 'caregiver:' || auth.uid()::text, 'member_link', 'member', t.id
+  from jsonb_to_recordset(coalesce(p_member_tokens, '[]'::jsonb)) as t(id uuid, token_hash text);
 
   return p_version;
 end;
@@ -192,5 +248,5 @@ create policy circle_caregivers_update_own_key
 
 revoke all on function public.circle_caregivers_own_key() from public, anon, authenticated, service_role;
 revoke all on function public.circles_protect_owner_and_key() from public, anon, authenticated, service_role;
-revoke all on function public.rotate_own_circle_key(uuid, text, int) from public, anon, service_role;
-grant execute on function public.rotate_own_circle_key(uuid, text, int) to authenticated;
+revoke all on function public.rotate_own_circle_key(uuid, text, int, jsonb) from public, anon, service_role;
+grant execute on function public.rotate_own_circle_key(uuid, text, int, jsonb) to authenticated;

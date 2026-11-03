@@ -14,7 +14,17 @@ import { AREA_LABELS, HELPER_ROLES, HELPER_ROLE_LABELS, VISIBILITY_AREAS, type H
 const field =
   "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500";
 
-export function MembersPanel({ circleId, people, canManage }: { circleId: string; people: PersonView[]; canManage: boolean }) {
+export function MembersPanel({
+  circleId,
+  people,
+  canManage,
+  keyVersion,
+}: {
+  circleId: string;
+  people: PersonView[];
+  canManage: boolean;
+  keyVersion: number | null;
+}) {
   const router = useRouter();
   const [link, setLink] = useState<{ url: string; name: string; email: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +36,7 @@ export function MembersPanel({ circleId, people, canManage }: { circleId: string
     }
     setError(null);
     if (result.token && result.name) {
-      const built = await urlForMemberToken(circleId, result.token);
+      const built = await urlForMemberToken(circleId, result.token, keyVersion);
       if (!built.ok) setError(built.error);
       else setLink({ url: built.url, name: result.name, email: result.email ?? null });
     }

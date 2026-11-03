@@ -16,7 +16,11 @@ Helper links are `/i/{token}#k=...`. The server only creates and stores the toke
 
 The PIN protects server access. It does not wrap or hide the key. A forwarded link carries the key in the fragment, which is why the link has a PIN and why the caregiver can revoke it. Revoking the token stops server access. Anyone who already copied the fragment still has the key material, so revocation is not a substitute for the phrase.
 
-Rotating the key (owner or co-caregiver) creates a new circle key, moves `key_version` forward by one, and rewraps it for the caregiver who rotated. The screen says every helper needs a new link and prepares those links. Other caregivers still hold a wrap of the previous key. Sharing the new key with them is not built yet.
+Only the owner rotates the key. The database rejects a direct change to `circles.key_version` and a call to `rotate_own_circle_key` from anyone else. Rotation creates a new circle key, moves `key_version` forward by one, rewraps it for the owner, and replaces every active helper token in that same transaction. The screen says every helper needs a new link and shows those links. A helper link is built only when the key stored on this device is the circle's current version.
+
+## Open
+
+Per-caregiver key pairs are deferred. That decision waits until before co-caregivers land in week 5. This change does not build a key pair for each caregiver.
 
 ## Why
 

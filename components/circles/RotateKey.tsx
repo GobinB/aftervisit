@@ -13,7 +13,7 @@ const field =
 
 type ReadyLink = { url: string; name: string; email: string | null };
 
-/** Owner or co-caregiver replaces the circle key and prepares a new link for each helper. */
+/** The owner replaces the circle key and prepares a new link for each helper. */
 export function RotateKey({ circle }: { circle: CircleKeyStatus }) {
   const router = useRouter();
   const baseId = useId();
@@ -22,7 +22,6 @@ export function RotateKey({ circle }: { circle: CircleKeyStatus }) {
   const [phrase, setPhrase] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [links, setLinks] = useState<ReadyLink[] | null>(null);
-  const [linksReady, setLinksReady] = useState(true);
   const [pending, start] = useTransition();
 
   useEffect(() => {
@@ -57,15 +56,15 @@ export function RotateKey({ circle }: { circle: CircleKeyStatus }) {
           setError(result.error);
           return;
         }
+        let stored = true;
         try {
           await saveCircleKey(circle.circleId, nextKey, result.keyVersion);
         } catch {
-          setError("The key was changed, but this browser could not store it. Enter the recovery words again on this device before you leave.");
+          stored = false;
         }
         const raw = await exportKeyBytes(nextKey);
         setLinks(result.links.map((item) => ({ name: item.name, email: item.email, url: buildHelperLink(window.location.origin, item.token, raw) })));
-        setLinksReady(result.linksReady);
-        setError(null);
+        setError(stored ? null : "The key was changed, but this browser could not store it. Enter the recovery words again on this device before you leave.");
         router.refresh();
       } catch (caught) {
         const message = caught instanceof Error && /not a recovery phrase|did not open|not valid/.test(caught.message) ? "Those words did not open the key." : "The key could not be changed. Try again.";
@@ -79,7 +78,6 @@ export function RotateKey({ circle }: { circle: CircleKeyStatus }) {
       <div className="space-y-4 rounded-2xl border border-border-200 bg-white p-4">
         <h2 className="font-display text-section text-primary-900">New links</h2>
         <p>The key is new. Previous links no longer open the circle. Share each link below. The part after # is the new key.</p>
-        {!linksReady ? <p role="alert">Some links could not be created. Use New link next to anyone who is missing.</p> : null}
         {links.length ? (
           links.map((link) => <ShareLink key={link.url} link={link} onDone={() => setLinks(links.filter((item) => item.url !== link.url))} />)
         ) : (

@@ -8,7 +8,7 @@ const from = vi.fn();
 vi.mock("@/store/db", () => ({ clientFor: () => ({ rpc, from }) }));
 vi.mock("@/lib/invites", () => ({
   newInviteToken: () => "abcdefghijklmnopqrstuvwx",
-  hashInvite: (value: string) => `hash:${value}`,
+  hashInvite: () => "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
 }));
 
 const { rotateCircleKey, storeOwnCircleKey } = await import("@/services/circles");
@@ -76,15 +76,34 @@ describe("rotate circle key", () => {
     if (!result.ok) return;
     expect(result.keyVersion).toBe(2);
     expect(result.links).toEqual([{ token: "abcdefghijklmnopqrstuvwx", name: "Rosa", email: "rosa@example.com" }]);
-    expect(rpc).toHaveBeenCalledWith("rotate_own_circle_key", { p_circle: circleId, p_wrapped: wrapped, p_version: 2 });
-    expect(JSON.stringify(rpc.mock.calls)).not.toContain("abandon");
+    expect(rpc).toHaveBeenCalledWith("rotate_own_circle_key", {
+      p_circle: circleId,
+      p_wrapped: wrapped,
+      p_version: 2,
+      p_member_tokens: [{ id: "member-1", token_hash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+    });
+    expect(JSON.stringify(rpc.mock.calls)).not.toContain("abcdefghijklmnopqrstuvwx");
     expect(JSON.stringify(rpc.mock.calls)).not.toContain("#k=");
   });
 
   test("a skipped version is refused before the database changes the key", async () => {
-    const result = await rotateCircleKey(co, circleId, wrapped, 4);
+    const result = await rotateCircleKey(owner, circleId, wrapped, 4);
     expect(result.ok).toBe(false);
     expect(rpc).not.toHaveBeenCalled();
+  });
+
+  test("a co-caregiver cannot rotate", async () => {
+    const result = await rotateCircleKey(co, circleId, wrapped, 2);
+    expect(result.ok).toBe(false);
+    expect(rpc).not.toHaveBeenCalled();
+    expect(from).not.toHaveBeenCalled();
+  });
+
+  test("a database failure returns no helper tokens", async () => {
+    rpc.mockResolvedValueOnce({ data: null, error: { message: "helper links could not be replaced" } });
+    const result = await rotateCircleKey(owner, circleId, wrapped, 2);
+    expect(result.ok).toBe(false);
+    expect(result).not.toHaveProperty("links");
   });
 
   test("a co-caregiver cannot create the first key", async () => {

@@ -93,7 +93,7 @@ const CO: Cell[] = [
   "allow", "allow", "allow",
   "deny",
   "deny",
-  "allow",
+  "deny",
 ];
 
 const FAMILY: Cell[] = [

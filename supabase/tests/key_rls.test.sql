@@ -3,7 +3,7 @@
 
 begin;
 
-select plan(14);
+select plan(21);
 
 create function pg_temp.seed_user(p_id uuid, p_email text, p_name text, p_token text)
 returns void language plpgsql as $$
@@ -149,25 +149,95 @@ select is(
   'owner can add a co-caregiver without a wrapped key'
 );
 
+insert into public.members (id, circle_id, name, role, token_hash, expires_at) values (
+  'dddddddd-dddd-4ddd-8ddd-dddddddddd11',
+  'dddddddd-dddd-4ddd-8ddd-dddddddddd10',
+  'Aide D',
+  'home_aide',
+  'old-hash-dddddddddddddddddddddddddddd',
+  now() + interval '90 days'
+);
+
 select set_config('request.jwt.claim.sub', 'dddddddd-dddd-4ddd-8ddd-dddddddddd01', true);
 select set_config('request.jwt.claims', '{"sub":"dddddddd-dddd-4ddd-8ddd-dddddddddd01","role":"authenticated"}', true);
 set local role authenticated;
 select throws_ok(
-  $$update public.circles set key_version = 99 where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd10'$$,
+  $$update public.circles set key_version = key_version + 1 where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd10'$$,
   'P0001',
-  'key version moves forward one step',
-  'key version cannot skip ahead'
+  'key version changes only when the circle key is rotated',
+  'owner cannot bump the circle key version directly'
+);
+select throws_ok(
+  $$update public.circle_caregivers set key_version = 7 where user_id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd01'$$,
+  'P0001',
+  'the wrapped key version must match the circle',
+  'owner cannot set their wrapped key version freely'
+);
+reset role;
+
+select set_config('request.jwt.claim.sub', 'dddddddd-dddd-4ddd-8ddd-dddddddddd02', true);
+select set_config('request.jwt.claims', '{"sub":"dddddddd-dddd-4ddd-8ddd-dddddddddd02","role":"authenticated"}', true);
+set local role authenticated;
+select throws_ok(
+  $$update public.circles set key_version = key_version + 1 where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd10'$$,
+  'P0001',
+  'key version changes only when the circle key is rotated',
+  'co-caregiver cannot bump the circle key version directly'
+);
+select throws_ok(
+  $$update public.circle_caregivers set key_version = 9 where user_id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd02'$$,
+  'P0001',
+  'the wrapped key version must match the circle',
+  'co-caregiver cannot set their wrapped key version freely'
+);
+select throws_ok(
+  $$select public.rotate_own_circle_key(
+    'dddddddd-dddd-4ddd-8ddd-dddddddddd10',
+    'av1.600000.aaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbb.ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+    2,
+    '[{"id":"dddddddd-dddd-4ddd-8ddd-dddddddddd11","token_hash":"abababababababababababababababababababababababababababababababab"}]'::jsonb
+  )$$,
+  'P0001',
+  'only the owner can change the circle key',
+  'co-caregiver cannot rotate the circle key'
+);
+reset role;
+
+select set_config('request.jwt.claim.sub', 'dddddddd-dddd-4ddd-8ddd-dddddddddd01', true);
+select set_config('request.jwt.claims', '{"sub":"dddddddd-dddd-4ddd-8ddd-dddddddddd01","role":"authenticated"}', true);
+set local role authenticated;
+select throws_ok(
+  $$select public.rotate_own_circle_key(
+    'dddddddd-dddd-4ddd-8ddd-dddddddddd10',
+    'av1.600000.aaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbb.ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+    2,
+    '[]'::jsonb
+  )$$,
+  'P0001',
+  'helper links could not be replaced',
+  'rotate does not keep a key change when a helper token is missing'
+);
+select is(
+  (select key_version from public.circles where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd10'),
+  1,
+  'a failed rotate leaves the circle key version'
 );
 select is(
   public.rotate_own_circle_key(
     'dddddddd-dddd-4ddd-8ddd-dddddddddd10',
     'av1.600000.aaaaaaaaaaaaaaaaaaaaaa.bbbbbbbbbbbbbbbb.ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
-    2
+    2,
+    '[{"id":"dddddddd-dddd-4ddd-8ddd-dddddddddd11","token_hash":"abababababababababababababababababababababababababababababababab"}]'::jsonb
   ),
   2,
   'rotate moves the circle key version forward by one'
 );
 reset role;
+select is(
+  (select token_hash from public.members where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd11'),
+  'abababababababababababababababababababababababababababababababab',
+  'rotate replaces helper token hashes in the same step'
+);
 
 select is((select key_version from public.circles where id = 'dddddddd-dddd-4ddd-8ddd-dddddddddd10'), 2, 'circle key_version is 2');
 select is(

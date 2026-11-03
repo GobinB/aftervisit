@@ -27,7 +27,7 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
       <h1 className="font-display mt-2 text-page text-primary-900">People{circle ? ` for ${circle.person_name}` : ""}</h1>
       <p className="mt-2 mb-6 text-ink-500">Links are shown once. Copy, share, or open them in your own mail app. The part after # carries the key for files and stays in the browser. AfterVisit does not receive it and does not send messages.</p>
       <RestoreKeys circles={keys} />
-      <MembersPanel circleId={id} people={listed.people} canManage={listed.canManage} />
+      <MembersPanel circleId={id} people={listed.people} canManage={listed.canManage} keyVersion={keys[0]?.circleKeyVersion ?? null} />
     </CircleShell>
   );
 }
