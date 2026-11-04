@@ -50,7 +50,7 @@ export function RecoveryPhrase({
       <p id={`${baseId}-warning`}>
         Write these 12 words on paper and keep them somewhere safe. This is the only way to open files from this circle on a new phone or computer. If every caregiver loses the words, the files cannot be recovered. AfterVisit cannot look them up.
       </p>
-      <ol className="grid gap-2" aria-describedby={`${baseId}-warning`}>
+      <ol className="grid gap-2 sm:grid-cols-2" aria-describedby={`${baseId}-warning`}>
         {words.map((word, index) => (
           <li key={index} className="flex min-h-12 items-center gap-3 rounded-xl border border-border-200 bg-white px-3">
             <span className="w-8 text-ink-500">{index + 1}</span>

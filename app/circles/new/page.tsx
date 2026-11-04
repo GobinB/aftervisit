@@ -11,13 +11,14 @@ export default async function NewCirclePage() {
   const actor = await getActor();
   if (!actor || actor.kind !== "caregiver") redirect("/login?next=/circles/new");
   return (
-    <CircleShell signedIn>
-      <h1 className="font-display text-page text-primary-900">Start a care circle</h1>
-      <p className="mt-2 mb-6 text-ink-500">
-        A care circle is one shared page for the person you look after. You add the people who help after this step. AfterVisit stores your
-        words as you type them and does not interpret them.
-      </p>
-      <CircleForm />
+    <CircleShell signedIn narrow>
+      <div className="rounded-2xl border border-border-200 bg-white p-5 sm:p-8">
+        <h1 className="font-display text-page text-primary-900">Start a care circle</h1>
+        <p className="mt-2 mb-8 text-ink-500">
+          One shared page for the person you look after. AfterVisit stores your words as you type them and does not interpret them.
+        </p>
+        <CircleForm />
+      </div>
     </CircleShell>
   );
 }

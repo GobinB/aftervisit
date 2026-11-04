@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
+import { CircleFrame, circleTabs, roleLine } from "@/components/circles/CircleFrame";
 import { MembersPanel } from "@/components/circles/MembersPanel";
 import { RestoreKeys } from "@/components/circles/RestoreKeys";
 import { CircleShell } from "@/components/circles/Shell";
@@ -21,13 +21,16 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
   const keys = actor.kind === "caregiver" ? (await listOwnCircleKeys(actor)).filter((item) => item.circleId === id) : [];
   return (
     <CircleShell signedIn={actor.kind === "caregiver"}>
-      <Link href={`/circles/${id}`} className="font-semibold text-primary-700">
-        Back
-      </Link>
-      <h1 className="font-display mt-2 text-page text-primary-900">People{circle ? ` for ${circle.person_name}` : ""}</h1>
-      <p className="mt-2 mb-6 text-ink-500">Links are shown once. Copy, share, or open them in your own mail app. The part after # carries the key for files and stays in the browser. AfterVisit does not receive it and does not send messages.</p>
-      <RestoreKeys circles={keys} />
-      <MembersPanel circleId={id} people={listed.people} canManage={listed.canManage} keyVersion={keys[0]?.circleKeyVersion ?? null} />
+      <CircleFrame personName={circle?.person_name ?? "Your care circle"} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} active="people">
+        {listed.canManage ? (
+          <p className="mb-8 max-w-2xl text-ink-500">
+            Each person gets their own link to just the parts you choose. A new link is shown once: copy it, share it, or open it in your own mail
+            app. The part after # carries the key for files and stays in the browser. AfterVisit does not send messages.
+          </p>
+        ) : null}
+        <RestoreKeys circles={keys} />
+        <MembersPanel circleId={id} people={listed.people} canManage={listed.canManage} keyVersion={keys[0]?.circleKeyVersion ?? null} />
+      </CircleFrame>
     </CircleShell>
   );
 }

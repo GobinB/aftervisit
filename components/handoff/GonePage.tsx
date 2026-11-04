@@ -25,7 +25,7 @@ export function GonePage({ status }: { status: GoneStatus }) {
   const { icon: Icon, title, body } = CONTENT[status];
   return (
     <div className="flex min-h-dvh items-center justify-center bg-surface-50 px-4">
-      <main id="main" className="w-full max-w-md rounded-2xl border border-border-200 bg-white p-8 text-center shadow-sm">
+      <main id="main" className="w-full max-w-md rounded-2xl border border-border-200 bg-white p-8 text-center">
         <Logo className="mx-auto" />
         <div className="mx-auto mt-6 flex h-12 w-12 items-center justify-center rounded-full bg-sky-100 text-primary-700">
           <Icon size={22} aria-hidden="true" />

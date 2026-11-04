@@ -1,10 +1,11 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createCircle } from "@/app/actions/circles";
 import { RecoveryPhrase } from "@/components/circles/RecoveryPhrase";
 import { Button } from "@/components/ui/Button";
+import { careSummaryError, personNameError, type CareSummaryInput } from "@/lib/circle-form";
 import { generateCircleKey, generatePhrase, saveCircleKey, wrapCircleKey } from "@/lib/crypto";
 import { CONSENT_TEXT, CONSENT_TYPES, type CircleContent, type ConsentType } from "@/lib/schema/circles";
 
@@ -12,6 +13,13 @@ const field =
   "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500";
 
 type Row = { name: string; extra: string; phone: string };
+
+const STEPS = [
+  { short: "Who", full: "Who" },
+  { short: "Care", full: "Care summary" },
+  { short: "Agree", full: "Agree" },
+  { short: "Words", full: "Recovery words" },
+] as const;
 
 const empty = (): Row => ({ name: "", extra: "", phone: "" });
 
@@ -42,27 +50,68 @@ export function CircleForm() {
   const [phrase, setPhrase] = useState<string[] | null>(null);
   const [circleKey, setCircleKey] = useState<CryptoKey | null>(null);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [step, setStep] = useState(0);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const shown = phrase ? 3 : step;
+
+  // Move focus to the new step's title so a screen reader hears where it is.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    heading.current?.focus();
+  }, [shown]);
+
+  function onInput(event: React.FormEvent<HTMLFormElement>) {
+    if (!error) return;
+    const form = event.currentTarget;
+    if (step === 0 && !personNameError(String(new FormData(form).get("person_name") ?? ""))) setError(null);
+    if (step === 1 && !careSummaryError(readSummary(form))) setError(null);
+  }
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const form = event.currentTarget;
+    const data = new FormData(form);
+    if (step === 0) {
+      const nameError = personNameError(String(data.get("person_name") ?? ""));
+      if (nameError) {
+        setError(nameError);
+        return;
+      }
+      setError(null);
+      setStep(1);
+      return;
+    }
+    if (step === 1) {
+      const summaryError = careSummaryError(readSummary(form));
+      if (summaryError) {
+        setError(summaryError);
+        return;
+      }
+      setError(null);
+      setStep(2);
+      return;
+    }
     if (CONSENT_TYPES.some((type) => !consents[type])) {
       setError("Confirm each statement to continue.");
       return;
     }
-    const pharmacyName = String(form.get("pharmacy_name") ?? "").trim();
-    const poa = String(form.get("poa_location") ?? "").trim();
+    const pharmacyName = String(data.get("pharmacy_name") ?? "").trim();
+    const poa = String(data.get("poa_location") ?? "").trim();
     const content: CircleContent = {
-      person_name: String(form.get("person_name") ?? ""),
-      allergies: lines(String(form.get("allergies") ?? "")),
+      person_name: String(data.get("person_name") ?? ""),
+      allergies: lines(String(data.get("allergies") ?? "")),
       doctors: doctors
         .filter((row) => row.name.trim())
         .map((row) => ({ name: row.name.trim(), specialty: row.extra.trim() || undefined, phone: row.phone.trim() || undefined })),
       pharmacy: pharmacyName
         ? {
             name: pharmacyName,
-            phone: String(form.get("pharmacy_phone") ?? "").trim() || undefined,
-            address: String(form.get("pharmacy_address") ?? "").trim() || undefined,
+            phone: String(data.get("pharmacy_phone") ?? "").trim() || undefined,
+            address: String(data.get("pharmacy_address") ?? "").trim() || undefined,
           }
         : undefined,
       emergency_contacts: contacts
@@ -91,6 +140,13 @@ export function CircleForm() {
         const circleKeyWrapped = await wrapCircleKey(circleKey, phrase.join(" "));
         const result = await createCircle({ ...draft, circleKeyWrapped });
         if (!result.ok) {
+          const failedStep = "step" in result ? result.step : undefined;
+          if (failedStep != null && failedStep < 3) {
+            setPhrase(null);
+            setCircleKey(null);
+            setDraft(null);
+            setStep(failedStep);
+          }
           setError(result.error);
           return;
         }
@@ -110,6 +166,17 @@ export function CircleForm() {
 
   return (
     <>
+      <Progress current={shown} />
+      {phrase ? (
+        <div className="mt-8" />
+      ) : (
+        <>
+          <h2 ref={heading} tabIndex={-1} className="font-display mt-8 text-section text-primary-900 outline-none sm:text-page">
+            {TITLES[shown]}
+          </h2>
+          <p className="mt-2 mb-8 text-ink-500">{HINTS[shown]}</p>
+        </>
+      )}
       {phrase ? (
         <div className="space-y-4">
           <RecoveryPhrase
@@ -132,10 +199,10 @@ export function CircleForm() {
           ) : null}
         </div>
       ) : null}
-      <form onSubmit={onSubmit} hidden={phrase ? true : undefined} className="space-y-8">
-      <div>
+      <form onSubmit={onSubmit} onInput={onInput} hidden={phrase ? true : undefined} className="space-y-8">
+      <div hidden={step !== 0 ? true : undefined}>
         <label htmlFor="person_name" className="font-medium text-ink-900">
-          Who are you caring for?
+          Their name
         </label>
         <input
           id="person_name"
@@ -150,6 +217,7 @@ export function CircleForm() {
         </p>
       </div>
 
+      <div hidden={step !== 1 ? true : undefined} className="space-y-8">
       <div>
         <label htmlFor="allergies" className="font-medium text-ink-900">
           Their allergies
@@ -236,16 +304,21 @@ export function CircleForm() {
         </label>
         <input id="poa_location" name="poa_location" className={field} />
       </div>
+      </div>
 
-      <fieldset className="space-y-3">
-        <legend className="font-medium text-ink-900">Before you save</legend>
+      <fieldset hidden={step !== 2 ? true : undefined} className="space-y-3">
+        <legend className="sr-only">Before you save</legend>
         {CONSENT_TYPES.map((type) => (
           <label key={type} className="flex items-start gap-3 text-ink-900">
             <input
               type="checkbox"
               className="mt-1 h-5 w-5 shrink-0 accent-primary-700"
               checked={consents[type]}
-              onChange={(event) => setConsents({ ...consents, [type]: event.target.checked })}
+              onChange={(event) => {
+                const next = { ...consents, [type]: event.target.checked };
+                setConsents(next);
+                if (CONSENT_TYPES.every((item) => next[item])) setError(null);
+              }}
             />
             <span>{CONSENT_TEXT[type]}</span>
           </label>
@@ -257,11 +330,70 @@ export function CircleForm() {
           {error}
         </p>
       ) : null}
-      <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? "Saving" : "Create circle"}
-      </Button>
+      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-between">
+        {step > 0 ? (
+          <Button
+            variant="ghost"
+            onClick={() => {
+              setError(null);
+              setStep(step - 1);
+            }}
+          >
+            Back
+          </Button>
+        ) : (
+          <span />
+        )}
+        <Button type="submit" className="sm:min-w-48" disabled={pending}>
+          {step < 2 ? "Continue" : pending ? "Saving" : "Create circle"}
+        </Button>
+      </div>
     </form>
     </>
+  );
+}
+
+const TITLES = ["Who are you caring for?", "Their care summary", "Before you save"];
+const HINTS = [
+  "One circle is for one person. You add the people who help after this.",
+  "What a helper needs in a hurry. Leave anything blank that you don't want to record.",
+  "Confirm each statement to create the circle.",
+];
+
+function readSummary(form: HTMLFormElement): CareSummaryInput {
+  const data = new FormData(form);
+  const rows = (prefix: string) => {
+    const count = form.querySelectorAll(`[id^='${prefix}-name-']`).length;
+    return Array.from({ length: count }, (_, index) => ({
+      name: (form.querySelector(`#${prefix}-name-${index}`) as HTMLInputElement | null)?.value ?? "",
+      extra: (form.querySelector(`#${prefix}-extra-${index}`) as HTMLInputElement | null)?.value ?? "",
+      phone: (form.querySelector(`#${prefix}-phone-${index}`) as HTMLInputElement | null)?.value ?? "",
+    }));
+  };
+  return {
+    allergies: String(data.get("allergies") ?? ""),
+    doctors: rows("doctor"),
+    pharmacyName: String(data.get("pharmacy_name") ?? ""),
+    pharmacyPhone: String(data.get("pharmacy_phone") ?? ""),
+    pharmacyAddress: String(data.get("pharmacy_address") ?? ""),
+    contacts: rows("contact"),
+    poa: String(data.get("poa_location") ?? ""),
+  };
+}
+
+function Progress({ current }: { current: number }) {
+  return (
+    <ol className="grid grid-cols-4 gap-2" aria-label={`Step ${current + 1} of ${STEPS.length}: ${STEPS[current]?.full ?? ""}`}>
+      {STEPS.map((step, index) => (
+        <li key={step.full} aria-current={index === current ? "step" : undefined}>
+          <span className={`block h-1 rounded-full ${index <= current ? "bg-primary-700" : "bg-border-200"}`} />
+          <span className={`mt-2 block text-sm leading-snug ${index === current ? "font-semibold text-ink-900" : "text-ink-500"}`}>
+            <span className="sm:hidden">{step.short}</span>
+            <span className="hidden sm:inline">{step.full}</span>
+          </span>
+        </li>
+      ))}
+    </ol>
   );
 }
 

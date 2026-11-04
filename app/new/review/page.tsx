@@ -409,7 +409,7 @@ export default function ReviewPage() {
       {/* ConfirmBar */}
       <div
         key={allDone ? "done" : "pending"}
-        className={`no-print fixed inset-x-0 bottom-0 z-20 border-t border-border-200 bg-white shadow-[0_-4px_16px_rgb(27_42_65/0.08)] ${allDone ? "animate-slide-up" : ""}`}
+        className={`no-print fixed inset-x-0 bottom-0 z-20 border-t border-border-200 bg-white ${allDone ? "animate-slide-up" : ""}`}
       >
         <div className="mx-auto flex max-w-[1100px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm text-ink-500" aria-live="polite">

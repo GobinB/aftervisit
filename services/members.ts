@@ -5,7 +5,8 @@ import type { Actor } from "@/lib/auth";
 import { COPY } from "@/lib/copy";
 import { hashInvite, INVITE_RE, newInviteToken } from "@/lib/invites";
 import { can } from "@/lib/permissions";
-import { HELPER_ROLE_LABELS, MEMBER_TTL_DAYS, type AddMemberInput, type HelperRole, type PersonView, type Visibility } from "@/lib/schema/circles";
+import { caregiverDisplayName } from "@/lib/caregiver-name";
+import { CAREGIVER_ROLE_LABELS, HELPER_ROLE_LABELS, MEMBER_TTL_DAYS, type AddMemberInput, type HelperRole, type PersonView, type Visibility } from "@/lib/schema/circles";
 import { PinSchema } from "@/lib/schema";
 import { hashPin } from "@/lib/tokens";
 import { clientFor, serviceClient } from "@/store/db";
@@ -21,6 +22,25 @@ export type MemberLinkPreview =
   | { status: "locked"; message: string }
   | { status: "pin" }
   | { status: "ready" };
+
+/** Google profile name for each caregiver. The role label is used when a name is missing. */
+async function caregiverNames(ids: string[]): Promise<Map<string, string>> {
+  const names = new Map<string, string>();
+  if (!ids.length) return names;
+  await Promise.all(
+    ids.map(async (id) => {
+      try {
+        const { data, error } = await serviceClient().auth.admin.getUserById(id);
+        if (error || !data.user) return;
+        const name = caregiverDisplayName(data.user.user_metadata);
+        if (name) names.set(id, name);
+      } catch {
+        // No profile name. The list shows the role label instead.
+      }
+    }),
+  );
+  return names;
+}
 
 function expiresAt(): string {
   return new Date(Date.now() + MEMBER_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
@@ -217,13 +237,15 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
   const people: PersonView[] = [];
   const caregiverRows = await db.from("circle_caregivers").select("user_id, role").eq("circle_id", circleId);
   if (caregiverRows.error) return { ok: false, error: generic };
+  const displayNames = await caregiverNames((caregiverRows.data ?? []).map((row) => row.user_id as string));
   for (const row of caregiverRows.data ?? []) {
     const role = row.role as "owner" | "co_caregiver";
+    const roleLabel = CAREGIVER_ROLE_LABELS[role];
     people.push({
       id: row.user_id as string,
-      name: role === "owner" ? "Owner" : "Co-caregiver",
+      name: displayNames.get(row.user_id as string) || roleLabel,
       role,
-      roleLabel: role === "owner" ? "Owner" : "Co-caregiver",
+      roleLabel,
       kind: "caregiver",
     });
   }

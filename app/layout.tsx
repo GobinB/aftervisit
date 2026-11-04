@@ -1,13 +1,13 @@
 import type { Metadata, Viewport } from "next";
-import { Lexend, Newsreader } from "next/font/google";
+import { Lexend, Outfit } from "next/font/google";
 import { Analytics } from "@/components/Analytics";
 import { ToastProvider } from "@/components/Toast";
 import "./globals.css";
 
 // Body: Lexend, designed to improve reading fluency; large x-height and a plain zero (no "0" vs "Ø" confusion in doses).
 const sans = Lexend({ subsets: ["latin"], variable: "--font-body", display: "swap" });
-// Headlines: Newsreader, an editorial serif, so a handoff reads like a careful note.
-const display = Newsreader({ subsets: ["latin"], variable: "--font-serif", axes: ["opsz"], style: ["normal", "italic"], display: "swap" });
+// Headlines: Outfit, a geometric sans, so titles stay calm and easy to scan.
+const display = Outfit({ subsets: ["latin"], variable: "--font-sans-display", display: "swap" });
 
 const appUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 

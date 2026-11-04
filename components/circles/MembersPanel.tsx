@@ -6,6 +6,7 @@ import { addMemberAction, changeRoleAction, newLinkAction, renewMemberAction, re
 import { urlForMemberToken } from "@/components/circles/member-link";
 import { ShareLink } from "@/components/circles/ShareLink";
 import { Button } from "@/components/ui/Button";
+import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { dateTime } from "@/lib/format";
 import { SHARE_SECTION_LABELS, SHARE_SECTIONS, type ShareSection } from "@/lib/schema";
@@ -51,17 +52,24 @@ export function MembersPanel({
           {error}
         </p>
       ) : null}
-      {canManage ? <AddPerson circleId={circleId} onDone={saved} /> : null}
-      <ul className="space-y-3">
+      {canManage ? (
+        <div className="max-w-xl">
+          <AddPerson circleId={circleId} onDone={saved} />
+        </div>
+      ) : null}
+      <ul className="grid gap-3 lg:grid-cols-2">
         {people.map((person) => (
           <li key={`${person.kind}-${person.id}`} className="rounded-2xl border border-border-200 bg-white p-4">
             <div className="flex items-start justify-between gap-3">
-              <div>
+              <div className="flex items-start gap-3">
+                <Avatar name={person.name} />
+                <div>
                 <p className="font-semibold text-ink-900">{person.name}</p>
                 <p className="text-sm text-ink-500">{person.roleLabel}</p>
                 {canManage && person.kind === "member" ? (
                   <p className="text-sm text-ink-500">Last opened {person.lastSeenAt ? dateTime(person.lastSeenAt) : "not yet"}</p>
                 ) : null}
+                </div>
               </div>
               {person.revokedAt ? <Badge tone="attn">Access removed</Badge> : null}
               {person.locked ? <Badge tone="attn">Locked</Badge> : null}
@@ -109,7 +117,7 @@ function AddPerson({
 
   return (
     <form onSubmit={onSubmit} className="space-y-4 rounded-2xl border border-border-200 bg-white p-4">
-      <h2 className="font-display text-xl text-ink-900">Add a person</h2>
+      <h2 className="font-display text-section text-primary-900">Add a person</h2>
       <div>
         <label htmlFor="member-name" className="font-medium">
           Name

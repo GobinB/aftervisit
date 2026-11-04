@@ -7,7 +7,7 @@ export function SamplePrintout({ className = "", fade = false }: { className?: s
   const lines = SAMPLE_SOURCE_TEXT.split("\n");
   return (
     <div
-      className={`relative overflow-hidden rounded-[3px] bg-white px-5 pt-5 pb-6 font-mono text-[10px] leading-[1.6] text-ink-900/75 shadow-[0_22px_48px_-20px_rgb(28_36_51/0.5)] ring-1 ring-black/10 sm:text-[11px] ${className}`}
+      className={`relative overflow-hidden rounded-sm border border-border-200 bg-white px-5 pt-5 pb-6 font-mono text-[10px] leading-[1.6] text-ink-500 sm:text-[11px] ${className}`}
     >
       <span className="absolute top-3 right-3 rotate-[6deg] rounded border-2 border-attn/70 px-1.5 py-0.5 font-sans text-[10px] font-bold tracking-[0.18em] text-attn-ink/90 uppercase">
         Fictional

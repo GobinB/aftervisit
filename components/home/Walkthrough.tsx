@@ -33,7 +33,7 @@ function Step({ n, title, body, children }: { n: number; title: string; body: st
 }
 
 function Panel({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-2xl border border-border-200 bg-white p-5 shadow-[0_12px_30px_-22px_rgb(28_36_51/0.35)]">{children}</div>;
+  return <div className="rounded-2xl border border-border-200 bg-white p-5">{children}</div>;
 }
 
 /** The fictional sample, step by step: original summary to acknowledgment. */
