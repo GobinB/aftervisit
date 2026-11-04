@@ -57,7 +57,7 @@ export function Walkthrough() {
       <Step
         n={2}
         title="Checked against the summary"
-        body={`${SAMPLE_CAREGIVER}, the family caregiver, reviews each item AfterVisit drafted. Every one links back to the clinic's exact words.`}
+        body={`${SAMPLE_CAREGIVER}, the family caregiver, reviews each item All Hands Care drafted. Every one links back to the clinic's exact words.`}
       >
         <Panel>
           <ul className="divide-y divide-border-200">

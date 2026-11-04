@@ -25,7 +25,7 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
         {listed.canManage ? (
           <p className="mb-8 max-w-2xl text-ink-500">
             Each person gets their own link to just the parts you choose. A new link is shown once: copy it, share it, or open it in your own mail
-            app. The part after # carries the key for files and stays in the browser. AfterVisit does not send messages.
+            app. The part after # carries the key for files and stays in the browser. All Hands Care does not send messages.
           </p>
         ) : null}
         <RestoreKeys circles={keys} />

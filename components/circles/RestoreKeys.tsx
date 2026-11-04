@@ -100,7 +100,7 @@ function EnterPhrase({ circle, onDone }: { circle: CircleKeyStatus; onDone: () =
   return (
     <form onSubmit={submit} className="space-y-3 rounded-2xl border border-border-200 bg-white p-4">
       <h2 className="font-display text-section text-primary-900">Recovery words for {circle.personName}</h2>
-      <p>This browser does not have the key for this circle. Enter the 12 words. They stay on this device. AfterVisit does not receive them.</p>
+      <p>This browser does not have the key for this circle. Enter the 12 words. They stay on this device. All Hands Care does not receive them.</p>
       <div>
         <label htmlFor={`${baseId}-phrase`} className="font-medium text-ink-900">
           Recovery words
@@ -192,7 +192,7 @@ function CreateFirstKey({ circle, onDone }: { circle: CircleKeyStatus; onDone: (
   return (
     <div className="space-y-3 rounded-2xl border border-border-200 bg-white p-4">
       <h2 className="font-display text-section text-primary-900">Key for {circle.personName}</h2>
-      <p>This circle does not have a key for files yet. Create one on this device and write down the words. AfterVisit does not receive the words.</p>
+      <p>This circle does not have a key for files yet. Create one on this device and write down the words. All Hands Care does not receive the words.</p>
       {error ? (
         <p role="alert" className="rounded-xl bg-attn-bg px-3 py-2 text-attn-ink">
           {error}

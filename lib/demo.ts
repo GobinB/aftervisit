@@ -5,4 +5,4 @@
 export const DEMO_MODE = process.env.NEXT_PUBLIC_DEMO_MODE !== "false";
 
 export const DEMO_NOTICE =
-  "AfterVisit is a public prototype. Please use the sample visit or made-up information. Do not upload real patient records until AfterVisit has completed a privacy and security review.";
+  "All Hands Care is a public prototype. Please use the sample visit or made-up information. Do not upload real patient records until All Hands Care has completed a privacy and security review.";

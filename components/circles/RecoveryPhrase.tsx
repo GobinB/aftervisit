@@ -48,7 +48,7 @@ export function RecoveryPhrase({
         Write down these words
       </h2>
       <p id={`${baseId}-warning`}>
-        Write these 12 words on paper and keep them somewhere safe. This is the only way to open files from this circle on a new phone or computer. If every caregiver loses the words, the files cannot be recovered. AfterVisit cannot look them up.
+        Write these 12 words on paper and keep them somewhere safe. This is the only way to open files from this circle on a new phone or computer. If every caregiver loses the words, the files cannot be recovered. All Hands Care cannot look them up.
       </p>
       <ol className="grid gap-2 sm:grid-cols-2" aria-describedby={`${baseId}-warning`}>
         {words.map((word, index) => (

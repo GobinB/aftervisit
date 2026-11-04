@@ -1,5 +1,5 @@
 import { ImageResponse } from "next/og";
-import { LOGO_PATHS } from "@/components/Logo";
+import { MarkGlyph } from "@/components/Logo";
 import { lookup } from "@/lib/access";
 import { ogTitle } from "@/lib/copy";
 import { sampleDraft } from "@/lib/sample";
@@ -26,13 +26,11 @@ export default async function Image({ params }: { params: Promise<{ token: strin
     (
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 80, background: "#163A6B", color: "white" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
-          <svg width="64" height="64" viewBox="0 0 48 48">
-            <rect width="48" height="48" rx="13" fill="#E8F1FB" />
-            <path d={LOGO_PATHS.check} fill="none" stroke="#1E4E8C" strokeWidth="4.6" strokeLinecap="round" strokeLinejoin="round" />
-            <path d={LOGO_PATHS.arrow} fill="none" stroke="#2F80ED" strokeWidth="4.6" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
+          <div style={{ display: "flex", width: 64, height: 64, borderRadius: 17, background: "#E8F1FB" }}>
+            <MarkGlyph size={64} arcs="#1E4E8C" dot="#C2410C" />
+          </div>
           <div style={{ display: "flex", fontSize: 36, fontWeight: 600 }}>
-            After<span style={{ color: "#C9DEF7", fontWeight: 500 }}>Visit</span>
+            All Hands<span style={{ color: "#C9DEF7", fontWeight: 500, marginLeft: 12 }}>Care</span>
           </div>
         </div>
         <div style={{ fontSize: 72, fontWeight: 600, lineHeight: 1.1 }}>{title}</div>

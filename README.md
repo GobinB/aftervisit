@@ -1,8 +1,10 @@
-# AfterVisit
+# All Hands Care
 
-A permissioned care handoff after every medical visit. A family caregiver uploads (or pastes) an after-visit summary, reviews what changed and assigns the next steps, then gives family members and professional caregivers their own revocable links with individual section visibility. Recipients acknowledge the handoff and update their steps; the caregiver follows progress from a private dashboard. No accounts. No app install. Nothing is stored until the caregiver chooses to share.
+One shared care page for the person you look after, at [allhandscare.org](https://www.allhandscare.org). One caregiver signs in; everyone else who helps (family, a home aide, the day program) gets their own private link, with no account. It installs from the browser as a phone app.
 
-Built for the Assembly Code Incubator (Cohort 02, caregiving). Open source under the [AGPL-3.0](LICENSE). AfterVisit organizes what the clinician wrote; it is not medical advice.
+Its first feature is the after-visit handoff: a family caregiver uploads (or pastes) an after-visit summary, reviews what changed and assigns the next steps, then gives family members and professional caregivers their own revocable links with individual section visibility. Recipients acknowledge the handoff and update their steps; the caregiver follows progress from a private dashboard. No accounts, and nothing to download from an app store. Nothing is stored until the caregiver chooses to share.
+
+Built for the Assembly Code Incubator (Cohort 02, caregiving). Open source under the [AGPL-3.0](LICENSE). All Hands Care organizes what the clinician wrote; it is not medical advice.
 
 ## How it works
 
@@ -21,7 +23,7 @@ The public demo (`/new`, `/h/...`, `/i/...` handoff links) is unchanged: no acco
 Circles are the signed-in product. A caregiver signs in with Google. A helper opens a personal link (`/i/...`), which can be the same shape as an older handoff invite. The server tells them apart by the stored hash. Helper browsers can stay signed into more than one circle. See [docs/Permissions.md](docs/Permissions.md).
 
 - Handoff demo: no account. Vercel Web Analytics only on marketing pages.
-- To build a draft, pasted text and PDFs are sent to AfterVisit's server and processed in memory; photos are read in the browser and only the recognized text is sent. Nothing is saved at this stage.
+- To build a draft, pasted text and PDFs are sent to All Hands Care's server and processed in memory; photos are read in the browser and only the recognized text is sent. Nothing is saved at this stage.
 - When a handoff is created, only the confirmed fields are stored (visit details, medication changes, next steps with assignees, watch-fors, questions, kept notes, each item's source sentence, recipient names and roles, the caregiver's first name). **The full source text is not stored.**
 - The original document is stored only if the caregiver turns on *Attach the original summary*, in a private bucket, served through a link that re-checks the handoff on every open, and deleted with the handoff.
 - **Access model:** each person gets their own revocable link (`/i/[invite]`, stored only as a hash) and sees only the sections the caregiver chose, filtered on the server. Anyone who has a person's link can open it if there is no PIN; new handoffs are PIN-protected by default. 3 wrong tries lock that one link for 10 minutes, each later lock doubles, and the third stays until the caregiver unlocks it from the manage page; one person's wrong tries never lock anyone else out. Each attempt is decided in one locked database step, so guesses sent at the same time cannot get past the limit. Acknowledgments and step updates are recorded against the personal link used, which shows which link was used, not who held the phone. Handoffs created before personal links used one shared link, where read receipts were a typed name.
@@ -30,7 +32,7 @@ Circles are the signed-in product. A caregiver signs in with Google. A helper op
 - Creating a handoff requires confirming the caregiver is the patient or is authorized to share.
 - Every handoff expires after 30 days; the creator can delete it any time from the manage link.
 - The privacy page reads the active extraction provider from the same code that selects it, so it always names any outside service in use.
-- AfterVisit is a prototype and has not completed a privacy, security or HIPAA compliance review. The public demo asks people not to upload real patient records (`NEXT_PUBLIC_DEMO_MODE`, on by default).
+- All Hands Care is a prototype and has not completed a privacy, security or HIPAA compliance review. The public demo asks people not to upload real patient records (`NEXT_PUBLIC_DEMO_MODE`, on by default).
 
 ## Stack
 

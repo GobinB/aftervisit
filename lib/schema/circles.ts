@@ -76,16 +76,16 @@ export const VisibilitySchema = z
   .strict();
 export type Visibility = z.infer<typeof VisibilitySchema>;
 
-export const CONSENT_VERSION = "2026-11-02";
+export const CONSENT_VERSION = "2026-11-03";
 export const CONSENT_TYPES = ["authorized_to_share", "terms", "privacy"] as const;
 export type ConsentType = (typeof CONSENT_TYPES)[number];
 
 /** Shown next to the checkbox. The hash stored in consents is of this exact text. */
 export const CONSENT_TEXT: Record<ConsentType, string> = {
   authorized_to_share:
-    "I am this person, or they or their legal representative have authorized me to store and share information about their care in AfterVisit.",
-  terms: "I agree to use AfterVisit to store what I enter. AfterVisit does not provide medical advice.",
-  privacy: "I understand caregivers I add can open this circle, helpers see only what I allow, and I can delete the circle.",
+    "I am this person, or they or their legal representative have authorized me to store and share information about their care in All Hands Care.",
+  terms: "I agree to use All Hands Care to store what I enter. All Hands Care does not provide medical advice.",
+  privacy: "I understand the people I add see only what I allow, and I can delete the circle.",
 };
 
 export const CONSENT_LABELS: Record<ConsentType, string> = {

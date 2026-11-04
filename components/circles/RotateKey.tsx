@@ -116,7 +116,7 @@ export function RotateKey({ circle }: { circle: CircleKeyStatus }) {
           maxLength={300}
           className={`${field} min-h-24 py-2`}
         />
-        <p className="mt-1 text-sm text-ink-500">The same words wrap the new key. They are not sent to AfterVisit.</p>
+        <p className="mt-1 text-sm text-ink-500">The same words wrap the new key. They are not sent to All Hands Care.</p>
       </div>
       {error ? (
         <p role="alert" className="rounded-xl bg-attn-bg px-3 py-2 text-attn-ink">

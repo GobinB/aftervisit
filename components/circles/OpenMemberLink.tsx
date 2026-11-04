@@ -30,7 +30,7 @@ export function OpenMemberLink({ token, mode, lockedMessage }: { token: string; 
       }}
     >
       <h1 className="font-display text-section text-primary-900">{lockedMessage ? "This link is locked" : mode === "pin" ? "Enter the 4-digit PIN" : "Opening your link"}</h1>
-      <p className="mt-2 text-ink-500">{mode === "pin" && !lockedMessage ? "The person who sent the link also has the PIN. It is shared separately." : "AfterVisit does not send messages."}</p>
+      <p className="mt-2 text-ink-500">{mode === "pin" && !lockedMessage ? "The person who sent the link also has the PIN. It is shared separately." : "All Hands Care does not send messages."}</p>
       <input type="hidden" name="token" value={token} />
       <input type="hidden" name="pin" value={pin} />
       {error ? (

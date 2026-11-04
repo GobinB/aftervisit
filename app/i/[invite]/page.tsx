@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const found = await lookupInvite(invite);
     if (found.status === "ok" && !found.row.pin_hash) title = ogTitle(found.row.payload);
   } catch {}
-  const description = "A care update was shared with you through AfterVisit.";
+  const description = "A care update was shared with you through All Hands Care.";
   return {
     title: { absolute: title },
     description,

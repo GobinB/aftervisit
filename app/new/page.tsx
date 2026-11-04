@@ -336,8 +336,8 @@ export default function IntakePage() {
       </Button>
       <p className="mt-3 text-sm text-ink-500">
         {kind === "image"
-          ? "Your photo is read on this device. Only the text is sent to AfterVisit's server to build the draft, and it is not saved."
-          : "Your file is sent to AfterVisit's server to build the draft and is not saved."}
+          ? "Your photo is read on this device. Only the text is sent to All Hands Care's server to build the draft, and it is not saved."
+          : "Your file is sent to All Hands Care's server to build the draft and is not saved."}
       </p>
     </div>
   );

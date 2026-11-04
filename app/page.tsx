@@ -180,7 +180,7 @@ export default function Home() {
         </section>
 
         {/* Pillars */}
-        <section aria-label="What AfterVisit stands for" className="mx-auto max-w-[1120px] px-4 sm:px-6">
+        <section aria-label="What All Hands Care stands for" className="mx-auto max-w-[1120px] px-4 sm:px-6">
           <ul className="grid gap-8 border-y border-border-200 py-10 md:grid-cols-3 md:gap-10">
             {PILLARS.map(({ title, body }) => (
               <li key={title}>
@@ -338,7 +338,7 @@ export default function Home() {
         <section aria-labelledby="founder-title" className="border-t border-border-200 py-20 sm:py-28">
           <div className="mx-auto grid max-w-[1120px] gap-10 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
             <div>
-              <Eyebrow>Why I started AfterVisit</Eyebrow>
+              <Eyebrow>Why I started All Hands Care</Eyebrow>
               <p className="mt-6 font-semibold text-ink-900">Gobin Bastola</p>
               <p className="text-ink-500">Founder</p>
               <a
@@ -354,7 +354,7 @@ export default function Home() {
             <figure>
               <blockquote id="founder-title" className="font-display text-section leading-[1.35] text-primary-900 sm:text-page">
                 &ldquo;After five years working with Medicaid billing for an adult day health center, I&apos;ve seen how many different people
-                are involved in supporting aging adults. AfterVisit started with a simple question: what if the important information from a
+                are involved in supporting aging adults. All Hands Care started with a simple question: what if the important information from a
                 medical appointment reached everyone helping with care, without families having to explain it over and over?&rdquo;
               </blockquote>
             </figure>

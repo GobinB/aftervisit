@@ -17,14 +17,14 @@ export interface ExtractionProvider {
 /** How the active provider is described on the privacy page. */
 export interface ProviderDisclosure {
   name: ProviderName;
-  /** Whether document text leaves AfterVisit's server to build the draft. */
+  /** Whether document text leaves All Hands Care's server to build the draft. */
   thirdParty: boolean;
   label: string;
   termsUrl?: string;
 }
 
 const DISCLOSURES: Record<ProviderName, ProviderDisclosure> = {
-  heuristic: { name: "heuristic", thirdParty: false, label: "AfterVisit's built-in parser, running on AfterVisit's server" },
+  heuristic: { name: "heuristic", thirdParty: false, label: "All Hands Care's built-in parser, running on All Hands Care's server" },
   anthropic: {
     name: "anthropic",
     thirdParty: true,

@@ -13,7 +13,7 @@ export function CircleShell({ children, signedIn = false, narrow = false }: { ch
     <div className="flex min-h-dvh flex-col bg-surface-50">
       <header className="no-print sticky top-0 z-30 h-16 border-b border-border-200 bg-white">
         <div className={`mx-auto flex h-full ${width} items-center justify-between px-4 sm:px-6`}>
-          <Link href={signedIn ? "/circles" : "/"} className="rounded-lg" aria-label={signedIn ? "AfterVisit, your circles" : "AfterVisit home"}>
+          <Link href={signedIn ? "/circles" : "/"} className="rounded-lg" aria-label={signedIn ? "All Hands Care, your circles" : "All Hands Care home"}>
             <Logo />
           </Link>
           <nav aria-label="Account" className="flex items-center gap-1">

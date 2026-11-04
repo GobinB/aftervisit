@@ -41,8 +41,8 @@ export const COPY = {
   pinOffWarning: "Without a PIN, anyone who has one of these links can open it.",
   rateLimited: "You have done that a lot in the last hour. Please wait a little and try again.",
   genericError: "Something went wrong on our side. Your work is still here; please try again.",
-  offline: "We could not reach AfterVisit. Check your connection and try again.",
-  notMedicalAdvice: "Not medical advice. AfterVisit organizes what your clinician wrote; it does not interpret it.",
+  offline: "We could not reach All Hands Care. Check your connection and try again.",
+  notMedicalAdvice: "Not medical advice. All Hands Care organizes what your clinician wrote; it does not interpret it.",
 };
 
 export function visitTitle(p: HandoffPayload): string {

@@ -29,7 +29,7 @@ export function AppPreview({ screen, className = "" }: { screen: Screen; classNa
       <div className="overflow-hidden rounded-2xl border border-border-200 bg-white">
         <div className="flex items-center justify-between gap-3 border-b border-border-200 bg-surface-50 px-4 py-2.5">
           <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
-            <LogoMark size={22} /> AfterVisit
+            <LogoMark size={22} /> All Hands Care
           </span>
           <span className="rounded border border-attn/50 px-1.5 text-tag font-bold tracking-wider text-attn-ink uppercase">Fictional</span>
         </div>

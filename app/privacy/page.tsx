@@ -24,7 +24,7 @@ export default function PrivacyPage() {
             <h2>While you build a draft</h2>
             <ul>
               <li>
-                Pasted text and PDFs are sent to AfterVisit&apos;s server to build the draft. They are processed in memory and are not saved.
+                Pasted text and PDFs are sent to All Hands Care&apos;s server to build the draft. They are processed in memory and are not saved.
               </li>
               <li>Photos are read in your browser. The photo is not uploaded; only the text read from it is sent to build the draft.</li>
               <li>
@@ -32,7 +32,7 @@ export default function PrivacyPage() {
                 {provider.thirdParty ? (
                   <>
                     {" "}
-                    This means the text of your summary is sent from AfterVisit&apos;s server to that service. See its{" "}
+                    This means the text of your summary is sent from All Hands Care&apos;s server to that service. See its{" "}
                     <a className="text-primary-700 underline" href={provider.termsUrl} target="_blank" rel="noreferrer">
                       terms
                     </a>
@@ -84,7 +84,7 @@ export default function PrivacyPage() {
               </li>
               <li>
                 &ldquo;I&apos;ve read this&rdquo; and updates to next steps are recorded against the personal link they came from. That shows which
-                link was used, not who was holding the phone: AfterVisit does not verify identity, so these are self-reported.
+                link was used, not who was holding the phone: All Hands Care does not verify identity, so these are self-reported.
               </li>
               <li>Handoff pages ask search engines not to index them and send no referrer to other sites.</li>
             </ul>
@@ -107,7 +107,7 @@ export default function PrivacyPage() {
               <li>You don&apos;t need an account to build, share or open a handoff.</li>
               <li>
                 Caregivers who start a care circle sign in with Google. Google shares your name, email address and profile photo with
-                AfterVisit&apos;s sign-in service, Supabase. AfterVisit never sees your Google password.
+                All Hands Care&apos;s sign-in service, Supabase. All Hands Care never sees your Google password.
               </li>
               <li>
                 People added to a circle don&apos;t need an account. They open their personal link, and their browser keeps a signed cookie
@@ -129,9 +129,9 @@ export default function PrivacyPage() {
           </section>
 
           <section>
-            <h2>Where AfterVisit stands</h2>
+            <h2>Where All Hands Care stands</h2>
             <p>
-              AfterVisit is a prototype. It has not completed a formal privacy, security or HIPAA compliance review, and it does not give
+              All Hands Care is a prototype. It has not completed a formal privacy, security or HIPAA compliance review, and it does not give
               medical advice: it organizes what the clinician wrote.
             </p>
           </section>

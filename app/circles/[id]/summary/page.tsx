@@ -19,7 +19,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
     <CircleShell signedIn={actor.kind === "caregiver"}>
       <CircleFrame personName={content.person_name} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} active="summary">
         <div className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">
-          <p className="mb-8 max-w-2xl text-ink-500">What to know in a hurry, as the caregiver wrote it. AfterVisit stores these words and does not interpret them.</p>
+          <p className="mb-8 max-w-2xl text-ink-500">What to know in a hurry, as the caregiver wrote it. All Hands Care stores these words and does not interpret them.</p>
           <SummaryView content={content} />
         </div>
       </CircleFrame>

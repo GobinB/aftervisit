@@ -24,4 +24,4 @@ Per-caregiver key pairs. Only the owner holds and changes the circle key today. 
 
 ## Why
 
-Files are the sensitive part of the circle. If the server can read the key, a database copy can read the files. Keeping the key in the browser means a lost phrase is unrecoverable on purpose: AfterVisit has nothing to reset.
+Files are the sensitive part of the circle. If the server can read the key, a database copy can read the files. Keeping the key in the browser means a lost phrase is unrecoverable on purpose: All Hands Care has nothing to reset.

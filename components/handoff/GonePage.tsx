@@ -33,7 +33,7 @@ export function GonePage({ status }: { status: GoneStatus }) {
         <h1 className="font-display mt-3 text-[1.6rem] leading-tight font-medium text-primary-900">{title}</h1>
         <p className="mt-2 text-ink-500">{body}</p>
         <Link href="/" className="mt-6 inline-flex min-h-12 items-center rounded-xl px-4 font-semibold text-primary-700 underline underline-offset-4">
-          Go to AfterVisit
+          Go to All Hands Care
         </Link>
       </main>
     </div>

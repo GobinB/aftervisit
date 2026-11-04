@@ -21,7 +21,7 @@ export default async function CreatorViewPage({ params, searchParams }: Props) {
     <main className="mx-auto max-w-[640px] px-4 py-20 text-center">
       <h1 className="font-display text-2xl text-primary-900">This link is not valid</h1>
       <Link href="/" className="mt-6 inline-block font-semibold text-primary-700 underline underline-offset-4">
-        Go to AfterVisit
+        Go to All Hands Care
       </Link>
     </main>
   );
