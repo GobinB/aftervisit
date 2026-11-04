@@ -6,6 +6,7 @@ import { Panel } from "@/components/circles/Panel";
 import { PeopleList } from "@/components/circles/PeopleList";
 import { RestoreKeys } from "@/components/circles/RestoreKeys";
 import { CircleShell } from "@/components/circles/Shell";
+import { InstallApp } from "@/components/pwa/InstallApp";
 import { SummaryView } from "@/components/circles/SummaryView";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
@@ -32,6 +33,7 @@ export default async function CircleHome({ params }: { params: Promise<{ id: str
     <CircleShell signedIn={actor.kind === "caregiver"}>
       <CircleFrame personName={content?.person_name ?? "Your care circle"} subtitle={roleLine(actor)} tabs={tabs} active="overview">
         {key ? <RestoreKeys circles={[key]} /> : null}
+        <InstallApp />
         {isOwner && people ? (
           <div className="mb-8">
             <GettingStarted circleId={id} people={people} />

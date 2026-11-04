@@ -51,6 +51,8 @@ const nextConfig: NextConfig = {
         ],
       },
       { source: "/api/:path*", headers: [{ key: "Cache-Control", value: "no-store" }] },
+      // The browser checks for a new service worker on every visit.
+      { source: "/sw.js", headers: [{ key: "Cache-Control", value: "no-cache" }] },
     ];
   },
 };

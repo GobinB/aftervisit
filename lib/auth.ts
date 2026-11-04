@@ -160,3 +160,21 @@ export async function getActor(circleId?: string): Promise<Actor | null> {
   }
   return null;
 }
+
+/**
+ * Where the installed app opens. A caregiver goes to their circles. Someone with a helper link
+ * goes to the first circle whose link still works. Anyone else gets the home page.
+ */
+export async function homePath(): Promise<string> {
+  const caregiver = await loadCaregiver();
+  if (caregiver) return "/circles";
+  if (!env.helperSessionSecret) return "/";
+  try {
+    const jar = await cookies();
+    const claims = readHelperCookie(jar.get(HELPER_COOKIE)?.value, env.helperSessionSecret);
+    for (const claim of claims) {
+      if (await loadHelper(claim.circleId)) return `/circles/${claim.circleId}`;
+    }
+  } catch {}
+  return "/";
+}

@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CircleShell } from "@/components/circles/Shell";
+import { InstallApp } from "@/components/pwa/InstallApp";
 import { RestoreKeys } from "@/components/circles/RestoreKeys";
 import { Avatar } from "@/components/ui/Avatar";
 import { getActor } from "@/lib/auth";
@@ -22,6 +23,7 @@ export default async function CirclesPage() {
       <h1 className="font-display mt-2 text-heading text-primary-900 sm:text-heading-lg">Who are you looking after?</h1>
       <p className="mt-3 max-w-2xl text-ink-500">A care circle is one shared page for one person, and the people who help them.</p>
       <RestoreKeys circles={keys} />
+      <InstallApp />
       <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {circles.map((circle) => {
           const role = keys.find((key) => key.circleId === circle.id)?.role === "owner" ? "You started this circle" : "You help run this circle";
