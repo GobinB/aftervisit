@@ -5,7 +5,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
     name: "All Hands Care",
-    short_name: "All Hands",
+    short_name: "All Hands Care",
     description: "One shared care page for the person you look after.",
     start_url: "/start",
     scope: "/",

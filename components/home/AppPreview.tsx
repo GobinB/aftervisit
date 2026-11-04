@@ -34,7 +34,7 @@ export function AppPreview({ screen, className = "" }: { screen: Screen; classNa
           <span className="rounded border border-attn/50 px-1.5 text-tag font-bold tracking-wider text-attn-ink uppercase">Fictional</span>
         </div>
         <div inert aria-hidden="true" className="px-5 pt-6 pb-7 sm:px-7">
-          <CircleFrame personName={SAMPLE_CIRCLE.person_name} subtitle="You started this circle" tabs={TABS} active={screen}>
+          <CircleFrame personName={SAMPLE_CIRCLE.person_name} subtitle="You run this circle" tabs={TABS} active={screen}>
             {screen === "overview" ? (
               <div className="space-y-8">
                 <Panel title="People" href="#" linkLabel="Add or manage people">

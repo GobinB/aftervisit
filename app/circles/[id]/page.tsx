@@ -30,7 +30,7 @@ export default async function CircleHome({ params }: { params: Promise<{ id: str
   const key = keys.find((item) => item.circleId === id) ?? null;
   const isOwner = actor.kind === "caregiver" && actor.role === "owner";
   return (
-    <CircleShell signedIn={actor.kind === "caregiver"}>
+    <CircleShell signedIn={actor.kind === "caregiver"} circle={{ personName: content?.person_name ?? "Your care circle", tabs: tabs, active: "overview" }}>
       <CircleFrame personName={content?.person_name ?? "Your care circle"} subtitle={roleLine(actor)} tabs={tabs} active="overview">
         {key ? <RestoreKeys circles={[key]} /> : null}
         <InstallApp />

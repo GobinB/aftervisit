@@ -4,6 +4,8 @@ Notable changes to All Hands Care (formerly AfterVisit). The newest entries are 
 
 ## Unreleased
 
+- Each circle has exactly one caregiver who signs in: its owner. Everyone else, family included, opens their own personal link. The database allows one caregiver row per circle, and nobody can add a second one.
+- Circle screens use a dark sidebar for the circle's areas on wide screens, a slim header, and smaller type (14 px on computers, 15 px on phones). Titles use DM Serif Display and text uses Geist. The installed app is named All Hands Care.
 - AfterVisit is now All Hands Care, at allhandscare.org, with an interim mark until the designed logo is ready. The app installs from the browser as a phone app: a manifest, home-screen icons, and an offline page when there is no signal. Private pages are never stored on the device.
 - Circle screens use a geometric sans, a soft grey page, and thin white cards. The sign-in page is a centered card. Phone headers can open How it works, Privacy, and the sample visit, and the current circle tab stays on screen. A new circle has one main heading, field errors clear as you fix them, and the people list shows a caregiver's name.
 - Each circle has its own pages for Overview, Care summary, People and Settings, with tabs between them and a getting-started checklist for the owner. Starting a circle is four short steps. The home page shows the People and Care summary modules using the app's own screens with fictional data.

@@ -20,7 +20,7 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
   const circle = await getCircle(actor, id);
   const keys = actor.kind === "caregiver" ? (await listOwnCircleKeys(actor)).filter((item) => item.circleId === id) : [];
   return (
-    <CircleShell signedIn={actor.kind === "caregiver"}>
+    <CircleShell signedIn={actor.kind === "caregiver"} circle={{ personName: circle?.person_name ?? "Your care circle", tabs: circleTabs(actor, id), active: "people" }}>
       <CircleFrame personName={circle?.person_name ?? "Your care circle"} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} active="people">
         {listed.canManage ? (
           <p className="mb-8 max-w-2xl text-ink-500">
