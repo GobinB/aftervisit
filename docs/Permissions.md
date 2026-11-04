@@ -2,9 +2,9 @@
 
 `can(actor, action, subject)` in `lib/permissions.ts` is default deny. The grid is `GRID`. `tests/unit/permissions.test.ts` walks every role and every action. Adding a role or an action without a cell fails that test.
 
-Roles: owner, co-caregiver, family, care manager, home aide, day program.
+Roles: owner, family, care manager, home aide, day program. Each circle has exactly one caregiver who signs in, its owner; the database allows one caregiver row per circle.
 
-A co-caregiver can manage members and cannot remove the owner, export, or delete the circle. Only the owner can rotate the circle key (`circle:rotate_key`). That writes the new wrapped key only on the owner's row. A co-caregiver and helpers cannot rotate the key. Family can read and post updates, including family-only ones. A care manager can read updates that are not family-only. Home aides and day programs do not see updates. They can read and print medications, see their own tasks, read the calendar, and open the care folder of documents. Handoff sections for helpers are only the ones chosen on their member row. Per-member `visibility` can hide an area. It cannot grant manage, export, or delete.
+Only the owner can rotate the circle key (`circle:rotate_key`). That writes the new wrapped key only on the owner's row. Helpers cannot rotate the key. Family can read and post updates, including family-only ones. A care manager can read updates that are not family-only. Home aides and day programs do not see updates. They can read and print medications, see their own tasks, read the calendar, and open the care folder of documents. Handoff sections for helpers are only the ones chosen on their member row. Per-member `visibility` can hide an area. It cannot grant manage, export, or delete.
 
 ## Who is locked by what
 

@@ -56,14 +56,14 @@ function RestoreOne({ circle, onDone }: { circle: CircleKeyStatus; onDone: () =>
     if (circle.role === "owner" && circle.circleKeyVersion === 1) return <CreateFirstKey circle={circle} onDone={onDone} />;
     return (
       <p className="rounded-2xl border border-border-200 bg-white p-4 text-ink-900" role="status">
-        {circle.personName} does not have a key saved on your account yet. Another caregiver holds the recovery words. Sharing that key with you is not ready yet.
+        The key for files in {circle.personName}&apos;s circle is missing from your account, so files there cannot be opened on this device.
       </p>
     );
   }
   if (circle.wrappedKeyVersion !== circle.circleKeyVersion) {
     return (
       <p className="rounded-2xl border border-border-200 bg-white p-4 text-ink-900" role="status">
-        The key for {circle.personName} was changed on another account. Your recovery words still open the previous key. Files saved after that change cannot be opened here until the new key can be shared. That step is not ready yet.
+        The key for {circle.personName} was changed on another device. Your recovery words still open the previous key, so files saved after that change cannot be opened here.
       </p>
     );
   }

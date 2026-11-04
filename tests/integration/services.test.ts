@@ -19,7 +19,8 @@ const { addMember } = await import("@/services/members");
 const circleId = "22222222-2222-4222-8222-222222222222";
 
 const owner: Actor = { kind: "caregiver", userId: "user-owner", circleIds: [circleId], role: "owner", accessToken: "token" };
-const co: Actor = { kind: "caregiver", userId: "user-co", circleIds: [circleId], role: "co_caregiver", accessToken: "token" };
+/** Signed in with Google, but not this circle's caregiver. */
+const stranger: Actor = { kind: "caregiver", userId: "user-stranger", circleIds: [], role: null, accessToken: "token" };
 const family: Actor = {
   kind: "helper",
   memberId: "33333333-3333-4333-8333-333333333301",
@@ -43,8 +44,8 @@ describe("services call can() before store", () => {
     expect(clientFor).not.toHaveBeenCalled();
   });
 
-  test("a co-caregiver cannot delete a circle", async () => {
-    const result = await deleteCircle(co, circleId);
+  test("a signed-in stranger cannot delete a circle", async () => {
+    const result = await deleteCircle(stranger, circleId);
     expect(result.ok).toBe(false);
     expect(clientFor).not.toHaveBeenCalled();
   });

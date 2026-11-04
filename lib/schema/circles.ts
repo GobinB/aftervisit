@@ -43,8 +43,7 @@ export const HELPER_ROLE_LABELS: Record<HelperRole, string> = {
 };
 
 export const CAREGIVER_ROLE_LABELS = {
-  owner: "Owner",
-  co_caregiver: "Co-caregiver",
+  owner: "Caregiver",
 } as const;
 
 /** Areas a caregiver can hide for one person. Hiding only removes access. */
@@ -111,7 +110,7 @@ export function nextCircleKeyVersion(current: number): number {
 export type CircleKeyStatus = {
   circleId: string;
   personName: string;
-  role: "owner" | "co_caregiver";
+  role: "owner";
   circleKeyVersion: number;
   wrapped: string | null;
   wrappedKeyVersion: number;

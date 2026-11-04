@@ -6,16 +6,19 @@ import type { HelperRole, Visibility } from "@/lib/schema/circles";
 const CIRCLE = "22222222-2222-4222-8222-222222222222";
 const OTHER = "33333333-3333-4333-8333-333333333333";
 
-function caregiver(role: "owner" | "co_caregiver"): Actor {
+function caregiver(role: "owner"): Actor {
   return { kind: "caregiver", userId: `user-${role}`, circleIds: [CIRCLE], role, accessToken: "token" };
 }
+
+/** Signed in with Google, but not this circle's caregiver. */
+const stranger: Actor = { kind: "caregiver", userId: "user-stranger", circleIds: [], role: null, accessToken: "token" };
 
 function helper(role: HelperRole, visibility: Visibility = { handoffSections: ["medications"] }): Actor {
   return { kind: "helper", memberId: `member-${role}`, circleId: CIRCLE, role, visibility };
 }
 
 function actor(role: Role): Actor {
-  if (role === "owner" || role === "co_caregiver") return caregiver(role);
+  if (role === "owner") return caregiver(role);
   return helper(role);
 }
 
@@ -88,13 +91,13 @@ describe("permissions grid", () => {
 
   test("the spec's sharp edges stay put", () => {
     expect(can(caregiver("owner"), "circle:delete", { circleId: CIRCLE })).toBe(true);
-    expect(can(caregiver("co_caregiver"), "circle:delete", { circleId: CIRCLE })).toBe(false);
+    expect(can(stranger, "circle:delete", { circleId: CIRCLE })).toBe(false);
     expect(can(caregiver("owner"), "circle:rotate_key", { circleId: CIRCLE })).toBe(true);
-    expect(can(caregiver("co_caregiver"), "circle:rotate_key", { circleId: CIRCLE })).toBe(false);
+    expect(can(stranger, "circle:rotate_key", { circleId: CIRCLE })).toBe(false);
     expect(can(helper("family"), "circle:rotate_key", { circleId: CIRCLE })).toBe(false);
     expect(can(helper("home_aide"), "circle:rotate_key", { circleId: CIRCLE })).toBe(false);
     expect(can(caregiver("owner"), "export:download", { circleId: CIRCLE })).toBe(true);
-    expect(can(caregiver("co_caregiver"), "export:download", { circleId: CIRCLE })).toBe(false);
+    expect(can(stranger, "export:download", { circleId: CIRCLE })).toBe(false);
     expect(can(helper("family"), "updates:post", { circleId: CIRCLE })).toBe(true);
     expect(can(helper("care_manager"), "updates:read", { circleId: CIRCLE })).toBe(true);
     expect(can(helper("care_manager"), "updates:read:family", { circleId: CIRCLE })).toBe(false);

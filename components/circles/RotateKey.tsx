@@ -99,7 +99,6 @@ export function RotateKey({ circle }: { circle: CircleKeyStatus }) {
     <form onSubmit={submit} className="space-y-3 rounded-2xl border border-border-200 bg-white p-4">
       <h2 className="font-display text-section text-primary-900">New key for files</h2>
       <p>This creates a new key for files in this circle. Everyone who helps needs a new link. Old links stop opening the circle.</p>
-      <p>Other caregivers still have the old key on their accounts. This screen cannot give them the new key yet. Files they open after this change will not work until that exists.</p>
       <div>
         <label htmlFor={`${baseId}-phrase`} className="font-medium text-ink-900">
           Recovery words

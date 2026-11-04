@@ -6,7 +6,8 @@ import { HELPER_ROLES, MEMBER_TTL_DAYS, VisibilitySchema, type HelperRole, type 
 import { serviceClient, userClient } from "@/store/db";
 import { createSupabaseServerClient } from "@/store/supabase-server";
 
-export type CaregiverRole = "owner" | "co_caregiver";
+/** One caregiver signs in per circle: its owner. Everyone else uses a personal link. */
+export type CaregiverRole = "owner";
 
 /**
  * The signed-in person for one request.
@@ -80,7 +81,7 @@ async function loadCaregiver(): Promise<CaregiverRecord | null> {
       const circleId = row.circle_id as string;
       const role = row.role as string;
       if (!live.has(circleId)) continue;
-      if (role !== "owner" && role !== "co_caregiver") continue;
+      if (role !== "owner") continue;
       roles[circleId] = role;
       circleIds.push(circleId);
     }

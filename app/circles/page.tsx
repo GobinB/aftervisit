@@ -26,7 +26,6 @@ export default async function CirclesPage() {
       <InstallApp />
       <ul className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         {circles.map((circle) => {
-          const role = keys.find((key) => key.circleId === circle.id)?.role === "owner" ? "You started this circle" : "You help run this circle";
           return (
             <li key={circle.id}>
               <Link
@@ -38,7 +37,7 @@ export default async function CirclesPage() {
                   <span className="font-display text-section leading-tight text-primary-900">{circle.personName}</span>
                 </span>
                 <span className="mt-4 flex items-center justify-between text-sm text-ink-500">
-                  {role}
+                  You run this circle
                   <ArrowRight size={18} className="text-primary-700 transition-transform group-hover:translate-x-0.5" aria-hidden="true" />
                 </span>
               </Link>
