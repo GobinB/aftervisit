@@ -5,6 +5,7 @@ import { PeopleList } from "@/components/circles/PeopleList";
 import { TodayDate } from "@/components/circles/TodayDate";
 import { shortDate } from "@/lib/format";
 import type { CircleContent, PersonView } from "@/lib/schema/circles";
+import { doseText, scheduleText, type Medication } from "@/lib/schema/medications";
 import type { Alert, FeedItem, Stat, Tone } from "@/lib/today";
 
 const STAT_ICONS: Record<string, LucideIcon> = { helpers: Users, opened: Eye, waiting: Clock3, allergies: HeartPulse };
@@ -185,6 +186,33 @@ export function PeopleCard({ people, showSeen, href, linkLabel }: { people: Pers
       <PeopleList people={people} showSeen={showSeen} />
       <Link href={href} className="mb-2 inline-flex items-center gap-1 py-1 text-[13px] font-semibold text-primary-700 hover:text-primary-900">
         {linkLabel} <ArrowRight className="size-3.5" aria-hidden="true" />
+      </Link>
+    </Card>
+  );
+}
+
+/** What the person takes now, in short. The Medications page has the rest. */
+export function MedsGlance({ medications, href }: { medications: Medication[]; href: string }) {
+  const active = medications.filter((med) => med.status === "active");
+  return (
+    <Card>
+      {active.length ? (
+        <ul className="divide-y divide-border-200">
+          {active.slice(0, 6).map((med) => (
+            <li key={med.id} className="px-4 py-2.5">
+              <span className="block text-[14px] font-medium text-ink-900">
+                {med.name}
+                {doseText(med) ? <span className="ml-1.5 font-normal text-ink-500">{doseText(med)}</span> : null}
+              </span>
+              <span className="block text-[12px] text-ink-500">{scheduleText(med)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="px-4 py-3 text-[13px] text-ink-500">No medications listed yet.</p>
+      )}
+      <Link href={href} className="flex items-center gap-1 border-t border-border-200 px-4 py-2.5 text-[13px] font-semibold text-primary-700 hover:text-primary-900">
+        {active.length > 6 ? `All ${active.length} medications` : "All medications"} <ArrowRight className="size-3.5" aria-hidden="true" />
       </Link>
     </Card>
   );

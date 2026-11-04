@@ -58,7 +58,7 @@ const MODULES = [
     key: "medications",
     title: "Medication list",
     body: "Which pills, which dose, as of today. Every change is dated with where it came from, and the list prints on one page.",
-    ready: false,
+    ready: true,
   },
   {
     key: "tasks",
@@ -98,6 +98,13 @@ const PEOPLE_POINTS = [
   "Add a 4-digit PIN to any link if you want one.",
   "See when each person last opened their link.",
   "Turn off any link, or make a new one, at any time.",
+];
+
+const MEDICATION_POINTS = [
+  "Strength, how much, when, and what it is for, in plain words.",
+  "Stopping one keeps it on the record, with the date.",
+  "Every change is listed with its date.",
+  "Prints on one page for the pharmacy or a new aide.",
 ];
 
 const SUMMARY_POINTS = [
@@ -252,8 +259,21 @@ export default function Home() {
               <AppPreview screen="people" />
             </article>
 
-            <article id="module-summary" aria-labelledby="module-summary-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+            <article id="module-medications" aria-labelledby="module-medications-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
               <div className="lg:order-2">
+                <h3 id="module-medications-title" className="font-display text-heading text-primary-900">
+                  Every pill, as of today.
+                </h3>
+                <p className="mt-4 text-lg text-ink-500">
+                  You keep the list. Everyone you allow sees the same one, so the aide and the day program never work from an old paper copy.
+                </p>
+                <Points items={MEDICATION_POINTS} />
+              </div>
+              <AppPreview screen="medications" className="lg:order-1" />
+            </article>
+
+            <article id="module-summary" aria-labelledby="module-summary-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              <div>
                 <h3 id="module-summary-title" className="font-display text-heading text-primary-900">
                   What to know in a hurry.
                 </h3>
@@ -263,7 +283,7 @@ export default function Home() {
                 </p>
                 <Points items={SUMMARY_POINTS} />
               </div>
-              <AppPreview screen="summary" className="lg:order-1" />
+              <AppPreview screen="summary" />
             </article>
           </div>
         </section>

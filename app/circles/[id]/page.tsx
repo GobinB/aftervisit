@@ -6,13 +6,14 @@ import { circleTabs } from "@/components/circles/CircleFrame";
 import { GettingStarted } from "@/components/circles/GettingStarted";
 import { RestoreKeys } from "@/components/circles/RestoreKeys";
 import { CircleShell } from "@/components/circles/Shell";
-import { ActivityFeed, Alerts, AtAGlance, PeopleCard, SectionLabel, StatCards, TodayHeader } from "@/components/circles/Today";
+import { ActivityFeed, Alerts, AtAGlance, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayHeader } from "@/components/circles/Today";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { buildAlerts, buildFeed, buildStats } from "@/lib/today";
 import { listActivity } from "@/services/activity";
 import { getCircle, listOwnCircleKeys } from "@/services/circles";
+import { listMedications } from "@/services/medications";
 import { listPeople } from "@/services/members";
 
 export const metadata: Metadata = { title: "Today", robots: { index: false, follow: false } };
@@ -34,6 +35,16 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
   const key = keys.find((item) => item.circleId === id) ?? null;
   const summaryHref = can(actor, "summary:read", { circleId: id }) ? `/circles/${id}/summary` : null;
   const peopleHref = `/circles/${id}/members`;
+  const medications = await listMedications(actor, id);
+  const medsHref = `/circles/${id}/medications`;
+  const meds = medications ? (
+    <section aria-labelledby="meds-title">
+      <SectionLabel>
+        <span id="meds-title">Medications</span>
+      </SectionLabel>
+      <MedsGlance medications={medications} href={medsHref} />
+    </section>
+  ) : null;
 
   const header = (
     <TodayHeader
@@ -88,6 +99,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
                 </SectionLabel>
                 <Alerts alerts={buildAlerts(id, people)} />
               </section>
+              {meds}
               {content ? (
                 <section aria-labelledby="glance-title">
                   <SectionLabel>
@@ -101,7 +113,8 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
         </>
       ) : (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
-          <div className="min-w-0">
+          <div className="min-w-0 space-y-5">
+            {meds}
             {content ? (
               <section aria-labelledby="glance-title">
                 <SectionLabel>

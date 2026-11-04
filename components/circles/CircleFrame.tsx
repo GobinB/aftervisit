@@ -2,12 +2,13 @@ import Link from "next/link";
 import type { Actor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 
-export type CircleTab = "overview" | "summary" | "people" | "settings";
+export type CircleTab = "overview" | "medications" | "summary" | "people" | "settings";
 
 /** One tab per module the viewer may open. A module gets a tab in the pull request that ships it. */
 export function circleTabs(actor: Actor, circleId: string): { key: CircleTab; label: string; href: string }[] {
   const base = `/circles/${circleId}`;
   const tabs: { key: CircleTab; label: string; href: string }[] = [{ key: "overview", label: "Today", href: base }];
+  if (can(actor, "medications:read", { circleId })) tabs.push({ key: "medications", label: "Medications", href: `${base}/medications` });
   if (can(actor, "summary:read", { circleId })) tabs.push({ key: "summary", label: "Care summary", href: `${base}/summary` });
   if (can(actor, "members:manage", { circleId }) || can(actor, "members:read", { circleId }) || can(actor, "members:read:caregivers", { circleId })) {
     tabs.push({ key: "people", label: "People", href: `${base}/members` });

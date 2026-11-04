@@ -1,4 +1,5 @@
 import type { CircleContent, PersonView } from "@/lib/schema/circles";
+import type { Medication } from "@/lib/schema/medications";
 
 /** A fictional circle, shown on the home page through the same components the app uses. */
 export const SAMPLE_CIRCLE: CircleContent = {
@@ -22,4 +23,33 @@ export const SAMPLE_PEOPLE: PersonView[] = [
   { id: "sample-rosa", name: "Rosa Diaz", role: "home_aide", roleLabel: "Home aide", kind: "member", lastSeenAt: hoursAgo(20) },
   { id: "sample-sunrise", name: "Sunrise Adult Day", role: "day_program", roleLabel: "Day program", kind: "member", lastSeenAt: null },
   { id: "sample-dana", name: "Dana Brooks", role: "care_manager", roleLabel: "Care manager", kind: "member", lastSeenAt: hoursAgo(50) },
+];
+
+const med = (fields: Partial<Medication> & Pick<Medication, "id" | "name">): Medication => ({
+  dose: null,
+  amount: null,
+  form: null,
+  schedule: "daily",
+  every: null,
+  weekdays: [],
+  times: [],
+  startDate: null,
+  stopDate: null,
+  status: "active",
+  reason: null,
+  instructions: null,
+  prescriber: null,
+  refillsLeft: null,
+  lastRefill: null,
+  source: "caregiver",
+  updatedAt: "2026-10-06T15:00:00Z",
+  ...fields,
+});
+
+/** Fictional medications for the home page preview. */
+export const SAMPLE_MEDICATIONS: Medication[] = [
+  med({ id: "sample-lisinopril", name: "Lisinopril", dose: "10 mg", amount: "1 tablet", times: ["08:00"], reason: "blood pressure", startDate: "2026-03-02" }),
+  med({ id: "sample-metformin", name: "Metformin", dose: "500 mg", amount: "1 tablet", times: ["08:00", "18:00"], reason: "blood sugar", instructions: "With food" }),
+  med({ id: "sample-vitd", name: "Vitamin D3", dose: "1,000 IU", schedule: "weekdays", weekdays: [1, 3, 5], times: ["08:00"] }),
+  med({ id: "sample-acetaminophen", name: "Acetaminophen", dose: "500 mg", amount: "2 tablets", schedule: "as_needed", reason: "pain", instructions: "No more than 6 tablets a day" }),
 ];

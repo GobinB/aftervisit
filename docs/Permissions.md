@@ -4,6 +4,8 @@
 
 Roles: owner, family, care manager, home aide, day program. Each circle has exactly one caregiver who signs in, its owner; the database allows one caregiver row per circle.
 
+Medications: every helper role can read and print the list unless the caregiver hides it for that person; only the owner adds, edits, stops or restarts, and only the owner sees the change history (`medication_changes`, written by a database trigger).
+
 Only the owner can rotate the circle key (`circle:rotate_key`). That writes the new wrapped key only on the owner's row. Helpers cannot rotate the key. Family can read and post updates, including family-only ones. A care manager can read updates that are not family-only. Home aides and day programs do not see updates. They can read and print medications, see their own tasks, read the calendar, and open the care folder of documents. Handoff sections for helpers are only the ones chosen on their member row. Per-member `visibility` can hide an area. It cannot grant manage, export, or delete.
 
 ## Who is locked by what

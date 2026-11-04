@@ -4,6 +4,7 @@ Notable changes to All Hands Care (formerly AfterVisit). The newest entries are 
 
 ## Unreleased
 
+- Medications: the caregiver adds each medication with its strength, how much, when (every day, some days, every few days, weeks or months, or only when needed) and what it is for. Stopping keeps it on the record with the date, and a database trigger saves every add, change, stop and restart with who made it. Helpers whose role allows it see the list, and it prints. Name suggestions come from the National Library of Medicine's public list, searched on our server. Today shows what the person takes now.
 - Each circle opens on Today: four numbers (people helping, opened this week, not opened yet, allergies), recent activity with who opened their link, what needs the caregiver (locked, unopened or ending links), allergies and who to call, and the people list. Helpers see the parts their role allows. On phones the circle's areas sit in a bottom bar. The logo heart and small accents are coral.
 - Each circle has exactly one caregiver who signs in: its owner. Everyone else, family included, opens their own personal link. The database allows one caregiver row per circle, and nobody can add a second one.
 - Circle screens use a dark sidebar for the circle's areas on wide screens, a slim header, and smaller type (14 px on computers, 15 px on phones). Titles use DM Serif Display and text uses Geist. The installed app is named All Hands Care.

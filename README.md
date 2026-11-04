@@ -2,6 +2,8 @@
 
 One shared care page for the person you look after, at [allhandscare.org](https://www.allhandscare.org). One caregiver signs in; everyone else who helps (family, a home aide, the day program) gets their own private link, with no account. It installs from the browser as a phone app.
 
+The caregiver keeps the person's medication list (strength, how much, when, what it is for), and every add, change and stop is saved with its date; helpers whose role allows it see the same list. Medication name suggestions come from the National Library of Medicine's public RxNorm list, searched on our own server.
+
 Its first feature is the after-visit handoff: a family caregiver uploads (or pastes) an after-visit summary, reviews what changed and assigns the next steps, then gives family members and professional caregivers their own revocable links with individual section visibility. Recipients acknowledge the handoff and update their steps; the caregiver follows progress from a private dashboard. No accounts, and nothing to download from an app store. Nothing is stored until the caregiver chooses to share.
 
 Built for the Assembly Code Incubator (Cohort 02, caregiving). Open source under the [AGPL-3.0](LICENSE). All Hands Care organizes what the clinician wrote; it is not medical advice.
