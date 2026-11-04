@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Design tokens (Section 7.1). 90% of any screen is white, surface and ink. */
+/* Design tokens. Palette B (November 3): navy and coral. 90% of any screen is white, grey and ink. */
 @theme {
   --color-primary-900: #163a6b; /* navy: headers, footers, dark panels */
   --color-primary-700: #1e4e8c; /* clinical blue: primary buttons, headings, links */
@@ -20,6 +20,7 @@
   --color-ok: #15803d; /* reviewed, acknowledged */
   --color-ok-ink: #166534;
   --color-ok-bg: #dcfce7;
+  --color-heart-500: #e5644e; /* coral: the heart in the logo and small accents. Not for text (3.3:1 on white). */
   --color-sidebar: #1e2a3a; /* app sidebar */
   --color-sidebar-text: #c8d6e8;
   --color-sidebar-muted: #8296ad;

@@ -10,12 +10,12 @@ export const LOGO_ARCS = [
   "M27.8 11.57A13 13 0 0 1 36.43 20.2",
 ];
 export const LOGO_DOT = { cx: 24, cy: 24, r: 4.8 };
-export const LOGO_COLORS = { tile: "#1E4E8C", arcs: "#FFFFFF", dot: "#FDBA74" };
+export const LOGO_COLORS = { tile: "#1E4E8C", arcs: "#FFFFFF", dot: "#E5644E" };
 
 export function LogoMark({ size = 40, variant = "default", className = "" }: { size?: number; variant?: "default" | "onDark"; className?: string }) {
   const tile = variant === "onDark" ? "#E7EEF7" : LOGO_COLORS.tile;
   const arcs = variant === "onDark" ? "#1E4E8C" : LOGO_COLORS.arcs;
-  const dot = variant === "onDark" ? "#C2410C" : LOGO_COLORS.dot;
+  const dot = LOGO_COLORS.dot;
   return (
     <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false" className={`shrink-0 ${className}`}>
       <rect width="48" height="48" rx="13" fill={tile} />

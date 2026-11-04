@@ -11,7 +11,7 @@ export default function Image() {
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "center", padding: 80, background: "#163A6B", color: "white" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <div style={{ display: "flex", width: 72, height: 72, borderRadius: 20, background: "#E8F1FB" }}>
-            <MarkGlyph size={72} arcs="#1E4E8C" dot="#C2410C" />
+            <MarkGlyph size={72} arcs="#1E4E8C" dot="#E5644E" />
           </div>
           <div style={{ display: "flex", fontSize: 44, fontWeight: 600 }}>
             All Hands<span style={{ color: "#C9DEF7", fontWeight: 500, marginLeft: 12 }}>Care</span>

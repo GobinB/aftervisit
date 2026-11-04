@@ -27,7 +27,7 @@ export default async function Image({ params }: { params: Promise<{ token: strin
       <div style={{ width: "100%", height: "100%", display: "flex", flexDirection: "column", justifyContent: "space-between", padding: 80, background: "#163A6B", color: "white" }}>
         <div style={{ display: "flex", alignItems: "center", gap: 20 }}>
           <div style={{ display: "flex", width: 64, height: 64, borderRadius: 17, background: "#E8F1FB" }}>
-            <MarkGlyph size={64} arcs="#1E4E8C" dot="#C2410C" />
+            <MarkGlyph size={64} arcs="#1E4E8C" dot="#E5644E" />
           </div>
           <div style={{ display: "flex", fontSize: 36, fontWeight: 600 }}>
             All Hands<span style={{ color: "#C9DEF7", fontWeight: 500, marginLeft: 12 }}>Care</span>
