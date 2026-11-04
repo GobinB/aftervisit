@@ -1,14 +1,15 @@
-import { AlertTriangle, ArrowRight, Clock3, HeartPulse, Phone, Users, Eye, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ArrowRight, Clock3, HeartPulse, ListChecks, Phone, Users, Eye, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import { PeopleList } from "@/components/circles/PeopleList";
+import { TodoList, type TodoRow } from "@/components/todos/TodoList";
 import { TodayDate } from "@/components/circles/TodayDate";
 import { shortDate } from "@/lib/format";
 import type { CircleContent, PersonView } from "@/lib/schema/circles";
 import { doseText, scheduleText, type Medication } from "@/lib/schema/medications";
 import type { Alert, FeedItem, Stat, Tone } from "@/lib/today";
 
-const STAT_ICONS: Record<string, LucideIcon> = { helpers: Users, opened: Eye, waiting: Clock3, allergies: HeartPulse };
+const STAT_ICONS: Record<string, LucideIcon> = { helpers: Users, opened: Eye, todos: ListChecks, waiting: Clock3, allergies: HeartPulse };
 
 const VALUE_TONE: Record<Tone, string> = {
   blue: "text-primary-700",
@@ -213,6 +214,18 @@ export function MedsGlance({ medications, href }: { medications: Medication[]; h
       )}
       <Link href={href} className="flex items-center gap-1 border-t border-border-200 px-4 py-2.5 text-[13px] font-semibold text-primary-700 hover:text-primary-900">
         {active.length > 6 ? `All ${active.length} medications` : "All medications"} <ArrowRight className="size-3.5" aria-hidden="true" />
+      </Link>
+    </Card>
+  );
+}
+
+/** The next few open to-dos, with the same check and "I'll do it" as the To-dos page. */
+export function TodosGlance({ todos, circleId, href, empty }: { todos: TodoRow[]; circleId: string; href: string; empty: string }) {
+  return (
+    <Card>
+      {todos.length ? <TodoList todos={todos} circleId={circleId} canEdit={false} /> : <p className="px-4 py-3 text-[13px] text-ink-500">{empty}</p>}
+      <Link href={href} className="flex items-center gap-1 border-t border-border-200 px-4 py-2.5 text-[13px] font-semibold text-primary-700 hover:text-primary-900">
+        All to-dos <ArrowRight className="size-3.5" aria-hidden="true" />
       </Link>
     </Card>
   );

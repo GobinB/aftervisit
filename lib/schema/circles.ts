@@ -53,7 +53,7 @@ export type VisibilityArea = (typeof VISIBILITY_AREAS)[number];
 export const AREA_LABELS: Record<VisibilityArea, string> = {
   updates: "Updates",
   medications: "Medications",
-  tasks: "Tasks",
+  tasks: "To-dos",
   calendar: "Calendar",
   documents: "Documents",
   summary: "Care summary",
@@ -61,7 +61,7 @@ export const AREA_LABELS: Record<VisibilityArea, string> = {
 };
 
 /** Areas a helper can see today. The picker lists only these. Add an area here in the PR that ships it. */
-export const READY_AREAS: readonly VisibilityArea[] = ["medications", "summary"];
+export const READY_AREAS: readonly VisibilityArea[] = ["tasks", "medications", "summary"];
 
 export const HANDOFF_SECTION_KEYS = ["medications", "tasks", "watchFor", "questions", "summary", "otherNotes", "original"] as const;
 

@@ -3,20 +3,23 @@ import { Panel } from "@/components/circles/Panel";
 import { PeopleList } from "@/components/circles/PeopleList";
 import { SummaryView } from "@/components/circles/SummaryView";
 import { MedicationList } from "@/components/medications/MedicationList";
+import { TodoList } from "@/components/todos/TodoList";
 import { LogoMark } from "@/components/Logo";
-import { SAMPLE_CIRCLE, SAMPLE_MEDICATIONS, SAMPLE_PEOPLE } from "@/lib/sample-circle";
+import { SAMPLE_CIRCLE, SAMPLE_MEDICATIONS, SAMPLE_PEOPLE, SAMPLE_TODOS } from "@/lib/sample-circle";
 
 const TABS: { key: CircleTab; label: string; href: string }[] = [
   { key: "overview", label: "Today", href: "#" },
+  { key: "todos", label: "To-dos", href: "#" },
   { key: "medications", label: "Medications", href: "#" },
   { key: "summary", label: "Care summary", href: "#" },
   { key: "people", label: "People", href: "#" },
 ];
 
-type Screen = "overview" | "medications" | "people" | "summary";
+type Screen = "overview" | "todos" | "medications" | "people" | "summary";
 
 const CAPTIONS: Record<Screen, string> = {
   overview: "A fictional circle for Margaret Lee: her allergies and the people who help, with when each last opened their link.",
+  todos: "A fictional to-do list for Margaret Lee: four to-dos, who has each one, when it is due, and one that needs a volunteer.",
   medications: "A fictional medication list for Margaret Lee: four medications with strength, when each is taken and what it is for.",
   people: "A fictional circle for Margaret Lee: four people who help, each with a role and when they last opened their link.",
   summary: "A fictional care summary for Margaret Lee: allergies, doctors, pharmacy and emergency contacts.",
@@ -46,6 +49,10 @@ export function AppPreview({ screen, className = "" }: { screen: Screen; classNa
                 <Panel title="Care summary" href="#" linkLabel="See the full summary">
                   <SummaryView content={{ ...SAMPLE_CIRCLE, doctors: [], emergency_contacts: SAMPLE_CIRCLE.emergency_contacts.slice(0, 1) }} compact />
                 </Panel>
+              </div>
+            ) : screen === "todos" ? (
+              <div className="-mx-4 rounded-lg border border-border-200">
+                <TodoList todos={SAMPLE_TODOS} canEdit={false} />
               </div>
             ) : screen === "medications" ? (
               <div className="-mx-4 rounded-lg border border-border-200">

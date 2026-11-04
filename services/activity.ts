@@ -9,10 +9,10 @@ export async function listActivity(actor: Actor, circleId: string, limit = 20): 
   if (actor.kind !== "caregiver" || !can(actor, "members:manage", { circleId })) return [];
   const { data, error } = await clientFor(actor)
     .from("activity")
-    .select("id, action, subject_id, at")
+    .select("id, action, subject_id, at, actor")
     .eq("circle_id", circleId)
     .order("at", { ascending: false })
     .limit(limit);
   if (error || !data) return [];
-  return data.map((row) => ({ id: row.id as string, action: row.action as string, subjectId: (row.subject_id as string | null) ?? null, at: row.at as string }));
+  return data.map((row) => ({ id: row.id as string, action: row.action as string, subjectId: (row.subject_id as string | null) ?? null, at: row.at as string, actor: row.actor as string }));
 }

@@ -1,5 +1,6 @@
 import type { CircleContent, PersonView } from "@/lib/schema/circles";
 import type { Medication } from "@/lib/schema/medications";
+import type { TodoRow } from "@/components/todos/TodoList";
 
 /** A fictional circle, shown on the home page through the same components the app uses. */
 export const SAMPLE_CIRCLE: CircleContent = {
@@ -52,4 +53,24 @@ export const SAMPLE_MEDICATIONS: Medication[] = [
   med({ id: "sample-metformin", name: "Metformin", dose: "500 mg", amount: "1 tablet", times: ["08:00", "18:00"], reason: "blood sugar", instructions: "With food" }),
   med({ id: "sample-vitd", name: "Vitamin D3", dose: "1,000 IU", schedule: "weekdays", weekdays: [1, 3, 5], times: ["08:00"] }),
   med({ id: "sample-acetaminophen", name: "Acetaminophen", dose: "500 mg", amount: "2 tablets", schedule: "as_needed", reason: "pain", instructions: "No more than 6 tablets a day" }),
+];
+
+const row = (fields: Partial<TodoRow> & Pick<TodoRow, "id" | "title" | "ownerLabel">): TodoRow => ({
+  note: null,
+  dueDate: null,
+  assignee: { kind: "caregiver" },
+  status: "open",
+  doneAt: null,
+  createdAt: "2026-10-06T15:00:00Z",
+  canToggle: false,
+  canClaim: false,
+  ...fields,
+});
+
+/** Fictional to-dos for the home page preview. */
+export const SAMPLE_TODOS: TodoRow[] = [
+  row({ id: "sample-insurance", title: "Call the insurance company about the walker", ownerLabel: "You", dueDate: "2026-10-08", note: "Member ID is on the back of the card" }),
+  row({ id: "sample-pharmacy", title: "Pick up the new prescription", ownerLabel: "Rosa Diaz", assignee: { kind: "member", memberId: "sample-rosa" }, dueDate: "2026-10-07" }),
+  row({ id: "sample-ride", title: "Drive Mom to the eye exam on Friday", ownerLabel: "Needs a volunteer", assignee: null, dueDate: "2026-10-10" }),
+  row({ id: "sample-forms", title: "Send the day program the new medication list", ownerLabel: "Lisa Lee", assignee: { kind: "member", memberId: "sample-lisa" }, status: "done", doneAt: "2026-10-05T15:00:00Z" }),
 ];

@@ -1,4 +1,4 @@
-import { CalendarCheck, ClipboardList, Home, Pill, Settings, Users, type LucideIcon } from "lucide-react";
+import { CalendarCheck, ClipboardList, Home, ListChecks, MoreHorizontal, Pill, Settings, Users, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { CircleTab } from "@/components/circles/CircleFrame";
 import { Logo, LogoMark } from "@/components/Logo";
@@ -12,10 +12,11 @@ export type ShellCircle = {
 };
 
 /** Short names for the phone bar, where four sit side by side. */
-const SHORT_LABELS: Record<CircleTab, string> = { overview: "Today", medications: "Meds", summary: "Summary", people: "People", settings: "Settings" };
+const SHORT_LABELS: Record<CircleTab, string> = { overview: "Today", todos: "To-dos", medications: "Meds", summary: "Summary", people: "People", settings: "Settings" };
 
 const TAB_ICONS: Record<CircleTab, LucideIcon> = {
   overview: CalendarCheck,
+  todos: ListChecks,
   medications: Pill,
   summary: ClipboardList,
   people: Users,
@@ -99,28 +100,59 @@ export function CircleShell({
 
 /** Phones: the circle's areas along the bottom, within thumb reach. Wide screens use the sidebar. */
 function BottomBar({ circle }: { circle: ShellCircle }) {
+  // Five fit side by side. With more, the last spot is "More", which opens the rest.
+  const fits = circle.tabs.length <= 5;
+  const shown = fits ? circle.tabs : circle.tabs.slice(0, 4);
+  const rest = fits ? [] : circle.tabs.slice(4);
+  const restActive = rest.some((tab) => tab.key === circle.active);
+  const item = (active: boolean) =>
+    `flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${active ? "text-primary-700" : "text-ink-500 hover:text-ink-900"}`;
   return (
     <nav
       aria-label="Circle areas"
       className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-border-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
     >
       <ul className="mx-auto flex max-w-xl">
-        {circle.tabs.map((tab) => {
+        {shown.map((tab) => {
           const Icon = TAB_ICONS[tab.key];
           const active = tab.key === circle.active;
           return (
             <li key={tab.key} className="flex-1">
-              <Link
-                href={tab.href}
-                aria-current={active ? "page" : undefined}
-                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${active ? "text-primary-700" : "text-ink-500 hover:text-ink-900"}`}
-              >
+              <Link href={tab.href} aria-current={active ? "page" : undefined} className={item(active)}>
                 <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />
                 {SHORT_LABELS[tab.key]}
               </Link>
             </li>
           );
         })}
+        {rest.length ? (
+          <li className="flex-1">
+            <details className="group relative">
+              <summary className={`${item(restActive)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
+                <MoreHorizontal className="size-5" strokeWidth={restActive ? 2.25 : 1.75} aria-hidden="true" />
+                More
+              </summary>
+              <ul className="absolute right-2 bottom-full mb-2 w-48 overflow-hidden rounded-lg border border-border-200 bg-white py-1 shadow-lg">
+                {rest.map((tab) => {
+                  const Icon = TAB_ICONS[tab.key];
+                  const active = tab.key === circle.active;
+                  return (
+                    <li key={tab.key}>
+                      <Link
+                        href={tab.href}
+                        aria-current={active ? "page" : undefined}
+                        className={`flex min-h-11 items-center gap-2.5 px-3 text-[14px] ${active ? "font-semibold text-primary-700" : "text-ink-900 hover:bg-paper-100"}`}
+                      >
+                        <Icon className="size-4" aria-hidden="true" />
+                        {tab.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </details>
+          </li>
+        ) : null}
       </ul>
     </nav>
   );

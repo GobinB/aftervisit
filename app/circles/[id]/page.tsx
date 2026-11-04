@@ -6,15 +6,18 @@ import { circleTabs } from "@/components/circles/CircleFrame";
 import { GettingStarted } from "@/components/circles/GettingStarted";
 import { RestoreKeys } from "@/components/circles/RestoreKeys";
 import { CircleShell } from "@/components/circles/Shell";
-import { ActivityFeed, Alerts, AtAGlance, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayHeader } from "@/components/circles/Today";
+import { ActivityFeed, Alerts, AtAGlance, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayHeader, TodosGlance } from "@/components/circles/Today";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
+import { isMine, sortTodos } from "@/lib/schema/todos";
 import { buildAlerts, buildFeed, buildStats } from "@/lib/today";
+import { todoRows, viewerOf } from "@/lib/todo-rows";
 import { listActivity } from "@/services/activity";
 import { getCircle, listOwnCircleKeys } from "@/services/circles";
 import { listMedications } from "@/services/medications";
 import { listPeople } from "@/services/members";
+import { listTodos } from "@/services/todos";
 
 export const metadata: Metadata = { title: "Today", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -37,6 +40,27 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
   const peopleHref = `/circles/${id}/members`;
   const medications = await listMedications(actor, id);
   const medsHref = `/circles/${id}/medications`;
+  const todos = await listTodos(actor, id);
+  const viewer = viewerOf(actor);
+  // The caregiver sees every open to-do; a helper sees theirs first, then ones they could take.
+  const openTodos = sortTodos((todos ?? []).filter((todo) => todo.status === "open"));
+  const nextTodos =
+    actor.kind === "caregiver"
+      ? openTodos
+      : [...openTodos.filter((todo) => isMine(todo, viewer)), ...openTodos.filter((todo) => !todo.assignee)];
+  const todoSection = todos ? (
+    <section aria-labelledby="todos-title">
+      <SectionLabel>
+        <span id="todos-title">{actor.kind === "caregiver" ? "To-dos" : "Your to-dos"}</span>
+      </SectionLabel>
+      <TodosGlance
+        todos={todoRows(actor, id, nextTodos.slice(0, 5), people)}
+        circleId={id}
+        href={`/circles/${id}/todos`}
+        empty={actor.kind === "caregiver" ? "Nothing to do right now." : "Nothing is on your list."}
+      />
+    </section>
+  ) : null;
   const meds = medications ? (
     <section aria-labelledby="meds-title">
       <SectionLabel>
@@ -74,14 +98,15 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
       {header}
       {canManage && people ? (
         <>
-          <StatCards stats={buildStats(id, people, content)} />
+          <StatCards stats={buildStats(id, people, content, Date.now(), todos)} />
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="min-w-0 space-y-5">
+              {todoSection}
               <section aria-labelledby="activity-title">
                 <SectionLabel>
                   <span id="activity-title">Recent activity</span>
                 </SectionLabel>
-                <ActivityFeed items={buildFeed(await listActivity(actor, id), people)} emptyHref={peopleHref} />
+                <ActivityFeed items={buildFeed(await listActivity(actor, id), people, 8, todos ?? [])} emptyHref={peopleHref} />
               </section>
               <section aria-labelledby="people-title">
                 <SectionLabel>
@@ -97,7 +122,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
                 <SectionLabel>
                   <span id="alerts-title">Needs you</span>
                 </SectionLabel>
-                <Alerts alerts={buildAlerts(id, people)} />
+                <Alerts alerts={buildAlerts(id, people, Date.now(), todos ?? [])} />
               </section>
               {meds}
               {content ? (
@@ -114,6 +139,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
       ) : (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-5">
+            {todoSection}
             {meds}
             {content ? (
               <section aria-labelledby="glance-title">

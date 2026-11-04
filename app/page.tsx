@@ -62,9 +62,9 @@ const MODULES = [
   },
   {
     key: "tasks",
-    title: "Tasks",
+    title: "To-dos",
     body: "Who is calling the insurance company, and by when. Anyone you allow can tap “I’ll do it.”",
-    ready: false,
+    ready: true,
   },
   {
     key: "handoff",
@@ -98,6 +98,13 @@ const PEOPLE_POINTS = [
   "Add a 4-digit PIN to any link if you want one.",
   "See when each person last opened their link.",
   "Turn off any link, or make a new one, at any time.",
+];
+
+const TODO_POINTS = [
+  "Give a to-do to someone, keep it, or ask for a volunteer.",
+  "Family can tap “I’ll do it” from their own link.",
+  "Aides and the day program see only the to-dos that are theirs.",
+  "Overdue ones stand out, and done ones stay on the list.",
 ];
 
 const MEDICATION_POINTS = [
@@ -259,8 +266,21 @@ export default function Home() {
               <AppPreview screen="people" />
             </article>
 
-            <article id="module-medications" aria-labelledby="module-medications-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+            <article id="module-tasks" aria-labelledby="module-tasks-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
               <div className="lg:order-2">
+                <h3 id="module-tasks-title" className="font-display text-heading text-primary-900">
+                  Who is doing what, and by when.
+                </h3>
+                <p className="mt-4 text-lg text-ink-500">
+                  Write it down once. The person who has it sees it on their own link, and you see it get done.
+                </p>
+                <Points items={TODO_POINTS} />
+              </div>
+              <AppPreview screen="todos" className="lg:order-1" />
+            </article>
+
+            <article id="module-medications" aria-labelledby="module-medications-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              <div>
                 <h3 id="module-medications-title" className="font-display text-heading text-primary-900">
                   Every pill, as of today.
                 </h3>
@@ -269,11 +289,11 @@ export default function Home() {
                 </p>
                 <Points items={MEDICATION_POINTS} />
               </div>
-              <AppPreview screen="medications" className="lg:order-1" />
+              <AppPreview screen="medications" />
             </article>
 
             <article id="module-summary" aria-labelledby="module-summary-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
-              <div>
+              <div className="lg:order-2">
                 <h3 id="module-summary-title" className="font-display text-heading text-primary-900">
                   What to know in a hurry.
                 </h3>
@@ -283,7 +303,7 @@ export default function Home() {
                 </p>
                 <Points items={SUMMARY_POINTS} />
               </div>
-              <AppPreview screen="summary" />
+              <AppPreview screen="summary" className="lg:order-1" />
             </article>
           </div>
         </section>
