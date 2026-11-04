@@ -2,6 +2,7 @@
 import { CheckCircle2, CloudUpload, FileText, ImageIcon, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
+import { visitContextAction } from "@/app/actions/visits";
 import { Button } from "@/components/Button";
 import { DemoNotice } from "@/components/DemoNotice";
 import { StepHeader } from "@/components/StepHeader";
@@ -47,6 +48,18 @@ export default function IntakePage() {
   const inputRef = useRef<HTMLInputElement>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const ids = { file: useId(), patient: useId(), caregiver: useId(), text: useId() };
+  // Started from a care circle (/new?circle=<id>): confirming updates that circle's medications and to-dos.
+  const [circle, setCircle] = useState<{ id: string; personName: string } | null>(null);
+
+  useEffect(() => {
+    const id = new URLSearchParams(window.location.search).get("circle");
+    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return;
+    visitContextAction(id)
+      .then((context) => {
+        if (context.ok) setCircle({ id, personName: context.personName });
+      })
+      .catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (savedCaregiver && !caregiver) setCaregiver(savedCaregiver);
@@ -123,7 +136,7 @@ export default function IntakePage() {
 
       setOriginalFile(files.length === 1 ? files[0] : null);
       setOriginalName(files.length === 1 ? files[0].name : null);
-      startDraft(data.draft, { isSample: false, unsorted: !!data.unsorted, caregiverFirstName: caregiver.trim() });
+      startDraft(data.draft, { isSample: false, unsorted: !!data.unsorted, caregiverFirstName: caregiver.trim(), circleId: circle?.id ?? null });
       router.push("/new/review");
     } catch (e) {
       setProcessing(false);
@@ -186,10 +199,17 @@ export default function IntakePage() {
 
   return (
     <div className="mx-auto max-w-[720px]">
-      <StepHeader current="Upload" />
+      <StepHeader current="Upload" circle={Boolean(circle)} />
       <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Add the after-visit summary</h1>
       <p className="mt-2 text-ink-500">A PDF from the patient portal, a photo of the printed pages, or the text pasted in.</p>
-      <DemoNotice className="mt-4" />
+      {circle ? (
+        <p className="mt-4 rounded-lg border border-sky-100 bg-sky-100/60 px-4 py-3 text-[14px] text-primary-900">
+          For <span className="font-semibold">{circle.personName}</span>. After you check it, you choose which medication changes and to-dos go
+          into their circle.
+        </p>
+      ) : (
+        <DemoNotice className="mt-4" />
+      )}
 
       <div className="mt-6">
         {!pasteMode ? (

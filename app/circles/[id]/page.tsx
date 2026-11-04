@@ -77,10 +77,10 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
         canManage ? (
           <>
             <Link
-              href="/new"
+              href={`/new?circle=${id}`}
               className="inline-flex h-9 items-center gap-2 rounded-md border border-border-200 bg-white px-3 text-[13px] font-medium text-ink-900 hover:bg-paper-100"
             >
-              <FileText className="size-4" aria-hidden="true" /> Share a visit summary
+              <FileText className="size-4" aria-hidden="true" /> Add a visit summary
             </Link>
             <Link href={peopleHref} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary-700 px-3 text-[13px] font-semibold text-white hover:bg-primary-900">
               <UserPlus className="size-4" aria-hidden="true" /> Add a person

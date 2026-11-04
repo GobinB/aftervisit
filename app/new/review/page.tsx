@@ -29,7 +29,7 @@ const SECTION_NAMES: Record<SectionKey, string> = {
 export default function ReviewPage() {
   const router = useRouter();
   const toast = useToast();
-  const { draft, reviewed, isSample, unsorted, recipients, updateDraft, setReviewed } = useFlow();
+  const { draft, reviewed, isSample, unsorted, recipients, updateDraft, setReviewed, circleId } = useFlow();
   const [hydrated, setHydrated] = useState(false);
   const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -134,7 +134,7 @@ export default function ReviewPage() {
   return (
     <div>
       <div className="mx-auto max-w-[720px] lg:mx-0 lg:max-w-none">
-        <StepHeader current="Review" />
+        <StepHeader current="Review" circle={Boolean(circleId)} />
       </div>
       <div className="flex gap-6">
         <div className="mx-auto w-full max-w-[720px] min-w-0 lg:mx-0 lg:flex-1">
@@ -419,12 +419,12 @@ export default function ReviewPage() {
             sections reviewed{allDone ? "" : `. ${COPY.confirmIncomplete(sections.length)}.`}
           </p>
           {allDone ? (
-            <ButtonLink href="/new/share" className="w-full sm:w-auto">
-              Confirm and create handoff
+            <ButtonLink href={circleId ? "/new/apply" : "/new/share"} className="w-full sm:w-auto">
+              {circleId ? "Confirm and update the circle" : "Confirm and create handoff"}
             </ButtonLink>
           ) : (
             <button type="button" disabled className="min-h-12 w-full cursor-not-allowed rounded-xl bg-primary-700 px-5 font-semibold text-white opacity-50 sm:w-auto">
-              Confirm and create handoff
+              {circleId ? "Confirm and update the circle" : "Confirm and create handoff"}
             </button>
           )}
         </div>

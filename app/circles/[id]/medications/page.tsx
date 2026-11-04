@@ -1,4 +1,4 @@
-import { Plus } from "lucide-react";
+import { FileText, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -45,6 +45,14 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
         </div>
         <div className="no-print flex flex-wrap items-center gap-2">
           {medications.length ? <PrintButton /> : null}
+          {canEdit ? (
+            <Link
+              href={`/new?circle=${id}`}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-border-200 bg-white px-3 text-[13px] font-medium text-ink-900 hover:bg-paper-100"
+            >
+              <FileText className="size-4" aria-hidden="true" /> From a visit summary
+            </Link>
+          ) : null}
           {canEdit ? (
             <Link
               href={`/circles/${id}/medications/new`}

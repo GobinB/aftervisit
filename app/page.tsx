@@ -69,8 +69,8 @@ const MODULES = [
   {
     key: "handoff",
     title: "After-visit handoff",
-    body: "Upload the visit summary, check it and confirm. The medication list and tasks update, and everyone sees what changed.",
-    ready: false,
+    body: "Upload the visit summary, check it and confirm. The medication list and to-dos update, and everyone you allow sees them.",
+    ready: true,
   },
 ] as const;
 
@@ -237,7 +237,7 @@ export default function Home() {
               {MODULES.map(({ key, title, ready }) => (
                 <li key={key} className="flex items-center gap-2">
                   {ready ? (
-                    <a href={`#module-${key}`} className="inline-flex items-center gap-2 font-semibold text-ink-900 hover:text-primary-700">
+                    <a href={key === "handoff" ? "#sample" : `#module-${key}`} className="inline-flex items-center gap-2 font-semibold text-ink-900 hover:text-primary-700">
                       <Check size={18} strokeWidth={2.5} className="text-ok" aria-hidden="true" />
                       {title}
                     </a>

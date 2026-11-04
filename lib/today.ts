@@ -29,6 +29,7 @@ const ACTIONS: Record<string, { title: (name: string) => string; tone: Tone }> =
   member_visibility: { title: (name) => `Changed what ${name} sees`, tone: "neutral" },
   member_revoked: { title: (name) => `${name}'s link turned off`, tone: "attn" },
   circle_key_rotated: { title: () => "Key for files changed", tone: "amber" },
+  visit_applied: { title: () => "Visit summary added to the circle", tone: "blue" },
 };
 
 const TODO_ACTIONS: Record<string, { title: (who: string, todo: string) => string; tone: Tone }> = {
