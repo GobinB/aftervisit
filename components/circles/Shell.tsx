@@ -1,4 +1,4 @@
-import { ClipboardList, Home, LayoutDashboard, Settings, Users, type LucideIcon } from "lucide-react";
+import { CalendarCheck, ClipboardList, Home, Settings, Users, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { CircleTab } from "@/components/circles/CircleFrame";
 import { Logo, LogoMark } from "@/components/Logo";
@@ -11,8 +11,11 @@ export type ShellCircle = {
   active: CircleTab;
 };
 
+/** Short names for the phone bar, where four sit side by side. */
+const SHORT_LABELS: Record<CircleTab, string> = { overview: "Today", summary: "Summary", people: "People", settings: "Settings" };
+
 const TAB_ICONS: Record<CircleTab, LucideIcon> = {
-  overview: LayoutDashboard,
+  overview: CalendarCheck,
   summary: ClipboardList,
   people: Users,
   settings: Settings,
@@ -81,12 +84,44 @@ export function CircleShell({
             {signedIn ? <SignOut /> : null}
           </nav>
         </header>
-        <main id="main" data-shell="sidebar" className={`group/shell mx-auto w-full ${width} flex-1 px-4 pt-5 pb-12 sm:px-6`}>
+        <main id="main" data-shell="sidebar" className={`group/shell mx-auto w-full ${width} flex-1 px-4 pt-5 sm:px-6 ${circle ? "pb-28 lg:pb-12" : "pb-12"}`}>
           {children}
         </main>
-        <p className={`no-print mx-auto w-full ${width} border-t border-border-200 px-4 py-5 text-xs text-ink-500 sm:px-6`}>{COPY.notMedicalAdvice}</p>
+        <p className={`no-print mx-auto w-full ${width} border-t border-border-200 px-4 py-5 text-xs text-ink-500 sm:px-6 ${circle ? "mb-20 lg:mb-0" : ""}`}>
+          {COPY.notMedicalAdvice}
+        </p>
       </div>
+      {circle ? <BottomBar circle={circle} /> : null}
     </div>
+  );
+}
+
+/** Phones: the circle's areas along the bottom, within thumb reach. Wide screens use the sidebar. */
+function BottomBar({ circle }: { circle: ShellCircle }) {
+  return (
+    <nav
+      aria-label="Circle areas"
+      className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-border-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden"
+    >
+      <ul className="mx-auto flex max-w-xl">
+        {circle.tabs.map((tab) => {
+          const Icon = TAB_ICONS[tab.key];
+          const active = tab.key === circle.active;
+          return (
+            <li key={tab.key} className="flex-1">
+              <Link
+                href={tab.href}
+                aria-current={active ? "page" : undefined}
+                className={`flex min-h-14 flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${active ? "text-primary-700" : "text-ink-500 hover:text-ink-900"}`}
+              >
+                <Icon className="size-5" strokeWidth={active ? 2.25 : 1.75} aria-hidden="true" />
+                {SHORT_LABELS[tab.key]}
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+    </nav>
   );
 }
 

@@ -7,7 +7,7 @@ export type CircleTab = "overview" | "summary" | "people" | "settings";
 /** One tab per module the viewer may open. A module gets a tab in the pull request that ships it. */
 export function circleTabs(actor: Actor, circleId: string): { key: CircleTab; label: string; href: string }[] {
   const base = `/circles/${circleId}`;
-  const tabs: { key: CircleTab; label: string; href: string }[] = [{ key: "overview", label: "Overview", href: base }];
+  const tabs: { key: CircleTab; label: string; href: string }[] = [{ key: "overview", label: "Today", href: base }];
   if (can(actor, "summary:read", { circleId })) tabs.push({ key: "summary", label: "Care summary", href: `${base}/summary` });
   if (can(actor, "members:manage", { circleId }) || can(actor, "members:read", { circleId }) || can(actor, "members:read:caregivers", { circleId })) {
     tabs.push({ key: "people", label: "People", href: `${base}/members` });
@@ -23,7 +23,7 @@ export function roleLine(actor: Actor): string {
 
 /**
  * The person's name and the module tabs, above every circle screen.
- * Inside CircleShell on a wide screen the sidebar holds the tabs, so they show on phones only.
+ * Inside CircleShell the sidebar (wide screens) or the bottom bar (phones) holds the tabs, so they show only elsewhere, like the home page preview.
  */
 export function CircleFrame({
   personName,
@@ -45,7 +45,7 @@ export function CircleFrame({
         <h1 className="font-display mt-1 text-[26px] leading-tight tracking-[-0.01em] text-primary-900 sm:text-[30px]">{personName}</h1>
         <p className="mt-1 text-[13px] text-ink-500">{subtitle}</p>
       </div>
-      <nav aria-label="Circle" className="no-print mt-4 lg:group-data-[shell=sidebar]/shell:hidden">
+      <nav aria-label="Circle" className="no-print mt-4 group-data-[shell=sidebar]/shell:hidden">
         <ul className="flex gap-x-5 overflow-x-auto border-b border-border-200 [scrollbar-width:none]">
           {tabs.map((tab) => (
             <li key={tab.key} className="shrink-0">

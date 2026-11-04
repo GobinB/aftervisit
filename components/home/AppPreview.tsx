@@ -6,7 +6,7 @@ import { LogoMark } from "@/components/Logo";
 import { SAMPLE_CIRCLE, SAMPLE_PEOPLE } from "@/lib/sample-circle";
 
 const TABS: { key: CircleTab; label: string; href: string }[] = [
-  { key: "overview", label: "Overview", href: "#" },
+  { key: "overview", label: "Today", href: "#" },
   { key: "summary", label: "Care summary", href: "#" },
   { key: "people", label: "People", href: "#" },
 ];
