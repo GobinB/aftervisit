@@ -61,6 +61,12 @@ const MODULES = [
     ready: true,
   },
   {
+    key: "calendar",
+    title: "Calendar",
+    body: "Appointments, therapy and visits in one place, with who is going and where. Ask for someone to go, and family can say “I’ll go.”",
+    ready: true,
+  },
+  {
     key: "tasks",
     title: "To-dos",
     body: "Who is calling the insurance company, and by when. Anyone you allow can tap “I’ll do it.”",
@@ -98,6 +104,13 @@ const PEOPLE_POINTS = [
   "Add a 4-digit PIN to any link if you want one.",
   "See when each person last opened their link.",
   "Turn off any link, or make a new one, at any time.",
+];
+
+const CALENDAR_POINTS = [
+  "Appointments with time, place and notes, once or repeating.",
+  "Mark who is going, or ask for someone to go.",
+  "Family can add dates and say “I’ll go” from their link.",
+  "To-dos show on the day they are due.",
 ];
 
 const TODO_POINTS = [
@@ -266,8 +279,21 @@ export default function Home() {
               <AppPreview screen="people" />
             </article>
 
-            <article id="module-tasks" aria-labelledby="module-tasks-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+            <article id="module-calendar" aria-labelledby="module-calendar-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
               <div className="lg:order-2">
+                <h3 id="module-calendar-title" className="font-display text-heading text-primary-900">
+                  Every appointment, and who is taking them.
+                </h3>
+                <p className="mt-4 text-lg text-ink-500">
+                  One calendar the whole circle can see. Nobody has to ask twice what time the cardiology visit is, or who is driving.
+                </p>
+                <Points items={CALENDAR_POINTS} />
+              </div>
+              <AppPreview screen="calendar" className="lg:order-1" />
+            </article>
+
+            <article id="module-tasks" aria-labelledby="module-tasks-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              <div>
                 <h3 id="module-tasks-title" className="font-display text-heading text-primary-900">
                   Who is doing what, and by when.
                 </h3>
@@ -276,11 +302,11 @@ export default function Home() {
                 </p>
                 <Points items={TODO_POINTS} />
               </div>
-              <AppPreview screen="todos" className="lg:order-1" />
+              <AppPreview screen="todos" />
             </article>
 
             <article id="module-medications" aria-labelledby="module-medications-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
-              <div>
+              <div className="lg:order-2">
                 <h3 id="module-medications-title" className="font-display text-heading text-primary-900">
                   Every pill, as of today.
                 </h3>
@@ -289,11 +315,11 @@ export default function Home() {
                 </p>
                 <Points items={MEDICATION_POINTS} />
               </div>
-              <AppPreview screen="medications" />
+              <AppPreview screen="medications" className="lg:order-1" />
             </article>
 
             <article id="module-summary" aria-labelledby="module-summary-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
-              <div className="lg:order-2">
+              <div>
                 <h3 id="module-summary-title" className="font-display text-heading text-primary-900">
                   What to know in a hurry.
                 </h3>
@@ -303,7 +329,7 @@ export default function Home() {
                 </p>
                 <Points items={SUMMARY_POINTS} />
               </div>
-              <AppPreview screen="summary" className="lg:order-1" />
+              <AppPreview screen="summary" />
             </article>
           </div>
         </section>

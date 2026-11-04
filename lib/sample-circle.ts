@@ -1,6 +1,7 @@
 import type { CircleContent, PersonView } from "@/lib/schema/circles";
 import type { Medication } from "@/lib/schema/medications";
 import type { TodoRow } from "@/components/todos/TodoList";
+import type { CalendarItem } from "@/lib/calendar-rows";
 
 /** A fictional circle, shown on the home page through the same components the app uses. */
 export const SAMPLE_CIRCLE: CircleContent = {
@@ -73,4 +74,25 @@ export const SAMPLE_TODOS: TodoRow[] = [
   row({ id: "sample-pharmacy", title: "Pick up the new prescription", ownerLabel: "Rosa Diaz", assignee: { kind: "member", memberId: "sample-rosa" }, dueDate: "2026-10-07" }),
   row({ id: "sample-ride", title: "Drive Mom to the eye exam on Friday", ownerLabel: "Needs a volunteer", assignee: null, dueDate: "2026-10-10" }),
   row({ id: "sample-forms", title: "Send the day program the new medication list", ownerLabel: "Lisa Lee", assignee: { kind: "member", memberId: "sample-lisa" }, status: "done", doneAt: "2026-10-05T15:00:00Z" }),
+];
+
+const item = (fields: Partial<CalendarItem> & Pick<CalendarItem, "key" | "date" | "title" | "time">): CalendarItem => ({
+  kind: "event",
+  id: fields.key,
+  sortTime: "",
+  location: null,
+  notes: null,
+  who: null,
+  needsSomeone: false,
+  canGo: false,
+  repeats: false,
+  ...fields,
+});
+
+/** Fictional calendar for the home page preview. */
+export const SAMPLE_CALENDAR: CalendarItem[] = [
+  item({ key: "sample-pt", date: "2026-10-07", title: "Physical therapy", time: "9 AM to 10 AM", location: "Riverbend Rehab", who: "Rosa Diaz", repeats: true }),
+  item({ key: "sample-cardio", date: "2026-10-09", title: "Cardiology follow-up", time: "10:30 AM", location: "Riverbend Clinic, 2nd floor", notes: "Bring the medication list", needsSomeone: true }),
+  item({ key: "sample-refill", date: "2026-10-09", title: "Pick up the new prescription", time: "To-do due", kind: "todo", who: "Rosa Diaz" }),
+  item({ key: "sample-birthday", date: "2026-10-12", title: "Lisa's birthday dinner", time: "All day", who: "Lisa Lee" }),
 ];

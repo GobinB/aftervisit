@@ -1,20 +1,24 @@
-import { FileText, UserPlus } from "lucide-react";
+import { ArrowRight, FileText, UserPlus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { circleTabs } from "@/components/circles/CircleFrame";
 import { GettingStarted } from "@/components/circles/GettingStarted";
 import { RestoreKeys } from "@/components/circles/RestoreKeys";
+import { Agenda } from "@/components/calendar/Agenda";
 import { CircleShell } from "@/components/circles/Shell";
-import { ActivityFeed, Alerts, AtAGlance, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayHeader, TodosGlance } from "@/components/circles/Today";
+import { ActivityFeed, Alerts, AtAGlance, Card, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayHeader, TodosGlance } from "@/components/circles/Today";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isMine, sortTodos } from "@/lib/schema/todos";
+import { calendarItems } from "@/lib/calendar-rows";
+import { addDays } from "@/lib/schema/events";
 import { buildAlerts, buildFeed, buildStats } from "@/lib/today";
 import { todoRows, viewerOf } from "@/lib/todo-rows";
 import { listActivity } from "@/services/activity";
 import { getCircle, listOwnCircleKeys } from "@/services/circles";
+import { listEvents } from "@/services/events";
 import { listMedications } from "@/services/medications";
 import { listPeople } from "@/services/members";
 import { listTodos } from "@/services/todos";
@@ -48,6 +52,26 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
     actor.kind === "caregiver"
       ? openTodos
       : [...openTodos.filter((todo) => isMine(todo, viewer)), ...openTodos.filter((todo) => !todo.assignee)];
+  const today = new Date().toISOString().slice(0, 10);
+  const soonFrom = addDays(today, -1);
+  const soonTo = addDays(today, 14);
+  // A wide window, so the activity list can name events added for far-off dates.
+  const events = await listEvents(actor, id, addDays(today, -90), addDays(today, 365));
+  const soon = events ? calendarItems(actor, id, events, [], people, soonFrom, soonTo) : [];
+  const needsSomeone = soon.filter((item) => item.needsSomeone).length;
+  const comingUp = events ? (
+    <section aria-labelledby="soon-title">
+      <SectionLabel>
+        <span id="soon-title">Coming up</span>
+      </SectionLabel>
+      <Card>
+        <Agenda items={soon} circleId={id} canEdit={false} limit={5} empty="Nothing in the next two weeks." />
+        <Link href={`/circles/${id}/calendar`} className="flex items-center gap-1 border-t border-border-200 px-4 py-2.5 text-[13px] font-semibold text-primary-700 hover:text-primary-900">
+          Calendar <ArrowRight className="size-3.5" aria-hidden="true" />
+        </Link>
+      </Card>
+    </section>
+  ) : null;
   const todoSection = todos ? (
     <section aria-labelledby="todos-title">
       <SectionLabel>
@@ -101,12 +125,13 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
           <StatCards stats={buildStats(id, people, content, Date.now(), todos)} />
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="min-w-0 space-y-5">
+              {comingUp}
               {todoSection}
               <section aria-labelledby="activity-title">
                 <SectionLabel>
                   <span id="activity-title">Recent activity</span>
                 </SectionLabel>
-                <ActivityFeed items={buildFeed(await listActivity(actor, id), people, 8, todos ?? [])} emptyHref={peopleHref} />
+                <ActivityFeed items={buildFeed(await listActivity(actor, id), people, 8, todos ?? [], events ?? [])} emptyHref={peopleHref} />
               </section>
               <section aria-labelledby="people-title">
                 <SectionLabel>
@@ -122,7 +147,14 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
                 <SectionLabel>
                   <span id="alerts-title">Needs you</span>
                 </SectionLabel>
-                <Alerts alerts={buildAlerts(id, people, Date.now(), todos ?? [])} />
+                <Alerts
+                  alerts={[
+                    ...(needsSomeone
+                      ? [{ key: "events", label: "Events that need someone to go", count: needsSomeone, tone: "amber" as const, href: `/circles/${id}/calendar` }]
+                      : []),
+                    ...buildAlerts(id, people, Date.now(), todos ?? []),
+                  ]}
+                />
               </section>
               {meds}
               {content ? (
@@ -139,6 +171,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
       ) : (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-5">
+            {comingUp}
             {todoSection}
             {meds}
             {content ? (

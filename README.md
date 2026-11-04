@@ -2,7 +2,7 @@
 
 One shared care page for the person you look after, at [allhandscare.org](https://www.allhandscare.org). One caregiver signs in; everyone else who helps (family, a home aide, the day program) gets their own private link, with no account. It installs from the browser as a phone app.
 
-The caregiver keeps a to-do list (give each to-do to someone, keep it, or ask for a volunteer; family can tap "I'll do it" from their link, and aides see only theirs) and the person's medication list (strength, how much, when, what it is for), and every add, change and stop is saved with its date; helpers whose role allows it see the same list. Medication name suggestions come from the National Library of Medicine's public RxNorm list, searched on our own server.
+The circle shares a calendar (appointments with time, place and who is going, once or repeating; family can add dates and say "I'll go" when someone is needed), a to-do list (give each to-do to someone, keep it, or ask for a volunteer; family can tap "I'll do it" from their link, and aides see only theirs) and the person's medication list (strength, how much, when, what it is for), and every add, change and stop is saved with its date; helpers whose role allows it see the same list. Medication name suggestions come from the National Library of Medicine's public RxNorm list, searched on our own server.
 
 After a visit, the caregiver can start from the circle: upload the summary, check it, then choose which medication changes (add, change, stop) and next steps go into the circle as medications and to-dos, each marked as coming from the visit.
 

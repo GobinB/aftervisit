@@ -114,7 +114,7 @@ export default function PrivacyPage() {
                 for up to {MEMBER_TTL_DAYS} days so they stay signed in to that circle.
               </li>
               <li>Cookies are used only to keep you signed in. There are no tracking cookies.</li>
-              <li>The site is hosted on Vercel. Care circles, their medication lists, handoffs and attached originals are stored with Supabase in the United States.</li>
+              <li>The site is hosted on Vercel. Care circles, their calendars, to-dos and medication lists, handoffs and attached originals are stored with Supabase in the United States.</li>
               <li>
                 When you type a medication name, suggestions come from the U.S. National Library of Medicine&apos;s public list of drug names.
                 Our server downloads the whole list and searches it itself, so what you type is not sent to the Library.

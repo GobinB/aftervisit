@@ -4,6 +4,8 @@
 
 Roles: owner, family, care manager, home aide, day program. Each circle has exactly one caregiver who signs in, its owner; the database allows one caregiver row per circle.
 
+Calendar: everyone with the area can read it. The owner and family add and edit events and can say "I'll go" on one that needs someone; care managers, home aides and day programs only read. Only the owner deletes events.
+
 To-dos: the owner adds, edits, assigns and deletes. Family and care managers see every to-do; home aides and day programs see only the ones given to them. Family can take a to-do nobody has ("I'll do it"). Each helper can mark only their own to-dos done. Helpers act through the server, which checks `can()` before every write and limits the update to their own row.
 
 Medications: every helper role can read and print the list unless the caregiver hides it for that person; only the owner adds, edits, stops or restarts, and only the owner sees the change history (`medication_changes`, written by a database trigger).

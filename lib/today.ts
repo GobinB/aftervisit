@@ -37,6 +37,8 @@ const TODO_ACTIONS: Record<string, { title: (who: string, todo: string) => strin
   todo_claimed: { title: (who, todo) => `${who} took on: ${todo}`, tone: "blue" },
   todo_done: { title: (who, todo) => `${who} finished: ${todo}`, tone: "green" },
   todo_reopened: { title: (who, todo) => `${who} reopened: ${todo}`, tone: "neutral" },
+  event_added: { title: (who, event) => `${who} added to the calendar: ${event}`, tone: "blue" },
+  event_claimed: { title: (who, event) => `${who} is going: ${event}`, tone: "green" },
 };
 
 /** "member:<id>" or "caregiver:<user id>" to a name the circle knows. */
@@ -50,16 +52,16 @@ function actorName(actor: string | undefined, people: PersonView[]): string {
  * Newest first: what the caregiver did (from the activity table) and when each person last opened their link.
  * Unknown actions are left out rather than shown as codes.
  */
-export function buildFeed(rows: ActivityRow[], people: PersonView[], limit = 8, todos: Todo[] = []): FeedItem[] {
+export function buildFeed(rows: ActivityRow[], people: PersonView[], limit = 8, todos: Todo[] = [], events: { id: string; title: string }[] = []): FeedItem[] {
   const byId = new Map(people.map((person) => [person.id, person]));
   const items: FeedItem[] = [];
-  const todoTitles = new Map(todos.map((todo) => [todo.id, todo.title]));
+  const todoTitles = new Map([...todos, ...events].map((item) => [item.id, item.title]));
   for (const row of rows) {
     const todoAction = TODO_ACTIONS[row.action];
     if (todoAction) {
       const title = row.subjectId ? todoTitles.get(row.subjectId) : undefined;
       if (!title) continue;
-      items.push({ id: row.id, title: todoAction.title(actorName(row.actor, people), title), detail: "To-do", at: row.at, tone: todoAction.tone });
+      items.push({ id: row.id, title: todoAction.title(actorName(row.actor, people), title), detail: row.action.startsWith("event") ? "Calendar" : "To-do", at: row.at, tone: todoAction.tone });
       continue;
     }
     const known = ACTIONS[row.action];

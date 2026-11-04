@@ -1,4 +1,4 @@
-import { CalendarCheck, ClipboardList, Home, ListChecks, MoreHorizontal, Pill, Settings, Users, type LucideIcon } from "lucide-react";
+import { CalendarCheck, CalendarDays, ClipboardList, Home, ListChecks, MoreHorizontal, Pill, Settings, Users, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { CircleTab } from "@/components/circles/CircleFrame";
 import { Logo, LogoMark } from "@/components/Logo";
@@ -12,10 +12,11 @@ export type ShellCircle = {
 };
 
 /** Short names for the phone bar, where four sit side by side. */
-const SHORT_LABELS: Record<CircleTab, string> = { overview: "Today", todos: "To-dos", medications: "Meds", summary: "Summary", people: "People", settings: "Settings" };
+const SHORT_LABELS: Record<CircleTab, string> = { overview: "Today", calendar: "Calendar", todos: "To-dos", medications: "Meds", summary: "Summary", people: "People", settings: "Settings" };
 
 const TAB_ICONS: Record<CircleTab, LucideIcon> = {
   overview: CalendarCheck,
+  calendar: CalendarDays,
   todos: ListChecks,
   medications: Pill,
   summary: ClipboardList,
