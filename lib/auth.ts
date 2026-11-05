@@ -1,5 +1,6 @@
 import "server-only";
 import { cookies } from "next/headers";
+import { cache } from "react";
 import { env } from "@/lib/env";
 import { HELPER_COOKIE, readHelperCookie, signHelperCookie, type HelperClaim } from "@/lib/helper-cookie";
 import { HELPER_ROLES, MEMBER_TTL_DAYS, VisibilitySchema, type HelperRole, type Visibility } from "@/lib/schema/circles";
@@ -61,7 +62,8 @@ type CaregiverRecord = {
   roles: Record<string, CaregiverRole>;
 };
 
-async function loadCaregiver(): Promise<CaregiverRecord | null> {
+/** Once per request: the layout, the page and its parts all ask, and Supabase is called only the first time. */
+const loadCaregiver = cache(async function loadCaregiver(): Promise<CaregiverRecord | null> {
   if (!env.supabaseUrl || !env.anonKey) return null;
   try {
     const supabase = await createSupabaseServerClient();
@@ -71,9 +73,11 @@ async function loadCaregiver(): Promise<CaregiverRecord | null> {
     const accessToken = sessionData.session?.access_token;
     if (!user || !accessToken) return null;
     const db = userClient(accessToken);
-    const { data: memberships, error } = await db.from("circle_caregivers").select("circle_id, role");
+    const [{ data: memberships, error }, { data: circles }] = await Promise.all([
+      db.from("circle_caregivers").select("circle_id, role"),
+      db.from("circles").select("id").is("deleted_at", null),
+    ]);
     if (error) return null;
-    const { data: circles } = await db.from("circles").select("id").is("deleted_at", null);
     const live = new Set((circles ?? []).map((circle) => circle.id as string));
     const roles: Record<string, CaregiverRole> = {};
     const circleIds: string[] = [];
@@ -89,7 +93,7 @@ async function loadCaregiver(): Promise<CaregiverRecord | null> {
   } catch {
     return null;
   }
-}
+});
 
 async function loadHelper(circleId: string): Promise<Actor | null> {
   if (!env.helperSessionSecret) return null;
@@ -135,7 +139,7 @@ async function loadHelper(circleId: string): Promise<Actor | null> {
  * Resolves the actor for this request. Pass a circle when the page is inside one.
  * Nothing that calls this should read cookies or headers itself.
  */
-export async function getActor(circleId?: string): Promise<Actor | null> {
+export const getActor = cache(async function getActor(circleId?: string): Promise<Actor | null> {
   const caregiver = await loadCaregiver();
   if (caregiver && circleId && caregiver.circleIds.includes(circleId)) {
     return {
@@ -160,7 +164,7 @@ export async function getActor(circleId?: string): Promise<Actor | null> {
     };
   }
   return null;
-}
+});
 
 /**
  * Where the installed app opens. A caregiver goes to their circles. Someone with a helper link

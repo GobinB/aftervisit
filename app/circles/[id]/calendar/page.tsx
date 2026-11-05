@@ -4,8 +4,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Agenda } from "@/components/calendar/Agenda";
 import { MonthGrid } from "@/components/calendar/MonthGrid";
-import { circleTabs } from "@/components/circles/CircleFrame";
-import { CircleShell } from "@/components/circles/Shell";
 import { Card } from "@/components/circles/Today";
 import { PrintButton } from "@/components/medications/PrintButton";
 import { getActor } from "@/lib/auth";
@@ -37,16 +35,16 @@ export default async function CalendarPage({ params, searchParams }: { params: P
   const weeks = monthGrid(month);
   const from = view === "month" ? weeks[0][0] : addDays(today, -1);
   const to = view === "month" ? weeks[weeks.length - 1][6] : addDays(today, 62);
-  const events = (await listEvents(actor, id, from, to)) ?? [];
-  const todos = (await listTodos(actor, id)) ?? [];
-  const listed = await listPeople(actor, id);
+  const [eventRows, todoRows, listed] = await Promise.all([listEvents(actor, id, from, to), listTodos(actor, id), listPeople(actor, id)]);
+  const events = eventRows ?? [];
+  const todos = todoRows ?? [];
   const people = listed.ok ? listed.people : null;
   const items = calendarItems(actor, id, events, todos, people, from, to);
   const canEdit = can(actor, "calendar:edit", { circleId: id });
   const base = `/circles/${id}/calendar`;
 
   return (
-    <CircleShell signedIn={actor.kind === "caregiver"} circle={{ personName, tabs: circleTabs(actor, id), active: "calendar" }}>
+    <>
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-[26px] leading-tight tracking-[-0.01em] text-primary-900">Calendar</h1>
@@ -98,6 +96,6 @@ export default async function CalendarPage({ params, searchParams }: { params: P
           <Agenda items={items} circleId={id} canEdit={canEdit} empty={canEdit ? "Nothing coming up. Add the next appointment." : "Nothing coming up."} />
         </Card>
       )}
-    </CircleShell>
+    </>
   );
 }

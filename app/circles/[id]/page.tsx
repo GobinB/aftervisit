@@ -2,10 +2,8 @@ import { ArrowRight, FileText, UserPlus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { circleTabs } from "@/components/circles/CircleFrame";
 import { GettingStarted } from "@/components/circles/GettingStarted";
 import { Agenda } from "@/components/calendar/Agenda";
-import { CircleShell } from "@/components/circles/Shell";
 import { ActivityFeed, Alerts, AtAGlance, Card, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayHeader, TodosGlance } from "@/components/circles/Today";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { getActor } from "@/lib/auth";
@@ -30,18 +28,24 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const actor = await getActor(id);
   if (!actor) redirect(`/login?next=/circles/${id}`);
-  const content = await getCircle(actor, id);
+  const today = new Date().toISOString().slice(0, 10);
+  // Everything Today shows is read at once rather than one after another.
+  const [content, listed, medications, todos, events, activity] = await Promise.all([
+    getCircle(actor, id),
+    listPeople(actor, id),
+    listMedications(actor, id),
+    listTodos(actor, id),
+    // A wide window, so the activity list can name events added for far-off dates.
+    listEvents(actor, id, addDays(today, -90), addDays(today, 365)),
+    listActivity(actor, id),
+  ]);
   if (!content && actor.kind === "caregiver") notFound();
   const personName = content?.person_name ?? "Your care circle";
-  const tabs = circleTabs(actor, id);
-  const listed = await listPeople(actor, id);
   const people = listed.ok ? listed.people : null;
   const canManage = listed.ok && listed.canManage;
   const summaryHref = can(actor, "summary:read", { circleId: id }) ? `/circles/${id}/summary` : null;
   const peopleHref = `/circles/${id}/members`;
-  const medications = await listMedications(actor, id);
   const medsHref = `/circles/${id}/medications`;
-  const todos = await listTodos(actor, id);
   const viewer = viewerOf(actor);
   // The caregiver sees every open to-do; a helper sees theirs first, then ones they could take.
   const openTodos = sortTodos((todos ?? []).filter((todo) => todo.status === "open"));
@@ -49,11 +53,8 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
     actor.kind === "caregiver"
       ? openTodos
       : [...openTodos.filter((todo) => isMine(todo, viewer)), ...openTodos.filter((todo) => !todo.assignee)];
-  const today = new Date().toISOString().slice(0, 10);
   const soonFrom = addDays(today, -1);
   const soonTo = addDays(today, 14);
-  // A wide window, so the activity list can name events added for far-off dates.
-  const events = await listEvents(actor, id, addDays(today, -90), addDays(today, 365));
   const soon = events ? calendarItems(actor, id, events, [], people, soonFrom, soonTo) : [];
   const needsSomeone = soon.filter((item) => item.needsSomeone).length;
   const comingUp = events ? (
@@ -113,7 +114,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
   );
 
   return (
-    <CircleShell signedIn={actor.kind === "caregiver"} circle={{ personName, tabs, active: "overview" }}>
+    <>
       <InstallApp />
       {header}
       {canManage && people ? (
@@ -127,7 +128,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
                 <SectionLabel>
                   <span id="activity-title">Recent activity</span>
                 </SectionLabel>
-                <ActivityFeed items={buildFeed(await listActivity(actor, id), people, 8, todos ?? [], events ?? [])} emptyHref={peopleHref} />
+                <ActivityFeed items={buildFeed(activity, people, 8, todos ?? [], events ?? [])} emptyHref={peopleHref} />
               </section>
               <section aria-labelledby="people-title">
                 <SectionLabel>
@@ -191,6 +192,6 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
           ) : null}
         </div>
       )}
-    </CircleShell>
+    </>
   );
 }

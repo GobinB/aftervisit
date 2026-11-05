@@ -1,5 +1,6 @@
 import "server-only";
 import { createHash } from "node:crypto";
+import { cache } from "react";
 import type { Actor } from "@/lib/auth";
 import { hashInvite, newInviteToken } from "@/lib/invites";
 import { can } from "@/lib/permissions";
@@ -158,7 +159,8 @@ export async function rotateCircleKey(
   return { ok: true, keyVersion, links: links.map(({ token, name, email }) => ({ token, name, email })) };
 }
 
-export async function getCircle(actor: Actor, circleId: string): Promise<CircleContent | null> {
+/** Cached per request, so the circle layout and its page share one read. */
+export const getCircle = cache(async function getCircle(actor: Actor, circleId: string): Promise<CircleContent | null> {
   if (actor.kind === "helper" && actor.circleId !== circleId) return null;
   if (actor.kind === "caregiver" && !actor.circleIds.includes(circleId)) return null;
   if (!can(actor, "summary:read", { circleId })) return null;
@@ -166,4 +168,4 @@ export async function getCircle(actor: Actor, circleId: string): Promise<CircleC
   if (error || !data) return null;
   const parsed = CircleContentSchema.safeParse(data.content);
   return parsed.success ? parsed.data : null;
-}
+});

@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { EventForm } from "@/components/calendar/EventForm";
-import { circleTabs } from "@/components/circles/CircleFrame";
-import { CircleShell } from "@/components/circles/Shell";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { getCircle } from "@/services/circles";
@@ -24,7 +22,7 @@ export default async function NewEventPage({ params, searchParams }: { params: P
     .filter((person) => person.kind === "member" && !person.revokedAt)
     .map((person) => ({ value: person.id, label: actor.kind === "helper" && person.id === actor.memberId ? "Me" : `${person.name} (${person.roleLabel})` }));
   return (
-    <CircleShell signedIn={actor.kind === "caregiver"} circle={{ personName, tabs: circleTabs(actor, id), active: "calendar" }}>
+    <>
       <h1 className="font-display mb-1 text-[26px] leading-tight text-primary-900">Add an event</h1>
       <p className="mb-5 text-[13px] text-ink-500">For {personName}. Everyone who can see the calendar will see it.</p>
       <EventForm
@@ -34,6 +32,6 @@ export default async function NewEventPage({ params, searchParams }: { params: P
         canDelete={false}
         isCaregiver={actor.kind === "caregiver"}
       />
-    </CircleShell>
+    </>
   );
 }
