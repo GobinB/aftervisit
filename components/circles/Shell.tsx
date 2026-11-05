@@ -52,7 +52,7 @@ export function CircleShell({
           className="flex items-center gap-2.5 border-b border-white/[0.07] px-[18px] pt-5 pb-4"
           aria-label={signedIn ? "All Hands Care, your circles" : "All Hands Care home"}
         >
-          <LogoMark size={28} />
+          <LogoMark size={28} variant="onDark" />
           <span>
             <span className="font-display block text-[19px] leading-none text-white">All Hands Care</span>
             <span className="mt-1 block text-[10px] font-medium tracking-[0.1em] text-sidebar-muted uppercase">Care circle</span>
