@@ -72,7 +72,7 @@ const row = (fields: Partial<TodoRow> & Pick<TodoRow, "id" | "title" | "ownerLab
 export const SAMPLE_TODOS: TodoRow[] = [
   row({ id: "sample-insurance", title: "Call the insurance company about the walker", ownerLabel: "You", dueDate: "2026-10-08", note: "Member ID is on the back of the card" }),
   row({ id: "sample-pharmacy", title: "Pick up the new prescription", ownerLabel: "Rosa Diaz", assignee: { kind: "member", memberId: "sample-rosa" }, dueDate: "2026-10-07" }),
-  row({ id: "sample-ride", title: "Drive Mom to the eye exam on Friday", ownerLabel: "Needs a volunteer", assignee: null, dueDate: "2026-10-10" }),
+  row({ id: "sample-ride", title: "Drive Margaret to the eye exam on Friday", ownerLabel: "Needs a volunteer", assignee: null, dueDate: "2026-10-10" }),
   row({ id: "sample-forms", title: "Send the day program the new medication list", ownerLabel: "Lisa Lee", assignee: { kind: "member", memberId: "sample-lisa" }, status: "done", doneAt: "2026-10-05T15:00:00Z" }),
 ];
 

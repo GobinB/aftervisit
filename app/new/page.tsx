@@ -56,7 +56,9 @@ export default function IntakePage() {
     if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return;
     visitContextAction(id)
       .then((context) => {
-        if (context.ok) setCircle({ id, personName: context.personName });
+        if (!context.ok) return;
+        setCircle({ id, personName: context.personName });
+        setPatient((current) => current || context.personName.split(/\s+/)[0].slice(0, 60));
       })
       .catch(() => undefined);
   }, []);
@@ -312,7 +314,8 @@ export default function IntakePage() {
         )}
       </div>
 
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
+      {/* A circle already knows who the visit was for, and nothing is shared from this flow, so the names are not asked. */}
+      <div className={circle ? "hidden" : "mt-6 grid gap-4 sm:grid-cols-2"}>
         <div>
           <label htmlFor={ids.patient} className="font-medium">
             Who was the visit for? <span className="font-normal text-ink-500">(first name)</span>
@@ -352,7 +355,7 @@ export default function IntakePage() {
       ) : null}
 
       <Button className="mt-6 w-full sm:w-auto sm:min-w-64" disabled={!ready} onClick={build}>
-        Build the handoff
+        {circle ? "Read the summary" : "Build the handoff"}
       </Button>
       <p className="mt-3 text-sm text-ink-500">
         {kind === "image"

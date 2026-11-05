@@ -11,7 +11,7 @@ type Created = { token: string; manageKey: string; invites: { id: string; name: 
 async function create(request: APIRequestContext, recipients = SAMPLE_RECIPIENTS, withOriginal = false): Promise<Created> {
   const draft = sampleDraft();
   draft.otherNotes = ["Private caregiver note for the family"];
-  const data = { draft, recipients, createdByFirstName: "Gobin", consent: true };
+  const data = { draft, recipients, createdByFirstName: "Jordan", consent: true };
   const res = await request.post("/api/handoffs", {
     headers: ip(),
     ...(withOriginal ? {

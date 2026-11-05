@@ -4,7 +4,7 @@ import type { ReactNode } from "react";
 import { PeopleList } from "@/components/circles/PeopleList";
 import { TodoList, type TodoRow } from "@/components/todos/TodoList";
 import { TodayDate } from "@/components/circles/TodayDate";
-import { shortDate } from "@/lib/format";
+import { LocalDay } from "@/components/LocalDay";
 import type { CircleContent, PersonView } from "@/lib/schema/circles";
 import { doseText, scheduleText, type Medication } from "@/lib/schema/medications";
 import type { Alert, FeedItem, Stat, Tone } from "@/lib/today";
@@ -97,7 +97,7 @@ export function ActivityFeed({ items, emptyHref }: { items: FeedItem[]; emptyHre
                 <span className="block text-[12px] text-ink-500">{item.detail}</span>
               </span>
               <time dateTime={item.at} className="shrink-0 text-[12px] text-ink-500 tabular-nums">
-                {shortDate(item.at)}
+                <LocalDay iso={item.at} />
               </time>
             </li>
           ))}

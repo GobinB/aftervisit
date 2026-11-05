@@ -8,8 +8,8 @@ import { Card, SectionLabel } from "@/components/circles/Today";
 import { TodayDate } from "@/components/circles/TodayDate";
 import { MedicationList } from "@/components/medications/MedicationList";
 import { PrintButton } from "@/components/medications/PrintButton";
+import { LocalDay } from "@/components/LocalDay";
 import { getActor } from "@/lib/auth";
-import { shortDate } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { getCircle } from "@/services/circles";
 import { listMedicationChanges, listMedications } from "@/services/medications";
@@ -134,7 +134,7 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
                         <span className="block text-[13px] text-ink-900">{change.summary}</span>
                       </span>
                       <time dateTime={change.at} className="shrink-0 text-[12px] text-ink-500 tabular-nums">
-                        {shortDate(change.at)}
+                        <LocalDay iso={change.at} />
                       </time>
                     </li>
                   ))}

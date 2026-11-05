@@ -146,7 +146,7 @@ export const SAMPLE_ASSIGNEES: Record<string, string> = {
   task_sample_5: "Rosa",
 };
 
-export const SAMPLE_CAREGIVER = "Gobin";
+export const SAMPLE_CAREGIVER = "Jordan";
 
 /** A fresh copy so edits in the review screen never mutate the constant. */
 export function sampleDraft(withAssignees = true): HandoffDraft {

@@ -112,8 +112,8 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
   if (done) {
     const parts = [
       done.added ? `${done.added} medication${done.added === 1 ? "" : "s"} added` : null,
-      done.changed ? `${done.changed} changed` : null,
-      done.stopped ? `${done.stopped} stopped` : null,
+      done.changed ? `${done.changed} medication${done.changed === 1 ? "" : "s"} changed` : null,
+      done.stopped ? `${done.stopped} medication${done.stopped === 1 ? "" : "s"} stopped` : null,
       done.todos ? `${done.todos} to-do${done.todos === 1 ? "" : "s"} added` : null,
     ].filter(Boolean);
     return (

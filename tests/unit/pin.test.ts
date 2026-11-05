@@ -17,7 +17,7 @@ const later = (min: number) => new Date(NOW + min * 60_000).toISOString();
 const row: HandoffRow = {
   token: "handoff-token-0000000", manage_key_hash: "manage-hash", pin_hash: "pin-hash",
   pin_failures: 0, locked_until: null, payload: {} as HandoffRow["payload"], source_text: null,
-  original_path: null, created_by: "Gobin", recipients: [], acks: [],
+  original_path: null, created_by: "Jordan", recipients: [], acks: [],
   created_at: "2026-10-01T00:00:00Z", expires_at: "2026-12-01T00:00:00Z", access_mode: "invite",
 };
 const recipient = (over: Partial<RecipientRow> = {}): RecipientRow => ({

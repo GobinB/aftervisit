@@ -71,7 +71,7 @@ test("no WCAG 2.1 AA violations on a personal link and the manage dashboard", as
   const r = Math.floor(Math.random() * 250) + 1;
   const res = await page.request.post("/api/handoffs", {
     headers: { "x-forwarded-for": `10.9.${r}.${r}` },
-    data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, createdByFirstName: "Gobin", consent: true },
+    data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, createdByFirstName: "Jordan", consent: true },
   });
   expect(res.status()).toBe(201);
   const c = await res.json();

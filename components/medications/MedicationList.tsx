@@ -4,6 +4,11 @@ import { StatusButton } from "@/components/medications/StatusButton";
 import { longDate } from "@/lib/format";
 import { doseText, scheduleText, type Medication } from "@/lib/schema/medications";
 
+/** "Blood pressure" reads as "For blood pressure"; names like "COPD" or "Parkinson's" keep their capitals. */
+function forText(reason: string): string {
+  return /^[A-Z][a-z]/.test(reason) && !/^[A-Z][a-z]+'s\b/.test(reason) ? reason.charAt(0).toLowerCase() + reason.slice(1) : reason;
+}
+
 /** One medication per row: name and dose, when, and why. The caregiver can edit, stop or restart. */
 export function MedicationList({ medications, circleId, canEdit }: { medications: Medication[]; circleId?: string; canEdit: boolean }) {
   return (
@@ -22,7 +27,7 @@ export function MedicationList({ medications, circleId, canEdit }: { medications
                 {doseText(med) ? <span className="ml-2 text-[14px] font-normal text-ink-500 no-underline">{doseText(med)}</span> : null}
               </p>
               <p className="mt-0.5 text-[13px] text-ink-900">{scheduleText(med)}</p>
-              {med.reason ? <p className="text-[13px] text-ink-500">For {med.reason}</p> : null}
+              {med.reason ? <p className="text-[13px] text-ink-500">For {forText(med.reason)}</p> : null}
               {med.instructions ? <p className="text-[13px] text-ink-500">{med.instructions}</p> : null}
               {meta.length ? <p className="mt-1 text-[12px] text-ink-500">{meta.join(" · ")}</p> : null}
             </div>

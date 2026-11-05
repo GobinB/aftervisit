@@ -4,8 +4,8 @@ import { exportKeyBytes } from "@/lib/crypto/export";
 import { loadCircleKey } from "@/lib/crypto/idb";
 import { buildHelperLink } from "@/lib/crypto/link";
 
-const missingKey = "This browser does not have the key for this circle. Enter the recovery words, then create the link again.";
-const oldKey = "This browser has an old key for this circle. Enter the recovery words, then create the link again.";
+const missingKey = "This browser does not have the key for this circle yet. Create the key, or enter your recovery words, at the top of this page. Then try again.";
+const oldKey = "This browser has an old key for this circle. Enter your recovery words at the top of this page, then try again.";
 
 /** Null when this device may build a helper link for the circle's current key. */
 export function keyVersionError(localVersion: number | null, circleVersion: number | null): string | null {
@@ -25,6 +25,19 @@ export function memberLinkForVersion(
   const error = keyVersionError(localVersion, circleVersion);
   if (error) return { ok: false, error };
   return { ok: true, url: buildHelperLink(origin, token, keyBytes) };
+}
+
+/**
+ * Why this device cannot build a link right now, or null when it can.
+ * Checked before a person is added or a link replaced, so nobody is left without a working link.
+ */
+export async function linkKeyProblem(circleId: string, keyVersion: number | null): Promise<string | null> {
+  try {
+    const local = await loadCircleKey(circleId);
+    return keyVersionError(local?.keyVersion ?? null, keyVersion);
+  } catch {
+    return "The link could not be prepared on this device. Try again.";
+  }
 }
 
 /** Builds /i/{token}#k=... on this device. The token is the only part a server action returned. */

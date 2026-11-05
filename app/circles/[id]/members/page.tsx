@@ -24,8 +24,8 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
       <CircleFrame personName={circle?.person_name ?? "Your care circle"} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} active="people">
         {listed.canManage ? (
           <p className="mb-8 max-w-2xl text-ink-500">
-            Each person gets their own link to just the parts you choose. A new link is shown once: copy it, share it, or open it in your own mail
-            app. The part after # carries the key for files and stays in the browser. All Hands Care does not send messages.
+            Each person gets their own link to just the parts you choose. You see a new link once: copy it, share it, or send it from your own
+            mail app. All Hands Care does not send messages.
           </p>
         ) : null}
         <RestoreKeys circles={keys} />

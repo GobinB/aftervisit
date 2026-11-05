@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addMemberAction, changeRoleAction, newLinkAction, renewMemberAction, revokeMemberAction, setVisibilityAction } from "@/app/actions/members";
-import { urlForMemberToken } from "@/components/circles/member-link";
+import { linkKeyProblem, urlForMemberToken } from "@/components/circles/member-link";
 import { ShareLink } from "@/components/circles/ShareLink";
 import { Button } from "@/components/ui/Button";
 import { Avatar } from "@/components/ui/Avatar";
@@ -30,6 +30,16 @@ export function MembersPanel({
   const [link, setLink] = useState<{ url: string; name: string; email: string | null } | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  // Checked before saving, so a person is never added (or a link replaced) when this device cannot make their link.
+  const checkKey = async () => {
+    const problem = await linkKeyProblem(circleId, keyVersion);
+    if (problem) {
+      setError(problem);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    return !problem;
+  };
+
   async function saved(result: { ok: boolean; error?: string; token?: string; name?: string; email?: string | null }) {
     if (!result.ok) {
       setError(result.error ?? "That could not be saved. Try again.");
@@ -54,7 +64,7 @@ export function MembersPanel({
       ) : null}
       {canManage ? (
         <div className="max-w-xl">
-          <AddPerson circleId={circleId} onDone={saved} />
+          <AddPerson circleId={circleId} onDone={saved} checkKey={checkKey} />
         </div>
       ) : null}
       <ul className="grid gap-3 lg:grid-cols-2">
@@ -74,7 +84,7 @@ export function MembersPanel({
               {person.revokedAt ? <Badge tone="attn">Access removed</Badge> : null}
               {person.locked ? <Badge tone="attn">Locked</Badge> : null}
             </div>
-            {canManage && person.kind === "member" ? <MemberControls circleId={circleId} person={person} onDone={saved} /> : null}
+            {canManage && person.kind === "member" ? <MemberControls circleId={circleId} person={person} onDone={saved} checkKey={checkKey} /> : null}
           </li>
         ))}
       </ul>
@@ -85,9 +95,11 @@ export function MembersPanel({
 function AddPerson({
   circleId,
   onDone,
+  checkKey,
 }: {
   circleId: string;
   onDone: (result: { ok: boolean; error?: string; token?: string; name?: string; email?: string | null }) => void;
+  checkKey: () => Promise<boolean>;
 }) {
   const [role, setRole] = useState<HelperRole>("family");
   const [hidden, setHidden] = useState<VisibilityArea[]>([]);
@@ -103,6 +115,7 @@ function AddPerson({
     if (hidden.length) visibility.hidden = hidden;
     if (sections.length) visibility.handoffSections = sections;
     start(async () => {
+      if (!(await checkKey())) return;
       const result = await addMemberAction({
         circleId,
         name: String(form.get("name") ?? ""),
@@ -160,10 +173,12 @@ function MemberControls({
   circleId,
   person,
   onDone,
+  checkKey,
 }: {
   circleId: string;
   person: PersonView;
   onDone: (result: { ok: boolean; error?: string; token?: string; name?: string; email?: string | null }) => void;
+  checkKey: () => Promise<boolean>;
 }) {
   const [role, setRole] = useState<HelperRole>((HELPER_ROLES as readonly string[]).includes(person.role) ? (person.role as HelperRole) : "family");
   const [confirming, setConfirming] = useState(false);
@@ -174,6 +189,13 @@ function MemberControls({
   const run = (work: () => Promise<{ ok: boolean; error?: string; token?: string; name?: string; email?: string | null }>) => {
     start(async () => {
       await onDone(await work());
+    });
+  };
+
+  // A new link replaces the old one, so make sure this device can build it first.
+  const newLink = () => {
+    start(async () => {
+      if (await checkKey()) await onDone(await newLinkAction({ circleId, memberId: person.id }));
     });
   };
 
@@ -207,7 +229,7 @@ function MemberControls({
         <Button variant="secondary" disabled={pending} onClick={() => run(() => renewMemberAction({ circleId, memberId: person.id }))}>
           Renew 90 days
         </Button>
-        <Button variant="secondary" disabled={pending} onClick={() => run(() => newLinkAction({ circleId, memberId: person.id }))}>
+        <Button variant="secondary" disabled={pending} onClick={newLink}>
           New link
         </Button>
         {confirming ? (
