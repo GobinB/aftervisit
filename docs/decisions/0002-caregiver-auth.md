@@ -2,12 +2,12 @@
 
 ## Decision
 
-Caregivers sign in with Google through Supabase Auth. It is the only sign-in method, and AfterVisit sends no email or text messages.
+Caregivers sign in with Google through Supabase Auth. It is the only sign-in method, and All Hands Care sends no email or text messages.
 
 - The login page has one button. It calls `signInWithOAuth({ provider: "google" })` with `redirectTo` set to the site's own `/callback`.
 - `app/(auth)/callback` exchanges the code for a session cookie with `@supabase/ssr`. `middleware.ts` keeps the session fresh.
 - The `next` address a person returns to after sign-in is checked by `lib/safe-next.ts`. Only a path on this site is allowed.
-- Scopes are the defaults only: `openid`, `email`, `profile`. AfterVisit never asks for Gmail, Drive or Calendar access.
+- Scopes are the defaults only: `openid`, `email`, `profile`. All Hands Care never asks for Gmail, Drive or Calendar access.
 - Email sign-in stays off in the Supabase dashboard, so nothing depends on Supabase's built-in test mailer.
 - The signed-in user's id becomes `circles.owner_id`.
 

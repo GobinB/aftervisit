@@ -48,11 +48,11 @@ export type Action = (typeof ACTIONS)[number];
 export type Cell = "allow" | "deny" | "not-owner" | "own" | "sections";
 export type Role = CaregiverRole | HelperRole;
 
-export const ROLES = ["owner", "co_caregiver", "family", "care_manager", "home_aide", "day_program"] as const satisfies readonly Role[];
+export const ROLES = ["owner", "family", "care_manager", "home_aide", "day_program"] as const satisfies readonly Role[];
 
 export type Subject = {
   circleId?: string;
-  /** Set when the action targets a person, so co-caregivers cannot remove the owner. */
+  /** Set when the action targets a person, for "not-owner" cells. */
   targetRole?: Role;
   /** Task assignee. Required for "own" cells. */
   assigneeId?: string;
@@ -80,20 +80,6 @@ const OWNER: Cell[] = [
   "allow",
   "allow",
   "allow",
-];
-
-const CO: Cell[] = [
-  "allow", "not-owner", "allow", "allow",
-  "allow", "allow", "allow",
-  "allow", "allow", "deny",
-  "allow", "allow", "allow", "allow", "allow", "allow",
-  "allow", "allow",
-  "allow", "allow", "allow",
-  "allow", "allow", "allow",
-  "allow", "allow", "allow",
-  "deny",
-  "deny",
-  "deny",
 ];
 
 const FAMILY: Cell[] = [
@@ -140,7 +126,6 @@ const AIDE: Cell[] = [
 
 export const GRID: Record<Role, Record<Action, Cell>> = {
   owner: row(OWNER),
-  co_caregiver: row(CO),
   family: row(FAMILY),
   care_manager: row(CARE_MANAGER),
   home_aide: row(AIDE),

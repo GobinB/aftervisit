@@ -96,7 +96,8 @@ function AddPerson({
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const form = new FormData(event.currentTarget);
+    const element = event.currentTarget;
+    const form = new FormData(element);
     const email = String(form.get("email") ?? "").trim();
     const pin = String(form.get("pin") ?? "").trim();
     const visibility: Visibility = {};
@@ -111,6 +112,13 @@ function AddPerson({
         pin: pin || undefined,
         visibility,
       });
+      // Clear the form once the person is saved, so the same person is not added twice.
+      if (result.ok) {
+        element.reset();
+        setRole("family");
+        setHidden([]);
+        setSections([]);
+      }
       await onDone(result);
     });
   }
@@ -146,7 +154,7 @@ function AddPerson({
           PIN <span className="font-normal text-ink-500">(optional)</span>
         </label>
         <input id="member-pin" name="pin" inputMode="numeric" autoComplete="off" pattern="\d{4}" maxLength={4} className={field} />
-        <p className="mt-1 text-sm text-ink-500">Share a PIN by voice or a different message. AfterVisit does not send it.</p>
+        <p className="mt-1 text-sm text-ink-500">Share a PIN by voice or a different message. All Hands Care does not send it.</p>
       </div>
       <SectionPicker hidden={hidden} setHidden={setHidden} sections={sections} setSections={setSections} />
       <Button type="submit" className="w-full" disabled={pending}>

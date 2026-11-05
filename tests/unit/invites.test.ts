@@ -24,7 +24,7 @@ describe("recipient section permissions", () => {
     const row: HandoffRow = {
       token: "private-handoff-token", manage_key_hash: "private-manage-hash", pin_hash: null,
       pin_failures: 0, locked_until: null, payload, source_text: null,
-      original_path: "private/sample.pdf", created_by: "Gobin", recipients: [], acks: [],
+      original_path: "private/sample.pdf", created_by: "Jordan", recipients: [], acks: [],
       created_at: "2026-10-01T00:00:00Z", expires_at: "2026-11-01T00:00:00Z", access_mode: "invite",
     };
     const recipient: RecipientRow = {

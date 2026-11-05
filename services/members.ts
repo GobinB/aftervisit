@@ -239,7 +239,8 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
   if (caregiverRows.error) return { ok: false, error: generic };
   const displayNames = await caregiverNames((caregiverRows.data ?? []).map((row) => row.user_id as string));
   for (const row of caregiverRows.data ?? []) {
-    const role = row.role as "owner" | "co_caregiver";
+    if (row.role !== "owner") continue;
+    const role = "owner" as const;
     const roleLabel = CAREGIVER_ROLE_LABELS[role];
     people.push({
       id: row.user_id as string,

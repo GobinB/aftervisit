@@ -22,7 +22,7 @@ const html = `<!doctype html><html><head><meta charset="utf-8"><style>
   p { margin: 0 0 12px; line-height: 1.45; }
   footer { margin-top: 28px; font-size: 8pt; color: #666; border-top: 1px solid #ccc; padding-top: 6px; }
 </style></head><body>
-<header><h1>${esc(title)}</h1><div class="sub">Fictional sample for AfterVisit demos. Not a real patient.</div></header>
+<header><h1>${esc(title)}</h1><div class="sub">Fictional sample for All Hands Care demos. Not a real patient.</div></header>
 ${body}
 <footer>Riverbend Internal Medicine · 100 Example Ave · This document is entirely fictional.</footer>
 </body></html>`;

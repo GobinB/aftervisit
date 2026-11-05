@@ -43,8 +43,7 @@ export const HELPER_ROLE_LABELS: Record<HelperRole, string> = {
 };
 
 export const CAREGIVER_ROLE_LABELS = {
-  owner: "Owner",
-  co_caregiver: "Co-caregiver",
+  owner: "Caregiver",
 } as const;
 
 /** Areas a caregiver can hide for one person. Hiding only removes access. */
@@ -54,7 +53,7 @@ export type VisibilityArea = (typeof VISIBILITY_AREAS)[number];
 export const AREA_LABELS: Record<VisibilityArea, string> = {
   updates: "Updates",
   medications: "Medications",
-  tasks: "Tasks",
+  tasks: "To-dos",
   calendar: "Calendar",
   documents: "Documents",
   summary: "Care summary",
@@ -62,7 +61,7 @@ export const AREA_LABELS: Record<VisibilityArea, string> = {
 };
 
 /** Areas a helper can see today. The picker lists only these. Add an area here in the PR that ships it. */
-export const READY_AREAS: readonly VisibilityArea[] = ["summary"];
+export const READY_AREAS: readonly VisibilityArea[] = ["calendar", "tasks", "medications", "summary"];
 
 export const HANDOFF_SECTION_KEYS = ["medications", "tasks", "watchFor", "questions", "summary", "otherNotes", "original"] as const;
 
@@ -76,16 +75,16 @@ export const VisibilitySchema = z
   .strict();
 export type Visibility = z.infer<typeof VisibilitySchema>;
 
-export const CONSENT_VERSION = "2026-11-02";
+export const CONSENT_VERSION = "2026-11-03";
 export const CONSENT_TYPES = ["authorized_to_share", "terms", "privacy"] as const;
 export type ConsentType = (typeof CONSENT_TYPES)[number];
 
 /** Shown next to the checkbox. The hash stored in consents is of this exact text. */
 export const CONSENT_TEXT: Record<ConsentType, string> = {
   authorized_to_share:
-    "I am this person, or they or their legal representative have authorized me to store and share information about their care in AfterVisit.",
-  terms: "I agree to use AfterVisit to store what I enter. AfterVisit does not provide medical advice.",
-  privacy: "I understand caregivers I add can open this circle, helpers see only what I allow, and I can delete the circle.",
+    "I am this person, or they or their legal representative have authorized me to store and share information about their care in All Hands Care.",
+  terms: "I agree to use All Hands Care to store what I enter. All Hands Care does not provide medical advice.",
+  privacy: "I understand the people I add see only what I allow, and I can delete the circle.",
 };
 
 export const CONSENT_LABELS: Record<ConsentType, string> = {
@@ -111,7 +110,7 @@ export function nextCircleKeyVersion(current: number): number {
 export type CircleKeyStatus = {
   circleId: string;
   personName: string;
-  role: "owner" | "co_caregiver";
+  role: "owner";
   circleKeyVersion: number;
   wrapped: string | null;
   wrappedKeyVersion: number;
@@ -125,8 +124,11 @@ export const CreateCircleSchema = z
       terms: z.literal(true),
       privacy: z.literal(true),
     }),
-    /** Already wrapped in the browser. The raw key, the recovery phrase, and a key version are not accepted. */
-    circleKeyWrapped: CircleKeyWrappedSchema,
+    /**
+     * Optional: the key for files is usually made later, in Settings, when the circle first needs it.
+     * When sent, it is already wrapped in the browser. The raw key, the recovery phrase, and a key version are not accepted.
+     */
+    circleKeyWrapped: CircleKeyWrappedSchema.optional(),
   })
   .strict();
 export type CreateCircleInput = z.infer<typeof CreateCircleSchema>;

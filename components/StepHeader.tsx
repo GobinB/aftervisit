@@ -1,8 +1,8 @@
 const STEPS = ["Upload", "Review", "Share", "Done"] as const;
 export type Step = (typeof STEPS)[number];
 
-/** Thin 4-step progress strip on /new routes. */
-export function StepHeader({ current }: { current: Step }) {
+/** Thin 4-step progress strip on /new routes. A visit started from a circle updates it instead of sharing. */
+export function StepHeader({ current, circle = false }: { current: Step; circle?: boolean }) {
   const idx = STEPS.indexOf(current);
   return (
     <nav aria-label="Progress" className="no-print mb-6">
@@ -15,7 +15,7 @@ export function StepHeader({ current }: { current: Step }) {
               aria-current={i === idx ? "step" : undefined}
             >
               {i < idx ? <span className="sr-only">Completed: </span> : null}
-              {s}
+              {circle && s === "Share" ? "Update" : s}
             </span>
           </li>
         ))}

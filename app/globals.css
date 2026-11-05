@@ -1,6 +1,6 @@
 @import "tailwindcss";
 
-/* Design tokens (Section 7.1). 90% of any screen is white, surface and ink. */
+/* Design tokens. Palette B (November 3): navy and coral. 90% of any screen is white, grey and ink. */
 @theme {
   --color-primary-900: #163a6b; /* navy: headers, footers, dark panels */
   --color-primary-700: #1e4e8c; /* clinical blue: primary buttons, headings, links */
@@ -20,13 +20,18 @@
   --color-ok: #15803d; /* reviewed, acknowledged */
   --color-ok-ink: #166534;
   --color-ok-bg: #dcfce7;
+  --color-heart-500: #e5644e; /* coral: the heart in the logo and small accents. Not for text (3.3:1 on white). */
+  --color-sidebar: #1e2a3a; /* app sidebar */
+  --color-sidebar-text: #c8d6e8;
+  --color-sidebar-muted: #8296ad;
+  --color-sidebar-accent: #4fa3f7; /* the bar beside the current area */
 
   --font-sans: var(--font-body), system-ui, "Segoe UI", Roboto, sans-serif;
   --font-display: var(--font-sans-display), system-ui, "Segoe UI", sans-serif;
 
   --text-page: 2rem;
   --text-page--line-height: 1.15;
-  --text-section: 1.6rem;
+  --text-section: 1.4rem;
   --text-section--line-height: 1.15;
   --text-ui: 0.95rem;
   --text-item: 1.15rem; /* titles of list items: modules, steps, promises */
@@ -80,24 +85,29 @@
   }
 }
 
-/* 17 px on mobile, 16 px on desktop; line-height 1.55. */
+/* 15 px on phones, 14 px on wider screens, like a working app rather than a poster. */
 html {
-  font-size: 17px;
+  font-size: 15px;
   -webkit-text-size-adjust: 100%;
 }
 @media (min-width: 768px) {
-  html { font-size: 16px; }
+  html { font-size: 14px; }
 }
 /* Large-text mode on the handoff page (120%). */
-html.av-large { font-size: 20.4px; }
+html.av-large { font-size: 18px; }
 @media (min-width: 768px) {
-  html.av-large { font-size: 19.2px; }
+  html.av-large { font-size: 16.8px; }
+}
+
+/* The title face has one weight; never fake a bold one. */
+.font-display {
+  font-synthesis-weight: none;
 }
 
 body {
   background-color: var(--color-surface-50);
   color: var(--color-ink-900);
-  line-height: 1.55;
+  line-height: 1.5;
   font-family: var(--font-sans);
 }
 

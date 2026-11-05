@@ -23,7 +23,7 @@ async function createViaApi(page: Page, opts: { pin?: string } = {}): Promise<Cr
   const ip = `10.${rand()}.${rand()}.${rand()}`;
   const res = await page.request.post("/api/handoffs", {
     headers: { "x-forwarded-for": ip },
-    data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, pin: opts.pin, createdByFirstName: "Gobin", consent: true },
+    data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, pin: opts.pin, createdByFirstName: "Jordan", consent: true },
   });
   expect(res.status()).toBe(201);
   return (await res.json()) as Created;
@@ -85,7 +85,7 @@ test("sample visit: personal links, task update, acknowledgment, dashboard, revo
   await expect(lisa.getByRole("button", { name: /Completed: Check blood pressure/ })).toHaveCount(0);
 
   await lisa.getByRole("button", { name: "I've read this" }).click();
-  await expect(lisa.getByText("Thanks, Lisa. Gobin will see that you've read this.")).toBeVisible();
+  await expect(lisa.getByText("Thanks, Lisa. Jordan will see that you've read this.")).toBeVisible();
   expect(Date.now() - started).toBeLessThan(120_000);
 
   // The day program sees only medication changes, watch-fors and the summary.
@@ -387,7 +387,7 @@ test("attached original: served through a checked link, gone the moment the hand
   await isolateIp(page);
   await page.goto("/new");
   await page.locator('input[type="file"]').setInputFiles("public/sample-avs.pdf");
-  await page.getByLabel("Your first name").fill("Gobin");
+  await page.getByLabel("Your first name").fill("Jordan");
   await page.getByRole("button", { name: "Build the handoff" }).click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   // The PDF path flags nothing low-confidence for the sample; check every section.
@@ -452,7 +452,7 @@ test("creating a handoff requires consent (server-side)", async ({ page }, info)
   test.skip(info.project.name !== "desktop-chrome", "API-level check; run once");
   const res = await page.request.post("/api/handoffs", {
     headers: { "x-forwarded-for": `10.${rand()}.${rand()}.${rand()}` },
-    data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, createdByFirstName: "Gobin" },
+    data: { draft: sampleDraft(), recipients: SAMPLE_RECIPIENTS, createdByFirstName: "Jordan" },
   });
   expect(res.status()).toBe(400);
   expect((await res.json()).error).toBe("consent_required");

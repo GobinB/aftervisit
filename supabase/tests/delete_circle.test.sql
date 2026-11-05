@@ -46,14 +46,13 @@ begin
 end $$;
 
 select pg_temp.seed_user('d1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1', 'owner.delete@example.com', 'Owner Delete', 'delete-circle-a');
-select pg_temp.seed_user('d2d2d2d2-d2d2-42d2-82d2-d2d2d2d2d2d2', 'co.delete@example.com', 'Co Delete', 'delete-circle-b');
+select pg_temp.seed_user('d2d2d2d2-d2d2-42d2-82d2-d2d2d2d2d2d2', 'stranger.delete@example.com', 'Stranger Delete', 'delete-circle-b');
 select pg_temp.seed_user('d3d3d3d3-d3d3-43d3-83d3-d3d3d3d3d3d3', 'other.delete@example.com', 'Other Delete', 'delete-circle-c');
 
 insert into public.circles (id, owner_id, content)
 values ('d0d0d0d0-d0d0-40d0-80d0-d0d0d0d0d0d0', 'd1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1', '{"person_name":"Fictional Delete"}');
 insert into public.circle_caregivers (circle_id, user_id, role) values
-  ('d0d0d0d0-d0d0-40d0-80d0-d0d0d0d0d0d0', 'd1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1', 'owner'),
-  ('d0d0d0d0-d0d0-40d0-80d0-d0d0d0d0d0d0', 'd2d2d2d2-d2d2-42d2-82d2-d2d2d2d2d2d2', 'co_caregiver');
+  ('d0d0d0d0-d0d0-40d0-80d0-d0d0d0d0d0d0', 'd1d1d1d1-d1d1-41d1-81d1-d1d1d1d1d1d1', 'owner');
 insert into public.members (id, circle_id, name, role, token_hash, expires_at, revoked_at) values
   ('d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d1', 'd0d0d0d0-d0d0-40d0-80d0-d0d0d0d0d0d0', 'Fiction Family', 'family', 'delete-test-hash-family-0000000000000', now() + interval '90 days', null),
   ('d4d4d4d4-d4d4-44d4-84d4-d4d4d4d4d4d2', 'd0d0d0d0-d0d0-40d0-80d0-d0d0d0d0d0d0', 'Fiction Aide', 'home_aide', 'delete-test-hash-aide-00000000000000', now() + interval '90 days', null),
@@ -79,7 +78,7 @@ select throws_ok(
   $$select public.delete_circle('d0d0d0d0-d0d0-40d0-80d0-d0d0d0d0d0d0')$$,
   'P0001',
   'only the owner can delete a circle',
-  'a co-caregiver cannot delete the circle'
+  'a signed-in stranger cannot delete the circle'
 );
 reset role;
 

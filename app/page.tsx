@@ -58,19 +58,25 @@ const MODULES = [
     key: "medications",
     title: "Medication list",
     body: "Which pills, which dose, as of today. Every change is dated with where it came from, and the list prints on one page.",
-    ready: false,
+    ready: true,
+  },
+  {
+    key: "calendar",
+    title: "Calendar",
+    body: "Appointments, therapy and visits in one place, with who is going and where. Ask for someone to go, and family can say “I’ll go.”",
+    ready: true,
   },
   {
     key: "tasks",
-    title: "Tasks",
+    title: "To-dos",
     body: "Who is calling the insurance company, and by when. Anyone you allow can tap “I’ll do it.”",
-    ready: false,
+    ready: true,
   },
   {
     key: "handoff",
     title: "After-visit handoff",
-    body: "Upload the visit summary, check it and confirm. The medication list and tasks update, and everyone sees what changed.",
-    ready: false,
+    body: "Upload the visit summary, check it and confirm. The medication list and to-dos update, and everyone you allow sees them.",
+    ready: true,
   },
 ] as const;
 
@@ -80,7 +86,7 @@ const ready = (key: ModuleKey) => MODULES.some((item) => item.key === key && ite
 const STEPS: { title: string; body: string; needs?: ModuleKey }[] = [
   {
     title: "Sign in and start the page.",
-    body: "Sign in with Google and add the person you care for. You get 12 recovery words to keep somewhere safe. They restore your circle’s private key on a new phone.",
+    body: "Sign in with Google and add the person you care for: who they are, and what a helper needs in a hurry, like allergies and who to call.",
   },
   {
     title: "Add the people who help.",
@@ -98,6 +104,27 @@ const PEOPLE_POINTS = [
   "Add a 4-digit PIN to any link if you want one.",
   "See when each person last opened their link.",
   "Turn off any link, or make a new one, at any time.",
+];
+
+const CALENDAR_POINTS = [
+  "Appointments with time, place and notes, once or repeating.",
+  "Mark who is going, or ask for someone to go.",
+  "Family can add dates and say “I’ll go” from their link.",
+  "To-dos show on the day they are due.",
+];
+
+const TODO_POINTS = [
+  "Give a to-do to someone, keep it, or ask for a volunteer.",
+  "Family can tap “I’ll do it” from their own link.",
+  "Aides and the day program see only the to-dos that are theirs.",
+  "Overdue ones stand out, and done ones stay on the list.",
+];
+
+const MEDICATION_POINTS = [
+  "Strength, how much, when, and what it is for, in plain words.",
+  "Stopping one keeps it on the record, with the date.",
+  "Every change is listed with its date.",
+  "Prints on one page for the pharmacy or a new aide.",
 ];
 
 const SUMMARY_POINTS = [
@@ -180,7 +207,7 @@ export default function Home() {
         </section>
 
         {/* Pillars */}
-        <section aria-label="What AfterVisit stands for" className="mx-auto max-w-[1120px] px-4 sm:px-6">
+        <section aria-label="What All Hands Care stands for" className="mx-auto max-w-[1120px] px-4 sm:px-6">
           <ul className="grid gap-8 border-y border-border-200 py-10 md:grid-cols-3 md:gap-10">
             {PILLARS.map(({ title, body }) => (
               <li key={title}>
@@ -223,7 +250,7 @@ export default function Home() {
               {MODULES.map(({ key, title, ready }) => (
                 <li key={key} className="flex items-center gap-2">
                   {ready ? (
-                    <a href={`#module-${key}`} className="inline-flex items-center gap-2 font-semibold text-ink-900 hover:text-primary-700">
+                    <a href={key === "handoff" ? "#sample" : `#module-${key}`} className="inline-flex items-center gap-2 font-semibold text-ink-900 hover:text-primary-700">
                       <Check size={18} strokeWidth={2.5} className="text-ok" aria-hidden="true" />
                       {title}
                     </a>
@@ -252,8 +279,47 @@ export default function Home() {
               <AppPreview screen="people" />
             </article>
 
-            <article id="module-summary" aria-labelledby="module-summary-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+            <article id="module-calendar" aria-labelledby="module-calendar-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
               <div className="lg:order-2">
+                <h3 id="module-calendar-title" className="font-display text-heading text-primary-900">
+                  Every appointment, and who is taking them.
+                </h3>
+                <p className="mt-4 text-lg text-ink-500">
+                  One calendar the whole circle can see. Nobody has to ask twice what time the cardiology visit is, or who is driving.
+                </p>
+                <Points items={CALENDAR_POINTS} />
+              </div>
+              <AppPreview screen="calendar" className="lg:order-1" />
+            </article>
+
+            <article id="module-tasks" aria-labelledby="module-tasks-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              <div>
+                <h3 id="module-tasks-title" className="font-display text-heading text-primary-900">
+                  Who is doing what, and by when.
+                </h3>
+                <p className="mt-4 text-lg text-ink-500">
+                  Write it down once. The person who has it sees it on their own link, and you see it get done.
+                </p>
+                <Points items={TODO_POINTS} />
+              </div>
+              <AppPreview screen="todos" />
+            </article>
+
+            <article id="module-medications" aria-labelledby="module-medications-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              <div className="lg:order-2">
+                <h3 id="module-medications-title" className="font-display text-heading text-primary-900">
+                  Every pill, as of today.
+                </h3>
+                <p className="mt-4 text-lg text-ink-500">
+                  You keep the list. Everyone you allow sees the same one, so the aide and the day program never work from an old paper copy.
+                </p>
+                <Points items={MEDICATION_POINTS} />
+              </div>
+              <AppPreview screen="medications" className="lg:order-1" />
+            </article>
+
+            <article id="module-summary" aria-labelledby="module-summary-title" className="mt-24 grid scroll-mt-24 items-center gap-12 lg:grid-cols-2 lg:gap-16">
+              <div>
                 <h3 id="module-summary-title" className="font-display text-heading text-primary-900">
                   What to know in a hurry.
                 </h3>
@@ -263,7 +329,7 @@ export default function Home() {
                 </p>
                 <Points items={SUMMARY_POINTS} />
               </div>
-              <AppPreview screen="summary" className="lg:order-1" />
+              <AppPreview screen="summary" />
             </article>
           </div>
         </section>
@@ -338,7 +404,7 @@ export default function Home() {
         <section aria-labelledby="founder-title" className="border-t border-border-200 py-20 sm:py-28">
           <div className="mx-auto grid max-w-[1120px] gap-10 px-4 sm:px-6 lg:grid-cols-[0.8fr_1.2fr] lg:gap-16">
             <div>
-              <Eyebrow>Why I started AfterVisit</Eyebrow>
+              <Eyebrow>Why I started All Hands Care</Eyebrow>
               <p className="mt-6 font-semibold text-ink-900">Gobin Bastola</p>
               <p className="text-ink-500">Founder</p>
               <a
@@ -354,7 +420,7 @@ export default function Home() {
             <figure>
               <blockquote id="founder-title" className="font-display text-section leading-[1.35] text-primary-900 sm:text-page">
                 &ldquo;After five years working with Medicaid billing for an adult day health center, I&apos;ve seen how many different people
-                are involved in supporting aging adults. AfterVisit started with a simple question: what if the important information from a
+                are involved in supporting aging adults. All Hands Care started with a simple question: what if the important information from a
                 medical appointment reached everyone helping with care, without families having to explain it over and over?&rdquo;
               </blockquote>
             </figure>

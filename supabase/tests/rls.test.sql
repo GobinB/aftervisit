@@ -1,9 +1,10 @@
 -- Caregiver A cannot read, change, or delete caregiver B's circle.
+-- Each circle has exactly one caregiver: nobody can add a second one, and a stranger cannot join.
 -- Fixtures are fictional. The transaction rolls back.
 
 begin;
 
-select plan(39);
+select plan(31);
 
 -- Same column split as supabase/seed.sql: GoTrue renames confirmed_at.
 create function pg_temp.seed_user(p_id uuid, p_email text, p_name text, p_token text)
@@ -37,7 +38,7 @@ end $$;
 
 select pg_temp.seed_user('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', 'caregiver.a@example.com', 'Caregiver A', 'rls-a');
 select pg_temp.seed_user('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', 'caregiver.b@example.com', 'Caregiver B', 'rls-b');
-select pg_temp.seed_user('cccccccc-cccc-4ccc-8ccc-ccccccccccc3', 'caregiver.co@example.com', 'Co Caregiver', 'rls-co');
+select pg_temp.seed_user('cccccccc-cccc-4ccc-8ccc-ccccccccccc3', 'stranger.c@example.com', 'Stranger C', 'rls-c');
 
 insert into public.circles (id, owner_id, content) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', '{"person_name":"Person A"}'::jsonb),
@@ -45,7 +46,6 @@ insert into public.circles (id, owner_id, content) values
 
 insert into public.circle_caregivers (circle_id, user_id, role) values
   ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10', 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1', 'owner'),
-  ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3', 'co_caregiver'),
   ('bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb20', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', 'owner');
 
 insert into public.members (id, circle_id, name, role, token_hash, expires_at) values
@@ -136,6 +136,21 @@ set local role authenticated;
 select is((select count(*) from public.circles where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10')::int, 1, 'A can select A circle');
 reset role;
 
+set local role authenticated;
+select throws_ok(
+  $$insert into public.circle_caregivers (circle_id, user_id, role) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3', 'co_caregiver')$$,
+  'P0001',
+  'a caregiver can only add themselves',
+  'the owner cannot add a co-caregiver'
+);
+select throws_ok(
+  $$insert into public.circle_caregivers (circle_id, user_id, role) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3', 'owner')$$,
+  'P0001',
+  'a caregiver can only add themselves',
+  'the owner cannot add another owner'
+);
+reset role;
+
 select set_config('request.jwt.claim.sub', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3', true);
 select set_config(
   'request.jwt.claims',
@@ -144,78 +159,34 @@ select set_config(
 );
 set local role authenticated;
 select throws_ok(
-  $$update public.circles set deleted_at = now() where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'$$,
-  'P0001',
-  'only the owner can delete a circle',
-  'co-caregiver cannot delete the circle'
-);
-select throws_ok(
-  $$update public.circles set owner_id = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3' where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'$$,
-  'P0001',
-  'only the owner can change circle ownership',
-  'co-caregiver cannot change owner_id'
-);
-select throws_ok(
-  $$insert into public.circle_caregivers (circle_id, user_id, role) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbb2', 'co_caregiver')$$,
+  $$insert into public.circle_caregivers (circle_id, user_id, role) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3', 'owner')$$,
   '42501',
   'new row violates row-level security policy for table "circle_caregivers"',
-  'co-caregiver cannot insert a caregiver'
-);
-select throws_ok(
-  $$update public.circle_caregivers
-       set role = 'owner'
-     where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'
-       and user_id = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3'$$,
-  'P0001',
-  'only the owner can change caregivers',
-  'co-caregiver cannot promote themselves'
-);
-delete from public.circle_caregivers
- where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'
-   and user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1';
-select throws_ok(
-  $$update public.activity set action = 'changed' where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13'$$,
-  '42501',
-  'permission denied for table activity',
-  'co-caregiver cannot update activity'
-);
-select throws_ok(
-  $$delete from public.activity where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13'$$,
-  '42501',
-  'permission denied for table activity',
-  'co-caregiver cannot delete activity'
-);
-select throws_ok(
-  $$update public.consents set version = 'changed' where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12'$$,
-  '42501',
-  'permission denied for table consents',
-  'co-caregiver cannot update consents'
-);
-select throws_ok(
-  $$delete from public.consents where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12'$$,
-  '42501',
-  'permission denied for table consents',
-  'co-caregiver cannot delete consents'
+  'a signed-in stranger cannot join a circle'
 );
 update public.circles
-   set content = '{"person_name":"Person A edited"}'::jsonb
+   set content = '{"person_name":"Changed by C"}'::jsonb
  where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10';
 reset role;
-select is(
-  (select role from public.circle_caregivers where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10' and user_id = 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3'),
-  'co_caregiver',
-  'co-caregiver cannot promote a caregiver to owner'
+
+select throws_ok(
+  $$insert into public.circle_caregivers (circle_id, user_id, role) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3', 'co_caregiver')$$,
+  '23514',
+  'new row for relation "circle_caregivers" violates check constraint "circle_caregivers_role_check"',
+  'the database keeps no co-caregiver role'
+);
+select throws_ok(
+  $$insert into public.circle_caregivers (circle_id, user_id, role) values ('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10', 'cccccccc-cccc-4ccc-8ccc-ccccccccccc3', 'owner')$$,
+  '23505',
+  'duplicate key value violates unique constraint "circle_caregivers_one_per_circle"',
+  'a circle holds at most one caregiver'
 );
 select is(
-  (select count(*) from public.circle_caregivers where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10' and user_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1')::int,
+  (select count(*) from public.circle_caregivers where circle_id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10')::int,
   1,
-  'co-caregiver cannot remove the owner'
+  'circle A has exactly one caregiver'
 );
-select is((select action from public.activity where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13'), 'circle_created', 'co-caregiver cannot update activity');
-select is((select count(*) from public.activity where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa13')::int, 1, 'co-caregiver cannot delete activity');
-select is((select version from public.consents where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12'), '2026-11-02', 'co-caregiver cannot update consents');
-select is((select count(*) from public.consents where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa12')::int, 1, 'co-caregiver cannot delete consents');
-select is((select content->>'person_name' from public.circles where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'), 'Person A edited', 'co-caregiver can edit circle content');
+select is((select content->>'person_name' from public.circles where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'), 'Person A', 'a stranger cannot edit the circle');
 select is((select owner_id from public.circles where id = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaa10'), 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaa1'::uuid, 'owner_id stays with the owner');
 
 update public.members set pin_hash = 'member-pin-hash' where id = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbb21';

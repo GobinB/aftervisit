@@ -66,7 +66,8 @@ export async function listOwnCircleKeys(actor: Actor): Promise<CircleKeyStatus[]
   for (const row of caregivers.data) {
     const circle = byId.get(row.circle_id as string);
     if (!circle) continue;
-    const role = row.role === "owner" ? "owner" : "co_caregiver";
+    if (row.role !== "owner") continue;
+    const role = "owner" as const;
     statuses.push({
       circleId: row.circle_id as string,
       personName: personName(circle.content),

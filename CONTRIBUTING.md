@@ -1,12 +1,12 @@
-# Contributing to AfterVisit
+# Contributing to All Hands Care
 
-Thanks for helping. AfterVisit does one thing: turn an after-visit summary into a confirmed, shareable care handoff. Changes that keep that flow simple and trustworthy are the most welcome.
+Thanks for helping. All Hands Care is one shared care page for the person you look after: one caregiver signs in, and everyone else gets their own link. Changes that keep it simple and trustworthy are the most welcome.
 
 ## Ground rules
 
-- **One flow.** Upload, review, confirm, share, read. Please do not add features outside it without opening an issue first.
+- **Few words, big targets.** Every screen should work for a tired caregiver on a phone. Please open an issue before adding a new area.
 - **The caregiver is in control.** Nothing is shared until a person confirms each item.
-- **No medical advice.** AfterVisit restates what the clinician wrote. It never interprets, recommends or warns.
+- **No medical advice.** All Hands Care restates what the clinician wrote. It never interprets, recommends or warns.
 - **Never commit real health information.** Parser fixtures must be fictional or fully de-identified.
 - Any new dependency, any new stored field, and any change to the extraction prompt needs a one-line justification in the PR.
 

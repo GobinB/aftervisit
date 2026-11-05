@@ -3,10 +3,8 @@
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { createCircle } from "@/app/actions/circles";
-import { RecoveryPhrase } from "@/components/circles/RecoveryPhrase";
 import { Button } from "@/components/ui/Button";
 import { careSummaryError, personNameError, type CareSummaryInput } from "@/lib/circle-form";
-import { generateCircleKey, generatePhrase, saveCircleKey, wrapCircleKey } from "@/lib/crypto";
 import { CONSENT_TEXT, CONSENT_TYPES, type CircleContent, type ConsentType } from "@/lib/schema/circles";
 
 const field =
@@ -18,7 +16,6 @@ const STEPS = [
   { short: "Who", full: "Who" },
   { short: "Care", full: "Care summary" },
   { short: "Agree", full: "Agree" },
-  { short: "Words", full: "Recovery words" },
 ] as const;
 
 const empty = (): Row => ({ name: "", extra: "", phone: "" });
@@ -29,11 +26,6 @@ function lines(value: string): string[] {
     .map((line) => line.trim())
     .filter(Boolean);
 }
-
-type Draft = {
-  content: CircleContent;
-  consents: { authorized_to_share: true; terms: true; privacy: true };
-};
 
 export function CircleForm() {
   const router = useRouter();
@@ -46,13 +38,8 @@ export function CircleForm() {
     terms: false,
     privacy: false,
   });
-  const [draft, setDraft] = useState<Draft | null>(null);
-  const [phrase, setPhrase] = useState<string[] | null>(null);
-  const [circleKey, setCircleKey] = useState<CryptoKey | null>(null);
-  const [savedId, setSavedId] = useState<string | null>(null);
   const [step, setStep] = useState(0);
   const heading = useRef<HTMLHeadingElement>(null);
-  const shown = phrase ? 3 : step;
 
   // Move focus to the new step's title so a screen reader hears where it is.
   const first = useRef(true);
@@ -62,7 +49,7 @@ export function CircleForm() {
       return;
     }
     heading.current?.focus();
-  }, [shown]);
+  }, [step]);
 
   function onInput(event: React.FormEvent<HTMLFormElement>) {
     if (!error) return;
@@ -120,86 +107,31 @@ export function CircleForm() {
       poa_location: poa || undefined,
     };
     setError(null);
+    // No recovery words here: the key for files is made later, in Settings, when a circle first needs it.
     start(async () => {
       try {
-        const key = await generateCircleKey();
-        const words = (await generatePhrase()).split(" ");
-        setCircleKey(key);
-        setPhrase(words);
-        setDraft({ content, consents: { authorized_to_share: true, terms: true, privacy: true } });
-      } catch {
-        setError("The key could not be created in this browser. Try again.");
-      }
-    });
-  }
-
-  function confirmPhrase() {
-    if (!draft || !circleKey || !phrase) return;
-    start(async () => {
-      try {
-        const circleKeyWrapped = await wrapCircleKey(circleKey, phrase.join(" "));
-        const result = await createCircle({ ...draft, circleKeyWrapped });
+        const result = await createCircle({ content, consents: { authorized_to_share: true, terms: true, privacy: true } });
         if (!result.ok) {
           const failedStep = "step" in result ? result.step : undefined;
-          if (failedStep != null && failedStep < 3) {
-            setPhrase(null);
-            setCircleKey(null);
-            setDraft(null);
-            setStep(failedStep);
-          }
+          if (failedStep != null && failedStep < 3) setStep(failedStep);
           setError(result.error);
-          return;
-        }
-        try {
-          await saveCircleKey(result.circleId, circleKey, 1);
-        } catch {
-          setSavedId(result.circleId);
-          setError("The circle is saved, but this browser could not keep the key. Leave only after the words are written down. You can enter them again from your circles.");
           return;
         }
         router.push(`/circles/${result.circleId}`);
       } catch {
-        setError("The key could not be saved. The words are still on this page. Try again.");
+        setError("The circle could not be saved. Try again.");
       }
     });
   }
 
   return (
     <>
-      <Progress current={shown} />
-      {phrase ? (
-        <div className="mt-8" />
-      ) : (
-        <>
-          <h2 ref={heading} tabIndex={-1} className="font-display mt-8 text-section text-primary-900 outline-none sm:text-page">
-            {TITLES[shown]}
-          </h2>
-          <p className="mt-2 mb-8 text-ink-500">{HINTS[shown]}</p>
-        </>
-      )}
-      {phrase ? (
-        <div className="space-y-4">
-          <RecoveryPhrase
-            words={phrase}
-            pending={pending}
-            error={error}
-            onConfirm={confirmPhrase}
-            onBack={() => {
-              setPhrase(null);
-              setCircleKey(null);
-              setDraft(null);
-              setSavedId(null);
-              setError(null);
-            }}
-          />
-          {savedId ? (
-            <a href={`/circles/${savedId}`} className="inline-flex min-h-12 items-center font-semibold text-primary-700">
-              Open the circle
-            </a>
-          ) : null}
-        </div>
-      ) : null}
-      <form onSubmit={onSubmit} onInput={onInput} hidden={phrase ? true : undefined} className="space-y-8">
+      <Progress current={step} />
+      <h2 ref={heading} tabIndex={-1} className="font-display mt-8 text-section text-primary-900 outline-none sm:text-page">
+        {TITLES[step]}
+      </h2>
+      <p className="mt-2 mb-8 text-ink-500">{HINTS[step]}</p>
+      <form onSubmit={onSubmit} onInput={onInput} className="space-y-8">
       <div hidden={step !== 0 ? true : undefined}>
         <label htmlFor="person_name" className="font-medium text-ink-900">
           Their name
@@ -325,7 +257,7 @@ export function CircleForm() {
         ))}
       </fieldset>
 
-      {error && !phrase ? (
+      {error ? (
         <p role="alert" className="rounded-xl bg-attn-bg px-3 py-2 text-attn-ink">
           {error}
         </p>
@@ -383,7 +315,7 @@ function readSummary(form: HTMLFormElement): CareSummaryInput {
 
 function Progress({ current }: { current: number }) {
   return (
-    <ol className="grid grid-cols-4 gap-2" aria-label={`Step ${current + 1} of ${STEPS.length}: ${STEPS[current]?.full ?? ""}`}>
+    <ol className="grid grid-cols-3 gap-2" aria-label={`Step ${current + 1} of ${STEPS.length}: ${STEPS[current]?.full ?? ""}`}>
       {STEPS.map((step, index) => (
         <li key={step.full} aria-current={index === current ? "step" : undefined}>
           <span className={`block h-1 rounded-full ${index <= current ? "bg-primary-700" : "bg-border-200"}`} />

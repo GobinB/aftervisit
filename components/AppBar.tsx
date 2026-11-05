@@ -10,7 +10,7 @@ export function AppBar({ minimal = false }: { minimal?: boolean }) {
   return (
     <header className="no-print sticky top-0 z-30 h-16 border-b border-border-200 bg-white">
       <div className="mx-auto flex h-full max-w-[1120px] items-center justify-between gap-3 px-4 sm:px-6">
-        <Link href="/" className="rounded-lg" aria-label="AfterVisit home">
+        <Link href="/" className="rounded-lg" aria-label="All Hands Care home">
           <Logo />
         </Link>
         {minimal ? null : (
@@ -25,7 +25,7 @@ export function AppBar({ minimal = false }: { minimal?: boolean }) {
             <SiteMenu />
             <Link
               href="/circles"
-              className="inline-flex min-h-10 items-center rounded-full px-4 font-semibold text-ink-900 ring-1 ring-ink-900/20 hover:ring-ink-900/40"
+              className="inline-flex min-h-10 items-center rounded-full px-3 font-semibold whitespace-nowrap sm:px-4 text-ink-900 ring-1 ring-ink-900/20 hover:ring-ink-900/40"
             >
               Sign in
             </Link>

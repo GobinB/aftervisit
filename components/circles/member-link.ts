@@ -4,8 +4,8 @@ import { exportKeyBytes } from "@/lib/crypto/export";
 import { loadCircleKey } from "@/lib/crypto/idb";
 import { buildHelperLink } from "@/lib/crypto/link";
 
-const missingKey = "This browser does not have the key for this circle. Enter the recovery words, then create the link again.";
-const oldKey = "This browser has an old key for this circle. Enter the recovery words, then create the link again.";
+const missingKey = "This browser does not have the key for this circle yet. Create the key, or enter your recovery words, at the top of this page. Then try again.";
+const oldKey = "This browser has an old key for this circle. Enter your recovery words at the top of this page, then try again.";
 
 /** Null when this device may build a helper link for the circle's current key. */
 export function keyVersionError(localVersion: number | null, circleVersion: number | null): string | null {
@@ -27,19 +27,23 @@ export function memberLinkForVersion(
   return { ok: true, url: buildHelperLink(origin, token, keyBytes) };
 }
 
-/** Builds /i/{token}#k=... on this device. The token is the only part a server action returned. */
+/**
+ * Builds a person's link on this device. When this device holds the circle's current key for files,
+ * it rides after # (the server never sees it). Without one, the link is /i/{token} alone: it opens
+ * everything the person may see. Only files need the key, and they can be shared again once it exists.
+ */
 export async function urlForMemberToken(
   circleId: string,
   token: string,
   keyVersion: number | null,
-): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; url: string; withKey: boolean } | { ok: false; error: string }> {
+  const plain = `${window.location.origin}/i/${token}`;
   try {
     const local = await loadCircleKey(circleId);
-    const error = keyVersionError(local?.keyVersion ?? null, keyVersion);
-    if (error || !local) return { ok: false, error: error ?? missingKey };
+    if (!local || keyVersionError(local.keyVersion, keyVersion)) return { ok: true, url: plain, withKey: false };
     const raw = await exportKeyBytes(local.key);
-    return { ok: true, url: buildHelperLink(window.location.origin, token, raw) };
+    return { ok: true, url: buildHelperLink(window.location.origin, token, raw), withKey: true };
   } catch {
-    return { ok: false, error: "The link could not be prepared on this device. Try again." };
+    return { ok: true, url: plain, withKey: false };
   }
 }

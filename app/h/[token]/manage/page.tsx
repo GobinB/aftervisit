@@ -32,7 +32,7 @@ function Invalid() {
         <h1 className="font-display text-2xl font-medium text-primary-900">This link is not valid</h1>
         <p className="mt-2 text-ink-500">Check that the whole manage link was copied, including the part after “key=”.</p>
         <Link href="/" className="mt-6 inline-block font-semibold text-primary-700 underline underline-offset-4">
-          Go to AfterVisit
+          Go to All Hands Care
         </Link>
       </main>
     </PageShell>

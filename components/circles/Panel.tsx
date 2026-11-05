@@ -5,7 +5,7 @@ import Link from "next/link";
 export function Panel({ title, href, linkLabel, children }: { title: string; href?: string | null; linkLabel?: string; children: React.ReactNode }) {
   const id = `${title.replace(/\s+/g, "-").toLowerCase()}-title`;
   return (
-    <section aria-labelledby={id} className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">
+    <section aria-labelledby={id} className="rounded-xl border border-border-200 bg-white p-4 sm:p-5">
       <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 border-b border-border-200 pb-3">
         <h2 id={id} className="font-display text-section text-primary-900">
           {title}

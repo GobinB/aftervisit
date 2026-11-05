@@ -1,28 +1,21 @@
 /**
- * AfterVisit mark: a check that becomes an arrow. Confirmed, then passed on.
- * "onDark" is for navy backgrounds.
+ * All Hands Care logo: three hands around a coral heart, by the designer (November 2026).
+ * The symbol files live in public/brand. The wordmark is DM Serif Display, the same face the
+ * designer outlined, set as live text so it stays sharp and readable by screen readers.
+ * "onDark" is the white and coral symbol for the navy sidebar and dark headers.
  */
-export const LOGO_PATHS = {
-  check: "M12.5 25.5l7.5 7.5L35 17.5",
-  arrow: "M26.5 16.5H35.5V25.5",
-};
+export const SYMBOL_SRC = { default: "/brand/symbol.svg", onDark: "/brand/symbol-on-dark.svg" } as const;
 
 export function LogoMark({ size = 40, variant = "default", className = "" }: { size?: number; variant?: "default" | "onDark"; className?: string }) {
-  const bg = variant === "onDark" ? "#E7EEF7" : "#1E4E8C";
-  const check = variant === "onDark" ? "#1E4E8C" : "#FFFFFF";
-  const arrow = variant === "onDark" ? "#2F80ED" : "#9CC9FF";
   return (
-    <svg width={size} height={size} viewBox="0 0 48 48" aria-hidden="true" focusable="false" className={`shrink-0 ${className}`}>
-      <rect width="48" height="48" rx="13" fill={bg} />
-      <path d={LOGO_PATHS.check} fill="none" stroke={check} strokeWidth="4.6" strokeLinecap="round" strokeLinejoin="round" />
-      <path d={LOGO_PATHS.arrow} fill="none" stroke={arrow} strokeWidth="4.6" strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
+    // eslint-disable-next-line @next/next/no-img-element -- a small static SVG; next/image adds nothing here
+    <img src={SYMBOL_SRC[variant]} width={size} height={size} alt="" aria-hidden="true" className={`shrink-0 ${className}`} />
   );
 }
 
-export function Wordmark({ className = "text-[1.45rem]", tone = "default" }: { className?: string; tone?: "default" | "onDark" }) {
+export function Wordmark({ className = "text-[1.15rem] sm:text-[1.45rem]", tone = "default" }: { className?: string; tone?: "default" | "onDark" }) {
   return (
-    <span className={`font-display leading-none font-medium ${tone === "onDark" ? "text-white" : "text-primary-900"} ${className}`}>AfterVisit</span>
+    <span className={`font-display leading-none font-medium whitespace-nowrap ${tone === "onDark" ? "text-white" : "text-primary-900"} ${className}`}>All Hands Care</span>
   );
 }
 
@@ -30,7 +23,8 @@ export function Logo({ size = 36, className = "" }: { size?: number; className?:
   return (
     <span className={`inline-flex items-center gap-2.5 ${className}`}>
       <LogoMark size={size} />
-      <Wordmark />
+      {/* The smallest phones show the mark alone; the link around it carries the name. */}
+      <Wordmark className="text-[1.15rem] max-[359px]:hidden sm:text-[1.45rem]" />
     </span>
   );
 }

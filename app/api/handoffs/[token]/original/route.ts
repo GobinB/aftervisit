@@ -25,7 +25,7 @@ export async function GET(req: Request, { params }: Ctx) {
   return NextResponse.redirect(url, { status: 302, headers: { "Cache-Control": "no-store", "Referrer-Policy": "no-referrer" } });
 }
 
-/** POST { pin }: returns { url } (an AfterVisit link with a ticket) after the same PIN check as the handoff. */
+/** POST { pin }: returns { url } (an All Hands Care link with a ticket) after the same PIN check as the handoff. */
 export async function POST(req: Request, { params }: Ctx) {
   const { token } = await params;
   const found = await lookup(token);

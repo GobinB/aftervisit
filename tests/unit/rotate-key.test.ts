@@ -16,7 +16,8 @@ const { rotateCircleKey, storeOwnCircleKey } = await import("@/services/circles"
 const circleId = "22222222-2222-4222-8222-222222222222";
 const wrapped = `av1.600000.${"a".repeat(22)}.${"b".repeat(16)}.${"c".repeat(64)}`;
 const owner: Actor = { kind: "caregiver", userId: "user-owner", circleIds: [circleId], role: "owner", accessToken: "token" };
-const co: Actor = { kind: "caregiver", userId: "user-co", circleIds: [circleId], role: "co_caregiver", accessToken: "token" };
+/** Signed in with Google, but not this circle's caregiver. */
+const stranger: Actor = { kind: "caregiver", userId: "user-stranger", circleIds: [], role: null, accessToken: "token" };
 const family: Actor = { kind: "helper", memberId: "33333333-3333-4333-8333-333333333301", circleId, role: "family", visibility: {} };
 
 function builder(table: string) {
@@ -92,8 +93,8 @@ describe("rotate circle key", () => {
     expect(rpc).not.toHaveBeenCalled();
   });
 
-  test("a co-caregiver cannot rotate", async () => {
-    const result = await rotateCircleKey(co, circleId, wrapped, 2);
+  test("a signed-in stranger cannot rotate", async () => {
+    const result = await rotateCircleKey(stranger, circleId, wrapped, 2);
     expect(result.ok).toBe(false);
     expect(rpc).not.toHaveBeenCalled();
     expect(from).not.toHaveBeenCalled();
@@ -106,8 +107,8 @@ describe("rotate circle key", () => {
     expect(result).not.toHaveProperty("links");
   });
 
-  test("a co-caregiver cannot create the first key", async () => {
-    const result = await storeOwnCircleKey(co, circleId, wrapped, 1);
+  test("a signed-in stranger cannot create the first key", async () => {
+    const result = await storeOwnCircleKey(stranger, circleId, wrapped, 1);
     expect(result.ok).toBe(false);
     expect(from).not.toHaveBeenCalled();
   });

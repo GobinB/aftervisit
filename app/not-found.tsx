@@ -8,7 +8,7 @@ export default function NotFound() {
         <h1 className="font-display text-2xl font-medium text-primary-900">We could not find that page</h1>
         <p className="mt-2 text-ink-500">Check the link, or start from the home page.</p>
         <Link href="/" className="mt-6 inline-block font-semibold text-primary-700 underline underline-offset-4">
-          Go to AfterVisit
+          Go to All Hands Care
         </Link>
       </main>
     </PageShell>

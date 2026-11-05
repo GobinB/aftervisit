@@ -40,7 +40,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       if (found.status === "ok" && !found.row.pin_hash) title = ogTitle(found.row.payload);
     } catch {}
   }
-  const description = "A care update was shared with you through AfterVisit.";
+  const description = "A care update was shared with you through All Hands Care.";
   return { ...base, title: { absolute: title }, description, openGraph: { title, description, type: "article" }, twitter: { card: "summary_large_image", title, description } };
 }
 

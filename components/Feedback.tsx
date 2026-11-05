@@ -34,7 +34,7 @@ export function FeedbackCard({ context }: { context: "demo" | "manage" }) {
   return (
     <section aria-labelledby={`${id}-t`} className="rounded-2xl border border-border-200 bg-white p-5">
       <h2 id={`${id}-t`} className="flex items-center gap-2 text-lg font-semibold text-primary-700">
-        <MessageCircleHeart size={20} aria-hidden="true" /> Help improve AfterVisit
+        <MessageCircleHeart size={20} aria-hidden="true" /> Help improve All Hands Care
       </h2>
       <p className="mt-1 text-sm text-ink-500">Three optional questions. Please don&apos;t include names or health details.</p>
       <form
@@ -104,7 +104,7 @@ export function FeedbackCard({ context }: { context: "demo" | "manage" }) {
         </div>
         <label className="flex cursor-pointer gap-3 text-[0.95rem]">
           <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="mt-0.5 h-5 w-5 shrink-0 accent-primary-700" />
-          <span>I agree AfterVisit can store these answers anonymously to improve the product.</span>
+          <span>I agree All Hands Care can store these answers anonymously to improve the product.</span>
         </label>
         {error ? (
           <p role="alert" className="text-sm text-attn-ink">

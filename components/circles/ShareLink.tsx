@@ -15,12 +15,12 @@ export function ShareLink({ link, onDone }: { link: { url: string; name: string;
     setCanShare(typeof navigator.share === "function");
   }, []);
 
-  const mail = `mailto:${link.email ?? ""}?subject=${encodeURIComponent("A link for you")}&body=${encodeURIComponent(`Here is your AfterVisit link:\n${link.url}\n\nIf there is a PIN, it will come separately. If the message drops the part after #, use the copied link instead.`)}`;
+  const mail = `mailto:${link.email ?? ""}?subject=${encodeURIComponent("A link for you")}&body=${encodeURIComponent(`Here is your All Hands Care link:\n${link.url}\n\nIf there is a PIN, it will come separately.`)}`;
 
   return (
     <div role="status" className="space-y-3 rounded-2xl border border-border-200 bg-sky-100 p-4">
       <p className="font-semibold text-primary-900">Link for {link.name}</p>
-      <p className="text-sm text-ink-500">Shown once. Copy the whole link. The part after # opens files and stays in the browser. AfterVisit does not receive it and does not send the link.</p>
+      <p className="text-sm text-ink-500">Shown once. Copy the whole link and send it the way you usually do. All Hands Care does not send it for you.</p>
       <label className="sr-only" htmlFor={inputId}>
         Personal link for {link.name}
       </label>
@@ -43,7 +43,7 @@ export function ShareLink({ link, onDone }: { link: { url: string; name: string;
             variant="secondary"
             onClick={async () => {
               try {
-                await navigator.share({ title: "AfterVisit", text: `A link for ${link.name}:\n${link.url}`, url: link.url });
+                await navigator.share({ title: "All Hands Care", text: `A link for ${link.name}:\n${link.url}`, url: link.url });
               } catch {
                 // The person closed the share sheet.
               }
