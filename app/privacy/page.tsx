@@ -1,3 +1,4 @@
+import { Eye, HeartHandshake, ShieldCheck, Trash2, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { SOURCE_URL } from "@/components/AppBar";
 import { DemoNotice } from "@/components/DemoNotice";
@@ -9,148 +10,213 @@ export const metadata: Metadata = { title: "Privacy" };
 export const dynamic = "force-dynamic";
 
 const TTL_DAYS = Number(process.env.HANDOFF_TTL_DAYS || 30);
+const EFFECTIVE = "November 5, 2026";
+
+const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
+  { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
+  { icon: HeartHandshake, title: "Never sold, no ads", body: "We don't sell information, show ads, or use tracking cookies." },
+  { icon: ShieldCheck, title: "Only what's needed", body: "We keep what you enter. The full text of a visit summary is not saved." },
+  { icon: Trash2, title: "Close it any time", body: "Deleting a circle closes it for everyone and turns off every link, right away." },
+];
+
+const SECTIONS = [
+  { id: "collect", title: "Information we collect" },
+  { id: "use", title: "How we use it" },
+  { id: "see", title: "Who can see it" },
+  { id: "services", title: "Services we use" },
+  { id: "keep", title: "How long we keep it" },
+  { id: "choices", title: "Your choices" },
+  { id: "security", title: "Security" },
+  { id: "children", title: "Children" },
+  { id: "changes", title: "Changes and questions" },
+];
 
 export default function PrivacyPage() {
   const provider = providerDisclosure();
   return (
     <PageShell>
-      <main id="main" className="mx-auto w-full max-w-[720px] flex-1 px-4 pt-10 pb-16">
-        <h1 className="font-display text-[2.4rem] leading-tight font-medium text-primary-900">Privacy</h1>
-        <p className="mt-3 text-lg text-ink-500">How this site handles information today, in plain language.</p>
-        <DemoNotice className="mt-6" />
+      <main id="main" className="flex-1 overflow-x-clip">
+        <section className="bg-primary-900 text-white">
+          <div className="mx-auto max-w-[1000px] px-4 py-12 sm:px-6 sm:py-16">
+            <p className="text-[12px] font-semibold tracking-[0.14em] text-[#F6B7AA] uppercase">Privacy</p>
+            <h1 className="font-display mt-3 text-[2.2rem] leading-tight sm:text-[2.8rem]">You control the information. We protect it.</h1>
+            <p className="mt-3 max-w-2xl text-white/80">How All Hands Care handles what families share, in plain language.</p>
+          </div>
+        </section>
 
-        <div className="mt-10 space-y-10 [&_h2]:font-display [&_h2]:text-[1.6rem] [&_h2]:text-ink-900 [&_li]:mt-2 [&_p]:mt-2 [&_ul]:mt-3 [&_ul]:list-disc [&_ul]:pl-6">
-          <section>
-            <h2>While you build a draft</h2>
-            <ul>
-              <li>
-                Pasted text and PDFs are sent to All Hands Care&apos;s server to build the draft. They are processed in memory and are not saved.
-              </li>
-              <li>Photos are read in your browser. The photo is not uploaded; only the text read from it is sent to build the draft.</li>
-              <li>
-                The draft is built by <strong>{provider.label}</strong>.
-                {provider.thirdParty ? (
-                  <>
-                    {" "}
-                    This means the text of your summary is sent from All Hands Care&apos;s server to that service. See its{" "}
-                    <a className="text-primary-700 underline" href={provider.termsUrl} target="_blank" rel="noreferrer">
-                      terms
+        <section aria-label="Our promises" className="bg-paper-100">
+          <div className="mx-auto max-w-[1000px] px-4 py-10 sm:px-6">
+            <ul className="grid gap-4 sm:grid-cols-2">
+              {PROMISES.map(({ icon: Icon, title, body }) => (
+                <li key={title} className="rounded-xl bg-white p-5">
+                  <Icon className="size-6 text-primary-700" aria-hidden="true" />
+                  <h2 className="mt-3 font-semibold text-ink-900">{title}</h2>
+                  <p className="mt-1 text-ink-500">{body}</p>
+                </li>
+              ))}
+            </ul>
+            <div className="mt-4 rounded-xl border border-[#F6CFC6] bg-[#FCEDEA] p-5">
+              <h2 className="font-semibold text-ink-900">About HIPAA</h2>
+              <p className="mt-1 text-ink-900">
+                HIPAA covers doctors, hospitals, health plans and the companies that work for them. All Hands Care is a free tool that families
+                use on their own, so HIPAA generally does not apply to what you keep here. We still treat it as sensitive health information:
+                it is encrypted on its way to and from the site, every circle is walled off from every other in the database, and files are
+                kept in private storage. All Hands Care has not yet completed a formal privacy and security review.
+              </p>
+            </div>
+            <DemoNotice className="mt-4" />
+          </div>
+        </section>
+
+        <section aria-labelledby="policy-title" className="bg-white">
+          <div className="mx-auto grid max-w-[1000px] gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[200px_minmax(0,1fr)]">
+            <nav aria-label="On this page" className="hidden lg:block">
+              <p className="text-[12px] font-semibold tracking-[0.12em] text-ink-500 uppercase">On this page</p>
+              <ul className="sticky top-24 mt-3 space-y-2 text-[14px]">
+                {SECTIONS.map((section) => (
+                  <li key={section.id}>
+                    <a href={`#${section.id}`} className="text-ink-500 hover:text-primary-900">
+                      {section.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            <div className="min-w-0 [&_h3]:font-display [&_h3]:text-[1.4rem] [&_h3]:text-primary-900 [&_li]:mt-1.5 [&_p]:mt-2 [&_section]:scroll-mt-24 [&_ul]:mt-2 [&_ul]:list-disc [&_ul]:pl-5">
+              <h2 id="policy-title" className="font-display text-[1.9rem] leading-tight text-primary-900">
+                Privacy policy
+              </h2>
+              <p className="text-[14px] text-ink-500">Effective {EFFECTIVE}</p>
+
+              <div className="mt-8 space-y-9">
+                <section id="collect">
+                  <h3>Information we collect</h3>
+                  <ul>
+                    <li>
+                      <strong>Your account.</strong> Caregivers sign in with Google. Google shares your name, email address and profile photo
+                      with our sign-in service. We never see your Google password.
+                    </li>
+                    <li>
+                      <strong>What you enter for the person you look after:</strong> the care summary (allergies, doctors, pharmacy, emergency
+                      contacts), the calendar, to-dos and medication list, with each medication change and when it was made.
+                    </li>
+                    <li>
+                      <strong>The people you add:</strong> their name, role, which parts they can see, an optional email for your own mail app,
+                      and when they last opened their link. Links and PINs are stored only as one-way hashes.
+                    </li>
+                    <li>
+                      <strong>What people do on their link:</strong> who took or finished a to-do and who said they would go to an event.
+                    </li>
+                    <li>
+                      <strong>Visit summaries.</strong> Pasted text and PDFs are read on our server to build a draft and are not saved. Photos
+                      are read in your browser; only the text is sent. We keep only the items you confirm. The original document is kept only
+                      if you choose to attach it.
+                    </li>
+                    <li>
+                      <strong>Feedback</strong> you send, stored without your name, IP address or any link to your circle.
+                    </li>
+                    <li>
+                      <strong>Technical data.</strong> Page visits are counted without cookies. To prevent abuse, a salted one-way hash of
+                      your IP address is kept for one day.
+                    </li>
+                  </ul>
+                </section>
+
+                <section id="use">
+                  <h3>How we use it</h3>
+                  <p>Only to run All Hands Care for you and the people you choose. We do not sell it, rent it, or use it for advertising.</p>
+                </section>
+
+                <section id="see">
+                  <h3>Who can see it</h3>
+                  <ul>
+                    <li>You, the caregiver who signed in.</li>
+                    <li>
+                      The people you add, through their own link, and only the parts their role and your choices allow. Home aides and day
+                      programs see only the to-dos given to them.
+                    </li>
+                    <li>
+                      Anyone who has a person&apos;s link can open it, because a link can be forwarded. Add a PIN for a second step, and turn
+                      off a link if it is shared by mistake.
+                    </li>
+                    <li>Pages opened from a link ask search engines not to index them.</li>
+                  </ul>
+                </section>
+
+                <section id="services">
+                  <h3>Services we use</h3>
+                  <ul>
+                    <li>Vercel hosts the site. Supabase stores the information, in the United States.</li>
+                    <li>Google provides sign-in for caregivers.</li>
+                    <li>
+                      Visit summary drafts are built by <strong>{provider.label}</strong>.
+                      {provider.thirdParty ? (
+                        <>
+                          {" "}
+                          The text of your summary is sent to that service; see its{" "}
+                          <a className="text-primary-700 underline" href={provider.termsUrl} target="_blank" rel="noreferrer">
+                            terms
+                          </a>
+                          .
+                        </>
+                      ) : null}
+                    </li>
+                    <li>
+                      Medication name suggestions come from the U.S. National Library of Medicine&apos;s public list. Our server downloads the
+                      whole list and searches it itself, so what you type is not sent to the Library.
+                    </li>
+                    <li>Vercel Web Analytics counts page visits without cookies.</li>
+                  </ul>
+                </section>
+
+                <section id="keep">
+                  <h3>How long we keep it</h3>
+                  <ul>
+                    <li>A care circle is kept until you delete it. After that nobody can open it, but its stored records are not yet erased automatically.</li>
+                    <li>A shared visit summary (handoff) is deleted {TTL_DAYS} days after it is made, with any attached original.</li>
+                    <li>A helper&apos;s browser stays signed in to a circle for up to {MEMBER_TTL_DAYS} days after they last open it.</li>
+                    <li>Cookies are used only to keep you signed in.</li>
+                  </ul>
+                </section>
+
+                <section id="choices">
+                  <h3>Your choices</h3>
+                  <ul>
+                    <li>Change what each person sees, or turn off their link, from People.</li>
+                    <li>Delete a circle from its Settings. Nobody can open it again, and every link stops working.</li>
+                    <li>Only share information you are allowed to share: you confirm this when you start a circle.</li>
+                  </ul>
+                </section>
+
+                <section id="security">
+                  <h3>Security</h3>
+                  <p>
+                    Information is encrypted between your device and the site. In the database, each circle is walled off from every other,
+                    and only the people you add can reach it. No system is perfectly secure, and All Hands Care has not yet completed a formal
+                    review. The code is open source, so anyone can{" "}
+                    <a className="text-primary-700 underline" href={SOURCE_URL} target="_blank" rel="noreferrer">
+                      read how it works
                     </a>
                     .
-                  </>
-                ) : null}
-              </li>
-              <li>Your draft stays in this browser tab until you create a handoff or close the tab.</li>
-            </ul>
-          </section>
+                  </p>
+                </section>
 
-          <section>
-            <h2>What is saved when you create a handoff</h2>
-            <ul>
-              <li>
-                Only the items you reviewed and confirmed: visit details, medication changes, next steps and who is responsible, things to
-                watch for, questions, and any notes you kept. Each item may include the sentence from the summary it came from.
-              </li>
-              <li>
-                For each person you share with: their name and role, which parts they can see, when they opened their link, when they tapped
-                &ldquo;I&apos;ve read this,&rdquo; and any updates they made to their next steps (including notes). Your first name is saved too.
-              </li>
-              <li>The full text of the summary is not saved.</li>
-              <li>
-                The original document is saved only if you turn on <strong>Attach the original summary</strong>. It is kept in private
-                storage, opens only through a link that checks the handoff still exists, and is deleted with the handoff.
-              </li>
-              <li>When someone taps &ldquo;I&apos;ve read this,&rdquo; the name they typed and the time are saved.</li>
-              <li>PINs, personal links and your private manage key are stored only as one-way hashes.</li>
-              <li>If you send feedback, it is stored without any link to a handoff, your IP address or your name.</li>
-            </ul>
-          </section>
+                <section id="children">
+                  <h3>Children</h3>
+                  <p>All Hands Care is for adults caring for someone. It is not meant for children under 13 to use on their own.</p>
+                </section>
 
-          <section>
-            <h2>Who can open a handoff</h2>
-            <ul>
-              <li>
-                Each person you share with gets their own link and sees only the parts you chose for them. You can remove one person&apos;s
-                access, or send them a new link, at any time without affecting anyone else.
-              </li>
-              <li>
-                <strong>Anyone who has a person&apos;s link can open it if the handoff has no PIN.</strong> Links are long random codes that are
-                hard to guess, but a link can be forwarded.
-              </li>
-              <li>
-                New handoffs are protected with a 4-digit PIN by default. A PIN adds a second step; it does not confirm who someone is. Three
-                wrong tries lock that person&apos;s link for 10 minutes, and repeated lockouts last longer until the caregiver unlocks it.
-                One person&apos;s wrong tries never lock anyone else out.
-              </li>
-              <li>
-                &ldquo;I&apos;ve read this&rdquo; and updates to next steps are recorded against the personal link they came from. That shows which
-                link was used, not who was holding the phone: All Hands Care does not verify identity, so these are self-reported.
-              </li>
-              <li>Handoff pages ask search engines not to index them and send no referrer to other sites.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2>How long it lasts, and deleting it</h2>
-            <ul>
-              <li>
-                Every handoff expires {TTL_DAYS} days after it is created. Expired handoffs stop opening right away and are deleted, along with
-                any attached original, by a daily cleanup.
-              </li>
-              <li>You can delete a handoff at any time from your private manage link. Deletion is immediate.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2>Accounts, cookies and services we use</h2>
-            <ul>
-              <li>You don&apos;t need an account to build, share or open a handoff.</li>
-              <li>
-                Caregivers who start a care circle sign in with Google. Google shares your name, email address and profile photo with
-                All Hands Care&apos;s sign-in service, Supabase. All Hands Care never sees your Google password.
-              </li>
-              <li>
-                People added to a circle don&apos;t need an account. They open their personal link, and their browser keeps a signed cookie
-                for up to {MEMBER_TTL_DAYS} days so they stay signed in to that circle.
-              </li>
-              <li>Cookies are used only to keep you signed in. There are no tracking cookies.</li>
-              <li>The site is hosted on Vercel. Care circles, their calendars, to-dos and medication lists, handoffs and attached originals are stored with Supabase in the United States.</li>
-              <li>
-                When you type a medication name, suggestions come from the U.S. National Library of Medicine&apos;s public list of drug names.
-                Our server downloads the whole list and searches it itself, so what you type is not sent to the Library.
-              </li>
-              <li>Page visits are counted with Vercel Web Analytics, which does not use cookies.</li>
-              <li>To prevent abuse, a salted one-way hash of your IP address is kept for one day to count requests per hour.</li>
-            </ul>
-          </section>
-
-          <section>
-            <h2>Sharing someone&apos;s health information</h2>
-            <p>
-              Only share information you are allowed to share. Before creating a handoff you confirm that you are the patient, or that you have
-              the patient&apos;s permission or legal authority to share it with the people you choose.
-            </p>
-          </section>
-
-          <section>
-            <h2>Where All Hands Care stands</h2>
-            <p>
-              All Hands Care is a prototype. It has not completed a formal privacy, security or HIPAA compliance review, and it does not give
-              medical advice: it organizes what the clinician wrote.
-            </p>
-          </section>
-
-          <section>
-            <h2>Open source</h2>
-            <p>
-              The source code is public under the AGPL-3.0 license, so you can read exactly how the site works.{" "}
-              <a className="text-primary-700 underline" href={SOURCE_URL} target="_blank" rel="noreferrer">
-                Read the source code
-              </a>
-              . Being open source makes the code inspectable; it does not by itself make a service secure.
-            </p>
-          </section>
-        </div>
+                <section id="changes">
+                  <h3>Changes and questions</h3>
+                  <p>
+                    If this policy changes, we will update the date above and say what changed. All Hands Care organizes what you and the
+                    clinician wrote; it does not give medical advice.
+                  </p>
+                </section>
+              </div>
+            </div>
+          </div>
+        </section>
       </main>
     </PageShell>
   );
