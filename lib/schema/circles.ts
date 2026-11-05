@@ -124,8 +124,11 @@ export const CreateCircleSchema = z
       terms: z.literal(true),
       privacy: z.literal(true),
     }),
-    /** Already wrapped in the browser. The raw key, the recovery phrase, and a key version are not accepted. */
-    circleKeyWrapped: CircleKeyWrappedSchema,
+    /**
+     * Optional: the key for files is usually made later, in Settings, when the circle first needs it.
+     * When sent, it is already wrapped in the browser. The raw key, the recovery phrase, and a key version are not accepted.
+     */
+    circleKeyWrapped: CircleKeyWrappedSchema.optional(),
   })
   .strict();
 export type CreateCircleInput = z.infer<typeof CreateCircleSchema>;

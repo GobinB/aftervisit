@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { CircleFrame, circleTabs, roleLine } from "@/components/circles/CircleFrame";
 import { MembersPanel } from "@/components/circles/MembersPanel";
-import { RestoreKeys } from "@/components/circles/RestoreKeys";
 import { CircleShell } from "@/components/circles/Shell";
 import { getActor } from "@/lib/auth";
 import { getCircle, listOwnCircleKeys } from "@/services/circles";
@@ -28,7 +27,6 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
             mail app. All Hands Care does not send messages.
           </p>
         ) : null}
-        <RestoreKeys circles={keys} />
         <MembersPanel circleId={id} people={listed.people} canManage={listed.canManage} keyVersion={keys[0]?.circleKeyVersion ?? null} />
       </CircleFrame>
     </CircleShell>

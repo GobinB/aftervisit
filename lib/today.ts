@@ -91,15 +91,15 @@ export function buildStats(circleId: string, people: PersonView[], content: Circ
         key: "todos",
         label: "Open to-dos",
         value: open.length,
-        detail: volunteer ? `${volunteer} need${volunteer === 1 ? "s" : ""} a volunteer` : open.length ? "Everyone has one" : "All done",
+        detail: volunteer ? `${volunteer} need${volunteer === 1 ? "s" : ""} a volunteer` : open.length ? "Everyone has one" : todos.length ? "All done" : "None yet",
         tone: "blue",
         href: `/circles/${circleId}/todos`,
       }
     : { key: "opened", label: "Opened this week", value: openedThisWeek, detail: `of ${helpers.length}`, tone: "green", href: peopleHref };
   return [
-    { key: "helpers", label: "People helping", value: helpers.length, detail: helpers.length === 1 ? "1 link on" : `${helpers.length} links on`, tone: "blue", href: peopleHref },
+    { key: "helpers", label: "People helping", value: helpers.length, detail: helpers.length === 0 ? "Add the first person" : helpers.length === 1 ? "1 link on" : `${helpers.length} links on`, tone: "blue", href: peopleHref },
     second,
-    { key: "waiting", label: "Not opened yet", value: notOpened, detail: notOpened ? "Send their link again" : "Everyone has opened", tone: notOpened ? "amber" : "neutral", href: peopleHref },
+    { key: "waiting", label: "Not opened yet", value: notOpened, detail: notOpened ? "Send their link again" : helpers.length ? "Everyone has opened" : "Nobody added yet", tone: notOpened ? "amber" : "neutral", href: peopleHref },
     {
       key: "allergies",
       label: "Allergies",

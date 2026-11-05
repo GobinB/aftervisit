@@ -86,7 +86,7 @@ const ready = (key: ModuleKey) => MODULES.some((item) => item.key === key && ite
 const STEPS: { title: string; body: string; needs?: ModuleKey }[] = [
   {
     title: "Sign in and start the page.",
-    body: "Sign in with Google and add the person you care for. You get 12 recovery words to keep somewhere safe. They restore your circle’s private key on a new phone.",
+    body: "Sign in with Google and add the person you care for: who they are, and what a helper needs in a hurry, like allergies and who to call.",
   },
   {
     title: "Add the people who help.",

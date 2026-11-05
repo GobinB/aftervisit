@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { CircleFrame, circleTabs, roleLine } from "@/components/circles/CircleFrame";
 import { DeleteCircle } from "@/components/circles/DeleteCircle";
+import { RestoreKeys } from "@/components/circles/RestoreKeys";
 import { RotateKey } from "@/components/circles/RotateKey";
 import { CircleShell } from "@/components/circles/Shell";
 import { getActor } from "@/lib/auth";
@@ -31,13 +32,27 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               <h2 id="key-title" className="font-display border-b border-border-200 pb-3 text-section text-primary-900">
                 Key for files
               </h2>
-              <p className="mt-4 text-ink-500">
-                If your recovery words may have been seen by someone else, make a new key. Every helper link is replaced, so send each person their
-                new link.
-              </p>
-              <div className="mt-4">
-                <RotateKey circle={key} />
-              </div>
+              {key.wrapped ? (
+                <>
+                  <p className="mt-4 text-ink-500">
+                    If your recovery words may have been seen by someone else, make a new key. Every helper link is replaced, so send each person
+                    their new link.
+                  </p>
+                  <div className="mt-4 space-y-4">
+                    <RestoreKeys circles={[key]} />
+                    <RotateKey circle={key} />
+                  </div>
+                </>
+              ) : (
+                <>
+                  <p className="mt-4 text-ink-500">
+                    Only needed once you keep files in this circle. People, medications, to-dos and the calendar work without it.
+                  </p>
+                  <div className="mt-4">
+                    <RestoreKeys circles={[key]} />
+                  </div>
+                </>
+              )}
             </section>
           ) : null}
           {canDelete ? (

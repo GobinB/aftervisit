@@ -28,31 +28,22 @@ export function memberLinkForVersion(
 }
 
 /**
- * Why this device cannot build a link right now, or null when it can.
- * Checked before a person is added or a link replaced, so nobody is left without a working link.
+ * Builds a person's link on this device. When this device holds the circle's current key for files,
+ * it rides after # (the server never sees it). Without one, the link is /i/{token} alone: it opens
+ * everything the person may see. Only files need the key, and they can be shared again once it exists.
  */
-export async function linkKeyProblem(circleId: string, keyVersion: number | null): Promise<string | null> {
-  try {
-    const local = await loadCircleKey(circleId);
-    return keyVersionError(local?.keyVersion ?? null, keyVersion);
-  } catch {
-    return "The link could not be prepared on this device. Try again.";
-  }
-}
-
-/** Builds /i/{token}#k=... on this device. The token is the only part a server action returned. */
 export async function urlForMemberToken(
   circleId: string,
   token: string,
   keyVersion: number | null,
-): Promise<{ ok: true; url: string } | { ok: false; error: string }> {
+): Promise<{ ok: true; url: string; withKey: boolean } | { ok: false; error: string }> {
+  const plain = `${window.location.origin}/i/${token}`;
   try {
     const local = await loadCircleKey(circleId);
-    const error = keyVersionError(local?.keyVersion ?? null, keyVersion);
-    if (error || !local) return { ok: false, error: error ?? missingKey };
+    if (!local || keyVersionError(local.keyVersion, keyVersion)) return { ok: true, url: plain, withKey: false };
     const raw = await exportKeyBytes(local.key);
-    return { ok: true, url: buildHelperLink(window.location.origin, token, raw) };
+    return { ok: true, url: buildHelperLink(window.location.origin, token, raw), withKey: true };
   } catch {
-    return { ok: false, error: "The link could not be prepared on this device. Try again." };
+    return { ok: true, url: plain, withKey: false };
   }
 }

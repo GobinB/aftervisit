@@ -4,7 +4,6 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { circleTabs } from "@/components/circles/CircleFrame";
 import { GettingStarted } from "@/components/circles/GettingStarted";
-import { RestoreKeys } from "@/components/circles/RestoreKeys";
 import { Agenda } from "@/components/calendar/Agenda";
 import { CircleShell } from "@/components/circles/Shell";
 import { ActivityFeed, Alerts, AtAGlance, Card, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayHeader, TodosGlance } from "@/components/circles/Today";
@@ -17,7 +16,7 @@ import { addDays } from "@/lib/schema/events";
 import { buildAlerts, buildFeed, buildStats } from "@/lib/today";
 import { todoRows, viewerOf } from "@/lib/todo-rows";
 import { listActivity } from "@/services/activity";
-import { getCircle, listOwnCircleKeys } from "@/services/circles";
+import { getCircle } from "@/services/circles";
 import { listEvents } from "@/services/events";
 import { listMedications } from "@/services/medications";
 import { listPeople } from "@/services/members";
@@ -38,8 +37,6 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
   const listed = await listPeople(actor, id);
   const people = listed.ok ? listed.people : null;
   const canManage = listed.ok && listed.canManage;
-  const keys = actor.kind === "caregiver" ? await listOwnCircleKeys(actor) : [];
-  const key = keys.find((item) => item.circleId === id) ?? null;
   const summaryHref = can(actor, "summary:read", { circleId: id }) ? `/circles/${id}/summary` : null;
   const peopleHref = `/circles/${id}/members`;
   const medications = await listMedications(actor, id);
@@ -117,7 +114,6 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
 
   return (
     <CircleShell signedIn={actor.kind === "caregiver"} circle={{ personName, tabs, active: "overview" }}>
-      {key ? <RestoreKeys circles={[key]} /> : null}
       <InstallApp />
       {header}
       {canManage && people ? (

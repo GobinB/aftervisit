@@ -2,9 +2,9 @@
 
 ## Decision
 
-Each circle has one key. The caregiver's browser creates it with Web Crypto (AES-GCM, 256 bits). The server stores only a wrapped copy on that caregiver's `circle_caregivers` row, plus `key_version`. It never receives the raw key or the recovery phrase.
+Each circle can have one key. It is made only when the caregiver chooses to, under Settings → Key for files; starting a circle and adding people do not need it, because no circle feature stores files yet. The caregiver's browser creates it with Web Crypto (AES-GCM, 256 bits). The server stores only a wrapped copy on that caregiver's `circle_caregivers` row, plus `key_version`. It never receives the raw key or the recovery phrase.
 
-The recovery phrase is 12 BIP39 English words (128 bits plus a checksum). It is shown once, at circle creation, and the person types three of the words before continuing. The screen says that if every caregiver loses the phrase, files cannot be recovered. The browser derives a wrapping key with PBKDF2-SHA256, 600,000 iterations, a random 16-byte salt, and AES-GCM. Web Crypto provides PBKDF2. Argon2 and scrypt are not in the browser API, and a WASM library would be a new dependency. 600,000 iterations is the OWASP 2023 minimum for PBKDF2-SHA256, which makes guessing a 12-word phrase impractical. The salt, IV, and ciphertext travel inside `circle_key_wrapped` (`av1.600000...`), so no extra column is required. The phrase-derived key is non-extractable and is not stored.
+The recovery phrase is 12 BIP39 English words (128 bits plus a checksum). It is shown once, when the key is made, and the person types three of the words before continuing. The screen says that if the words are lost, files cannot be recovered. The browser derives a wrapping key with PBKDF2-SHA256, 600,000 iterations, a random 16-byte salt, and AES-GCM. Web Crypto provides PBKDF2. Argon2 and scrypt are not in the browser API, and a WASM library would be a new dependency. 600,000 iterations is the OWASP 2023 minimum for PBKDF2-SHA256, which makes guessing a 12-word phrase impractical. The salt, IV, and ciphertext travel inside `circle_key_wrapped` (`av1.600000...`), so no extra column is required. The phrase-derived key is non-extractable and is not stored.
 
 The circle key stored on the device is extractable. Helper links have to carry it. Where a key does not need to be copied out, it is non-extractable: the phrase wrapping key, and a file key after it is unwrapped for decrypt.
 
@@ -16,7 +16,7 @@ Helper links are `/i/{token}#k=...`. The server only creates and stores the toke
 
 The PIN protects server access. It does not wrap or hide the key. A forwarded link carries the key in the fragment, which is why the link has a PIN and why the caregiver can revoke it. Revoking the token stops server access. Anyone who already copied the fragment still has the key material, so revocation is not a substitute for the phrase.
 
-Only the owner rotates the key. The database rejects a direct change to `circles.key_version` and a call to `rotate_own_circle_key` from anyone else. Rotation creates a new circle key, moves `key_version` forward by one, rewraps it for the owner, and replaces every active helper token in that same transaction. The screen says every helper needs a new link and shows those links. A helper link is built only when the key stored on this device is the circle's current version.
+Only the owner rotates the key. The database rejects a direct change to `circles.key_version` and a call to `rotate_own_circle_key` from anyone else. Rotation creates a new circle key, moves `key_version` forward by one, rewraps it for the owner, and replaces every active helper token in that same transaction. The screen says every helper needs a new link and shows those links. A helper link carries the key only when the key stored on this device is the circle's current version; otherwise the link is `/i/{token}` alone and opens everything except files.
 
 ## Not decided
 
