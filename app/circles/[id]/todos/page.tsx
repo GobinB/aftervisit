@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { circleTabs } from "@/components/circles/CircleFrame";
-import { CircleShell } from "@/components/circles/Shell";
 import { Card } from "@/components/circles/Today";
 import { TodoForm } from "@/components/todos/TodoForm";
 import { TodoList } from "@/components/todos/TodoList";
@@ -29,11 +27,9 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
   const { show } = await searchParams;
   const actor = await getActor(id);
   if (!actor) redirect(`/login?next=/circles/${id}/todos`);
-  const todos = await listTodos(actor, id);
+  const [todos, content, listed] = await Promise.all([listTodos(actor, id), getCircle(actor, id), listPeople(actor, id)]);
   if (!todos) notFound();
-  const content = await getCircle(actor, id);
   const personName = content?.person_name ?? "Your care circle";
-  const listed = await listPeople(actor, id);
   const people = listed.ok ? listed.people : null;
   const canEdit = can(actor, "tasks:manage", { circleId: id });
   const seesAll = can(actor, "tasks:read", { circleId: id });
@@ -47,7 +43,7 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
     .map((person) => ({ value: person.id, label: `${person.name} (${person.roleLabel})` }));
 
   return (
-    <CircleShell signedIn={actor.kind === "caregiver"} circle={{ personName, tabs: circleTabs(actor, id), active: "todos" }}>
+    <>
       <div className="mb-5">
         <h1 className="font-display text-[26px] leading-tight tracking-[-0.01em] text-primary-900">To-dos</h1>
         <p className="mt-1 text-[13px] text-ink-500">
@@ -84,6 +80,6 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
           <p className="px-4 py-10 text-center text-[14px] text-ink-500">{EMPTY[view]}</p>
         )}
       </Card>
-    </CircleShell>
+    </>
   );
 }

@@ -4,7 +4,6 @@ import { CircleFrame, circleTabs, roleLine } from "@/components/circles/CircleFr
 import { DeleteCircle } from "@/components/circles/DeleteCircle";
 import { RestoreKeys } from "@/components/circles/RestoreKeys";
 import { RotateKey } from "@/components/circles/RotateKey";
-import { CircleShell } from "@/components/circles/Shell";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { getCircle, listOwnCircleKeys } from "@/services/circles";
@@ -24,7 +23,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   if (!content) notFound();
   const key = (await listOwnCircleKeys(actor)).find((item) => item.circleId === id) ?? null;
   return (
-    <CircleShell signedIn circle={{ personName: content.person_name, tabs: circleTabs(actor, id), active: "settings" }}>
+    <>
       <CircleFrame personName={content.person_name} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} active="settings">
         <div className="max-w-xl space-y-6">
           {key && canRotate ? (
@@ -60,7 +59,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               <h2 id="delete-title" className="font-display border-b-2 border-attn pb-3 text-section text-attn-ink">
                 Delete this circle
               </h2>
-              <p className="mt-4 text-ink-500">This removes the circle for everyone on it and turns off every helper link. It cannot be undone here.</p>
+              <p className="mt-4 text-ink-500">Nobody can open the circle again and every link stops working, right away. Everything in it is erased for good after 30 days.</p>
               <div className="mt-4">
                 <DeleteCircle circleId={id} />
               </div>
@@ -68,6 +67,6 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
           ) : null}
         </div>
       </CircleFrame>
-    </CircleShell>
+    </>
   );
 }

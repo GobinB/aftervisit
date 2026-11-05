@@ -4,6 +4,10 @@ Notable changes to All Hands Care (formerly AfterVisit). The newest entries are 
 
 ## Unreleased
 
+- A shorter home page, about a sixth of the words: a navy opening with the app itself on a phone, how to add it to an iPhone or Android home screen, four short cards, three steps, a privacy band and one call to action. It no longer scrolls sideways on phones; nothing on the site can.
+- The privacy page leads with four plain promises and a short note on HIPAA, followed by a full policy in sections with an effective date. It explains that a deleted circle closes at once and is erased for good after 30 days.
+- Deleted circles are erased 30 days after deletion by the daily cleanup, with their people, medications and history, to-dos, events, consents and activity.
+- Faster circle screens: the app now runs in Vercel's Portland region, next to the database in Oregon; each page reads its data at once instead of one query after another; the circle's sidebar and phone bar stay on screen between areas, the highlight moves as soon as you tap, and a loading view shows while a page arrives.
 - New logo: two cupped navy hands holding a coral heart, with the designer's outlined wordmark. It replaces the earlier mark in the app bar, the navy sidebar (white version), the footer, share images, the favicon (a coral heart) and the iPhone and Android icons.
 - Starting a circle and adding people no longer ask for 12 recovery words. Starting a circle is three steps, and a person's link always works. The key for files moved to Settings, for when a circle first keeps files; when this device has it, new links still carry it.
 - The designed logo: three hands around a coral heart. The symbol is used in the app bar, the navy sidebar and share images, with the app icons for iPhone and Android and a simplified heart favicon.

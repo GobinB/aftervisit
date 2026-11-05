@@ -105,6 +105,8 @@ html.av-large { font-size: 18px; }
 }
 
 body {
+  /* A wide element can never make the whole page scroll sideways on a phone. */
+  overflow-x: clip;
   background-color: var(--color-surface-50);
   color: var(--color-ink-900);
   line-height: 1.5;

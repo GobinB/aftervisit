@@ -2,8 +2,6 @@ import { FileText, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { circleTabs } from "@/components/circles/CircleFrame";
-import { CircleShell } from "@/components/circles/Shell";
 import { Card, SectionLabel } from "@/components/circles/Today";
 import { TodayDate } from "@/components/circles/TodayDate";
 import { MedicationList } from "@/components/medications/MedicationList";
@@ -23,19 +21,21 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const actor = await getActor(id);
   if (!actor) redirect(`/login?next=/circles/${id}/medications`);
-  const medications = await listMedications(actor, id);
-  if (!medications) notFound();
-  const content = await getCircle(actor, id);
-  const personName = content?.person_name ?? "Your care circle";
   const canEdit = can(actor, "medications:edit", { circleId: id });
-  const changes = canEdit ? await listMedicationChanges(actor, id) : [];
+  const [medications, content, changes] = await Promise.all([
+    listMedications(actor, id),
+    getCircle(actor, id),
+    canEdit ? listMedicationChanges(actor, id) : Promise.resolve([]),
+  ]);
+  if (!medications) notFound();
+  const personName = content?.person_name ?? "Your care circle";
   const scheduled = medications.filter((med) => med.status === "active" && med.schedule !== "as_needed");
   const asNeeded = medications.filter((med) => med.status === "active" && med.schedule === "as_needed");
   const stopped = medications.filter((med) => med.status === "stopped");
   const allergies = content?.allergies ?? [];
 
   return (
-    <CircleShell signedIn={actor.kind === "caregiver"} circle={{ personName, tabs: circleTabs(actor, id), active: "medications" }}>
+    <>
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="font-display text-[26px] leading-tight tracking-[-0.01em] text-primary-900">Medications</h1>
@@ -146,6 +146,6 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
           </section>
         ) : null}
       </div>
-    </CircleShell>
+    </>
   );
 }
