@@ -9,7 +9,8 @@ export const maxDuration = 60;
 /**
  * Daily purge (vercel.json, 03:00 UTC). Vercel Cron sends CRON_SECRET as a bearer token.
  * Deletes each expired row's stored original, then the row. Reads also check expires_at,
- * so an expired link is never served between runs.
+ * so an expired link is never served between runs. Then erases circles deleted more than
+ * 30 days ago, with everything in them.
  */
 export async function GET(req: Request) {
   const auth = req.headers.get("authorization") ?? "";
@@ -37,5 +38,8 @@ export async function GET(req: Request) {
   await db().from("handoff_tombstones").delete().lt("created_at", monthAgo);
   await db().from("rate_limits").delete().lt("window_start", new Date(Date.now() - 86_400_000).toISOString());
 
-  return json({ purged, failed });
+  const circles = await db().rpc("purge_deleted_circles", { p_days: 30 });
+  if (circles.error) return json({ purged, failed, error: "circle_purge_failed" }, 500);
+
+  return json({ purged, failed, circlesErased: circles.data ?? 0 });
 }

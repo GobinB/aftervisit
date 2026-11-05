@@ -59,7 +59,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               <h2 id="delete-title" className="font-display border-b-2 border-attn pb-3 text-section text-attn-ink">
                 Delete this circle
               </h2>
-              <p className="mt-4 text-ink-500">This removes the circle for everyone on it and turns off every helper link. It cannot be undone here.</p>
+              <p className="mt-4 text-ink-500">Nobody can open the circle again and every link stops working, right away. Everything in it is erased for good after 30 days.</p>
               <div className="mt-4">
                 <DeleteCircle circleId={id} />
               </div>

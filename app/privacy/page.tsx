@@ -16,7 +16,7 @@ const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
   { icon: HeartHandshake, title: "Never sold, no ads", body: "We don't sell information, show ads, or use tracking cookies." },
   { icon: ShieldCheck, title: "Only what's needed", body: "We keep what you enter. The full text of a visit summary is not saved." },
-  { icon: Trash2, title: "Close it any time", body: "Deleting a circle closes it for everyone and turns off every link, right away." },
+  { icon: Trash2, title: "Delete it any time", body: "Deleting a circle closes it for everyone at once, and erases it for good after 30 days." },
 ];
 
 const SECTIONS = [
@@ -172,7 +172,7 @@ export default function PrivacyPage() {
                 <section id="keep">
                   <h3>How long we keep it</h3>
                   <ul>
-                    <li>A care circle is kept until you delete it. After that nobody can open it, but its stored records are not yet erased automatically.</li>
+                    <li>A care circle is kept until you delete it. Nobody can open it after that, and 30 days later it is erased for good, with everything in it.</li>
                     <li>A shared visit summary (handoff) is deleted {TTL_DAYS} days after it is made, with any attached original.</li>
                     <li>A helper&apos;s browser stays signed in to a circle for up to {MEMBER_TTL_DAYS} days after they last open it.</li>
                     <li>Cookies are used only to keep you signed in.</li>
@@ -183,7 +183,7 @@ export default function PrivacyPage() {
                   <h3>Your choices</h3>
                   <ul>
                     <li>Change what each person sees, or turn off their link, from People.</li>
-                    <li>Delete a circle from its Settings. Nobody can open it again, and every link stops working.</li>
+                    <li>Delete a circle from its Settings. Nobody can open it again, every link stops working, and it is erased after 30 days.</li>
                     <li>Only share information you are allowed to share: you confirm this when you start a circle.</li>
                   </ul>
                 </section>
