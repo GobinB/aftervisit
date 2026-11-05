@@ -4,7 +4,7 @@
  * Only the build's own static files (scripts, styles, fonts, icons) are kept, plus the offline page,
  * which holds no care details. When a page cannot load, the offline page is shown instead.
  */
-const VERSION = "v2";
+const VERSION = "v3";
 const STATIC_CACHE = `ahc-static-${VERSION}`;
 const OFFLINE_URL = "/offline";
 const PRECACHE = [OFFLINE_URL, "/icons/icon-192.png", "/icon.svg"];

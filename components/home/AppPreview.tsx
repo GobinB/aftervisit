@@ -5,7 +5,7 @@ import { SummaryView } from "@/components/circles/SummaryView";
 import { Agenda } from "@/components/calendar/Agenda";
 import { MedicationList } from "@/components/medications/MedicationList";
 import { TodoList } from "@/components/todos/TodoList";
-import { LogoMark } from "@/components/Logo";
+import { LogoMark, Wordmark } from "@/components/Logo";
 import { SAMPLE_CALENDAR, SAMPLE_CIRCLE, SAMPLE_MEDICATIONS, SAMPLE_PEOPLE, SAMPLE_TODOS } from "@/lib/sample-circle";
 
 const TABS: { key: CircleTab; label: string; href: string }[] = [
@@ -38,7 +38,7 @@ export function AppPreview({ screen, className = "" }: { screen: Screen; classNa
       <div className="overflow-hidden rounded-2xl border border-border-200 bg-white">
         <div className="flex items-center justify-between gap-3 border-b border-border-200 bg-surface-50 px-4 py-2.5">
           <span className="flex items-center gap-2 text-sm font-semibold text-ink-900">
-            <LogoMark size={22} /> All Hands Care
+            <LogoMark size={20} /> <Wordmark className="text-[15px]" />
           </span>
           <span className="rounded border border-attn/50 px-1.5 text-tag font-bold tracking-wider text-attn-ink uppercase">Fictional</span>
         </div>

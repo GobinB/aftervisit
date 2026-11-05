@@ -4,6 +4,7 @@ Notable changes to All Hands Care (formerly AfterVisit). The newest entries are 
 
 ## Unreleased
 
+- New logo: two cupped navy hands holding a coral heart, with the designer's outlined wordmark. It replaces the earlier mark in the app bar, the navy sidebar (white version), the footer, share images, the favicon (a coral heart) and the iPhone and Android icons.
 - Starting a circle and adding people no longer ask for 12 recovery words. Starting a circle is three steps, and a person's link always works. The key for files moved to Settings, for when a circle first keeps files; when this device has it, new links still carry it.
 - The designed logo: three hands around a coral heart. The symbol is used in the app bar, the navy sidebar and share images, with the app icons for iPhone and Android and a simplified heart favicon.
 - Fixes from an end-to-end test: a person is no longer added when this device cannot make their link (the key is checked first); activity and medication-history dates use the viewer's own time zone; a visit started from a circle no longer asks for names; plainer wording on the People page, the recovery words, the calendar ("You're going") and the visit summary result.
