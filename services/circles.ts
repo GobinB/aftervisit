@@ -159,6 +159,18 @@ export async function rotateCircleKey(
   return { ok: true, keyVersion, links: links.map(({ token, name, email }) => ({ token, name, email })) };
 }
 
+/** Replaces the care summary. Only the caregiver may; row security checks it again. */
+export async function updateCircleContent(actor: Actor, circleId: string, content: CircleContent): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (actor.kind !== "caregiver" || !actor.circleIds.includes(circleId) || !can(actor, "summary:edit", { circleId })) {
+    return { ok: false, error: "Only the caregiver can change the care summary." };
+  }
+  const parsed = CircleContentSchema.safeParse(content);
+  if (!parsed.success) return { ok: false, error: "Check the details and try again." };
+  const { data, error } = await clientFor(actor).from("circles").update({ content: parsed.data }).eq("id", circleId).is("deleted_at", null).select("id");
+  if (error || !data?.length) return { ok: false, error: generic };
+  return { ok: true };
+}
+
 /** Cached per request, so the circle layout and its page share one read. */
 export const getCircle = cache(async function getCircle(actor: Actor, circleId: string): Promise<CircleContent | null> {
   if (actor.kind === "helper" && actor.circleId !== circleId) return null;

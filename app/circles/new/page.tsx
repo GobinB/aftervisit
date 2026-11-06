@@ -16,9 +16,7 @@ export default async function NewCirclePage() {
       <BackLink href="/circles" label="Your circles" />
       <div className="rounded-2xl border border-border-200 bg-white p-5 sm:p-8">
         <h1 className="font-display text-page text-primary-900">Start a care circle</h1>
-        <p className="mt-2 mb-8 text-ink-500">
-          One shared page for the person you look after. All Hands Care stores your words as you type them and does not interpret them.
-        </p>
+        <p className="mt-2 mb-7 text-ink-500">Just their name for now. You can add allergies, doctors and more later, from Today.</p>
         <CircleForm />
       </div>
     </CircleShell>

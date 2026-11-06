@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { Actor } from "@/lib/auth";
 import type { PersonView } from "@/lib/schema/circles";
 import { TodoInputSchema, filterTodos, sortTodos, type Todo } from "@/lib/schema/todos";
-import { buildAlerts, buildFeed, buildStats } from "@/lib/today";
+import { buildAlerts, buildFeed, buildTodayCards } from "@/lib/today";
 import { todoRows } from "@/lib/todo-rows";
 
 const { clientFor } = vi.hoisted(() => ({ clientFor: vi.fn() }));
@@ -106,9 +106,9 @@ describe("to-do permissions in the service", () => {
 
 describe("to-dos on Today", () => {
   test("stats, alerts and the feed include to-dos", () => {
-    const stats = Object.fromEntries(buildStats(circleId, people, null, Date.now(), todos).map((s) => [s.key, s]));
-    expect(stats.todos.value).toBe(3);
-    expect(stats.todos.detail).toBe("1 needs a volunteer");
+    const cards = Object.fromEntries(buildTodayCards(circleId, null, [], todos).map((card) => [card.key, card]));
+    expect(cards.reminders.value).toBe(3);
+    expect(cards.reminders.detail).toBe("1 needs someone");
     expect(buildAlerts(circleId, people, Date.now(), todos).find((a) => a.key === "volunteer")?.count).toBe(1);
     const feed = buildFeed([{ id: "a", action: "todo_done", subjectId: "aide", at: "2026-11-02T10:00:00Z", actor: `member:${AIDE_ID}` }], people, 8, todos);
     expect(feed[0].title).toBe("Rosa finished: aide");

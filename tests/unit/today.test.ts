@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { PersonView } from "@/lib/schema/circles";
-import { buildAlerts, buildFeed, buildStats, type ActivityRow } from "@/lib/today";
+import { buildAlerts, buildFeed, buildTodayCards, missingDetails, type ActivityRow } from "@/lib/today";
 
 const NOW = Date.UTC(2026, 10, 3, 12, 0);
 const ago = (days: number) => new Date(NOW - days * 86_400_000).toISOString();
@@ -15,15 +15,39 @@ const people: PersonView[] = [
 ];
 
 describe("Today", () => {
-  test("stats count only links that still work", () => {
-    const stats = Object.fromEntries(buildStats(CIRCLE, people, { person_name: "M", allergies: ["Penicillin"], doctors: [], emergency_contacts: [] }, NOW).map((s) => [s.key, s]));
-    expect(stats.helpers.value).toBe(3);
-    expect(stats.opened.value).toBe(1);
-    expect(stats.opened.detail).toBe("of 3");
-    expect(stats.waiting.value).toBe(1);
-    expect(stats.waiting.tone).toBe("amber");
-    expect(stats.allergies.value).toBe(1);
-    expect(stats.allergies.detail).toBe("Penicillin");
+  test("cards put scanning first, then medications, reminders and allergies", () => {
+    const content = { person_name: "M", allergies: ["Penicillin"], doctors: [], emergency_contacts: [] };
+    const meds = [
+      { name: "Lisinopril", status: "active" },
+      { name: "Metformin", status: "active" },
+      { name: "Warfarin", status: "stopped" },
+    ];
+    const cards = buildTodayCards(CIRCLE, content, meds, []);
+    expect(cards.map((c) => c.key)).toEqual(["scan", "meds", "reminders", "allergies"]);
+    const byKey = Object.fromEntries(cards.map((c) => [c.key, c]));
+    expect(byKey.scan.label).toBe("Scan after-visit summary");
+    expect(byKey.scan.href).toBe(`/new?circle=${CIRCLE}`);
+    expect(byKey.meds.value).toBe(2);
+    expect(byKey.meds.detail).toBe("Lisinopril, Metformin");
+    expect(byKey.allergies.value).toBe(1);
+    expect(byKey.allergies.detail).toBe("Penicillin");
+    expect(byKey.allergies.href).toBe(`/circles/${CIRCLE}/summary`);
+  });
+
+  test("empty cards lead to the form that adds the first entry", () => {
+    const cards = Object.fromEntries(buildTodayCards(CIRCLE, { person_name: "M", allergies: [], doctors: [], emergency_contacts: [] }, [], []).map((c) => [c.key, c]));
+    expect(cards.meds.href).toBe(`/circles/${CIRCLE}/medications/new`);
+    expect(cards.allergies.href).toBe(`/circles/${CIRCLE}/summary/edit?part=allergies`);
+    expect(cards.allergies.detail).toBe("Tap to add");
+  });
+
+  test("details still missing are offered as optional cards", () => {
+    const keys = (content: Parameters<typeof missingDetails>[1]) => missingDetails(CIRCLE, content).map((item) => item.key);
+    expect(keys({ person_name: "M", allergies: [], doctors: [], emergency_contacts: [] })).toEqual(["doctors", "contacts", "pharmacy"]);
+    expect(
+      keys({ person_name: "M", allergies: [], doctors: [{ name: "Dr. Patel" }], emergency_contacts: [{ name: "Anna" }], pharmacy: { name: "Main Street" } }),
+    ).toEqual([]);
+    expect(missingDetails(CIRCLE, null)).toEqual([]);
   });
 
   test("the feed names people, adds link opens, skips unknown actions, newest first", () => {

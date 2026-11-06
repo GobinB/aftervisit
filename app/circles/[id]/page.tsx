@@ -1,17 +1,17 @@
-import { ArrowRight, FileText, UserPlus } from "lucide-react";
+import { ArrowRight, UserPlus } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { GettingStarted } from "@/components/circles/GettingStarted";
 import { Agenda } from "@/components/calendar/Agenda";
-import { ActivityFeed, Alerts, AtAGlance, Card, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayHeader, TodosGlance } from "@/components/circles/Today";
+import { ActivityFeed, AddDetails, Alerts, AtAGlance, Card, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayHeader, TodosGlance } from "@/components/circles/Today";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isMine, sortTodos } from "@/lib/schema/todos";
 import { calendarItems } from "@/lib/calendar-rows";
 import { addDays } from "@/lib/schema/events";
-import { buildAlerts, buildFeed, buildStats } from "@/lib/today";
+import { buildAlerts, buildFeed, buildTodayCards, missingDetails } from "@/lib/today";
 import { todoRows, viewerOf } from "@/lib/todo-rows";
 import { listActivity } from "@/services/activity";
 import { getCircle } from "@/services/circles";
@@ -102,17 +102,12 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
       }
       actions={
         canManage ? (
-          <>
-            <Link
-              href={`/new?circle=${id}`}
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-border-200 bg-white px-3 text-[13px] font-medium text-ink-900 hover:bg-paper-100"
-            >
-              <FileText className="size-4" aria-hidden="true" /> Add a visit summary
-            </Link>
-            <Link href={peopleHref} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary-700 px-3 text-[13px] font-semibold text-white hover:bg-primary-900">
-              <UserPlus className="size-4" aria-hidden="true" /> Add a person
-            </Link>
-          </>
+          <Link
+            href={peopleHref}
+            className="inline-flex h-10 items-center gap-2 rounded-md border border-border-200 bg-white px-3.5 text-[14px] font-semibold text-primary-700 hover:bg-sky-100"
+          >
+            <UserPlus className="size-4" aria-hidden="true" /> Add a person
+          </Link>
         ) : null
       }
     />
@@ -124,7 +119,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
       {header}
       {canManage && people ? (
         <>
-          <StatCards stats={buildStats(id, people, content, Date.now(), todos)} />
+          <StatCards stats={buildTodayCards(id, content, medications, todos)} />
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="min-w-0 space-y-5">
               {comingUp}
@@ -145,6 +140,14 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
             {/* On phones, what needs the caregiver comes before the activity list. */}
             <div className="order-first space-y-5 lg:order-none">
               <GettingStarted circleId={id} people={people} />
+              {missingDetails(id, content).length ? (
+                <section aria-labelledby="details-title">
+                  <SectionLabel>
+                    <span id="details-title">Add their details</span>
+                  </SectionLabel>
+                  <AddDetails items={missingDetails(id, content)} />
+                </section>
+              ) : null}
               <section aria-labelledby="alerts-title">
                 <SectionLabel>
                   <span id="alerts-title">Needs you</span>
