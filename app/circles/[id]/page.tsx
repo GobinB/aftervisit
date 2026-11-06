@@ -73,7 +73,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
   const todoSection = todos ? (
     <section aria-labelledby="todos-title">
       <SectionLabel>
-        <span id="todos-title">{actor.kind === "caregiver" ? "To-dos" : "Your to-dos"}</span>
+        <span id="todos-title">{actor.kind === "caregiver" ? "Reminders" : "Your reminders"}</span>
       </SectionLabel>
       <TodosGlance
         todos={todoRows(actor, id, nextTodos.slice(0, 5), people)}
@@ -95,6 +95,11 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
   const header = (
     <TodayHeader
       personName={personName}
+      help={
+        canManage
+          ? "Everything for today in one place. Tap a card to see more or add something; the menu takes you to each part."
+          : "What is happening for " + personName + " today. Tap a card to see more."
+      }
       actions={
         canManage ? (
           <>

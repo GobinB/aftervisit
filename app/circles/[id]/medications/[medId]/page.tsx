@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHead } from "@/components/circles/PageHead";
 import { notFound, redirect } from "next/navigation";
 import { MedicationForm } from "@/components/medications/MedicationForm";
 import { getActor } from "@/lib/auth";
@@ -15,8 +16,12 @@ export default async function EditMedicationPage({ params }: { params: Promise<{
   if (!medication) notFound();
   return (
     <>
-      <h1 className="font-display mb-1 text-[26px] leading-tight text-primary-900">{medication.name}</h1>
-      <p className="mb-5 text-[13px] text-ink-500">Changes are saved to the history with today&apos;s date.</p>
+      <PageHead
+        back={{ href: `/circles/${id}/medications`, label: "Medications" }}
+        title={medication.name}
+        subtitle="Changes are saved to the history with today's date."
+        help="Change the dose or how often, then save. Mark it stopped when the doctor stops it; it stays in the history."
+      />
       <MedicationForm circleId={id} medication={medication} />
     </>
   );

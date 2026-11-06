@@ -33,7 +33,7 @@ const ACTIONS: Record<string, { title: (name: string) => string; tone: Tone }> =
 };
 
 const TODO_ACTIONS: Record<string, { title: (who: string, todo: string) => string; tone: Tone }> = {
-  todo_added: { title: (_who, todo) => `New to-do: ${todo}`, tone: "blue" },
+  todo_added: { title: (_who, todo) => `New reminder: ${todo}`, tone: "blue" },
   todo_claimed: { title: (who, todo) => `${who} took on: ${todo}`, tone: "blue" },
   todo_done: { title: (who, todo) => `${who} finished: ${todo}`, tone: "green" },
   todo_reopened: { title: (who, todo) => `${who} reopened: ${todo}`, tone: "neutral" },
@@ -61,7 +61,7 @@ export function buildFeed(rows: ActivityRow[], people: PersonView[], limit = 8, 
     if (todoAction) {
       const title = row.subjectId ? todoTitles.get(row.subjectId) : undefined;
       if (!title) continue;
-      items.push({ id: row.id, title: todoAction.title(actorName(row.actor, people), title), detail: row.action.startsWith("event") ? "Calendar" : "To-do", at: row.at, tone: todoAction.tone });
+      items.push({ id: row.id, title: todoAction.title(actorName(row.actor, people), title), detail: row.action.startsWith("event") ? "Calendar" : "Reminder", at: row.at, tone: todoAction.tone });
       continue;
     }
     const known = ACTIONS[row.action];
@@ -89,7 +89,7 @@ export function buildStats(circleId: string, people: PersonView[], content: Circ
   const second: Stat = todos
     ? {
         key: "todos",
-        label: "Open to-dos",
+        label: "Reminders",
         value: open.length,
         detail: volunteer ? `${volunteer} need${volunteer === 1 ? "s" : ""} a volunteer` : open.length ? "Everyone has one" : todos.length ? "All done" : "None yet",
         tone: "blue",
@@ -128,7 +128,7 @@ export function buildAlerts(circleId: string, people: PersonView[], now = Date.n
   ];
   alerts.push({
     key: "volunteer",
-    label: "To-dos that need a volunteer",
+    label: "Reminders that need a volunteer",
     count: todos.filter((todo) => todo.status === "open" && !todo.assignee).length,
     tone: "amber",
     href: `/circles/${circleId}/todos?show=volunteer`,

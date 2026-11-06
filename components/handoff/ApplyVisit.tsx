@@ -114,7 +114,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
       done.added ? `${done.added} medication${done.added === 1 ? "" : "s"} added` : null,
       done.changed ? `${done.changed} medication${done.changed === 1 ? "" : "s"} changed` : null,
       done.stopped ? `${done.stopped} medication${done.stopped === 1 ? "" : "s"} stopped` : null,
-      done.todos ? `${done.todos} to-do${done.todos === 1 ? "" : "s"} added` : null,
+      done.todos ? `${done.todos} reminder${done.todos === 1 ? "" : "s"} added` : null,
     ].filter(Boolean);
     return (
       <div className="mx-auto max-w-[720px]">
@@ -125,7 +125,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
           <p className="mt-2 text-ink-500">{parts.length ? `${parts.join(", ")}.` : "Nothing was changed."} Everyone you allow sees it on their link.</p>
           {done.failed ? (
             <p role="alert" className="mt-3 rounded-md bg-attn-bg px-3 py-2 text-[13px] text-attn-ink">
-              {done.failed} change{done.failed === 1 ? "" : "s"} could not be saved. Check the Medications and To-dos pages.
+              {done.failed} change{done.failed === 1 ? "" : "s"} could not be saved. Check the Medications and Reminders pages.
             </p>
           ) : null}
           <div className="mt-5 flex flex-wrap gap-2">
@@ -195,7 +195,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
 
       <section aria-labelledby="todos-title" className="mt-6">
         <h2 id="todos-title" className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-500 uppercase">
-          To-dos
+          Reminders
         </h2>
         <div className="rounded-lg border border-border-200 bg-white">
           {tasks.length ? (

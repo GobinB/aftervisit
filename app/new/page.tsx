@@ -206,7 +206,7 @@ export default function IntakePage() {
       <p className="mt-2 text-ink-500">A PDF from the patient portal, a photo of the printed pages, or the text pasted in.</p>
       {circle ? (
         <p className="mt-4 rounded-lg border border-sky-100 bg-sky-100/60 px-4 py-3 text-[14px] text-primary-900">
-          For <span className="font-semibold">{circle.personName}</span>. After you check it, you choose which medication changes and to-dos go
+          For <span className="font-semibold">{circle.personName}</span>. After you check it, you choose which medication changes and reminders go
           into their circle.
         </p>
       ) : (

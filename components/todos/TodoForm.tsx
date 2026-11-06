@@ -61,7 +61,7 @@ export function TodoForm({ circleId, people, todo }: { circleId: string; people:
     <form onSubmit={submit} className="rounded-lg border border-border-200 bg-white p-3 sm:p-4" noValidate>
       <div className="flex flex-col gap-2 sm:flex-row">
         <label htmlFor={`${id}-title`} className="sr-only">
-          What needs doing
+          Reminder
         </label>
         <input
           id={`${id}-title`}
@@ -70,7 +70,7 @@ export function TodoForm({ circleId, people, todo }: { circleId: string; people:
           onChange={(event) => setTitle(event.target.value)}
           onFocus={() => setExpanded(true)}
           maxLength={200}
-          placeholder="What needs doing?"
+          placeholder="e.g. Pick up prescription"
         />
         {!todo ? (
           <button type="submit" disabled={pending} className="inline-flex h-10 shrink-0 items-center justify-center gap-1.5 rounded-md bg-primary-700 px-4 text-[14px] font-semibold text-white hover:bg-primary-900 disabled:opacity-50">

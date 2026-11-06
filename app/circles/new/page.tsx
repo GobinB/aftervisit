@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { CircleForm } from "@/components/circles/CircleForm";
+import { BackLink } from "@/components/circles/PageHead";
 import { CircleShell } from "@/components/circles/Shell";
 import { getActor } from "@/lib/auth";
 
@@ -12,6 +13,7 @@ export default async function NewCirclePage() {
   if (!actor || actor.kind !== "caregiver") redirect("/login?next=/circles/new");
   return (
     <CircleShell signedIn narrow>
+      <BackLink href="/circles" label="Your circles" />
       <div className="rounded-2xl border border-border-200 bg-white p-5 sm:p-8">
         <h1 className="font-display text-page text-primary-900">Start a care circle</h1>
         <p className="mt-2 mb-8 text-ink-500">

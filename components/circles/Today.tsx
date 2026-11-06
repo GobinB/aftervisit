@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowRight, Clock3, HeartPulse, ListChecks, Phone, Users, Eye, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { PageHead } from "@/components/circles/PageHead";
 import { PeopleList } from "@/components/circles/PeopleList";
 import { TodoList, type TodoRow } from "@/components/todos/TodoList";
 import { TodayDate } from "@/components/circles/TodayDate";
@@ -28,17 +29,18 @@ const CHIP_TONE: Record<Tone, string> = {
 const DOT_TONE: Record<Tone, string> = { blue: "bg-primary-700", green: "bg-ok", amber: "bg-med", attn: "bg-attn", neutral: "bg-ink-500/50" };
 
 /** Page title row: what day it is for whom, and the caregiver's main actions. */
-export function TodayHeader({ personName, actions }: { personName: string; actions?: ReactNode }) {
+export function TodayHeader({ personName, actions, help }: { personName: string; actions?: ReactNode; help?: string }) {
   return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="font-display text-[26px] leading-tight tracking-[-0.01em] text-primary-900">Today</h1>
-        <p className="mt-1 text-[13px] text-ink-500">
+    <PageHead
+      title="Today"
+      subtitle={
+        <>
           {personName} · <TodayDate />
-        </p>
-      </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
-    </div>
+        </>
+      }
+      help={help}
+      actions={actions}
+    />
   );
 }
 
@@ -225,7 +227,7 @@ export function TodosGlance({ todos, circleId, href, empty }: { todos: TodoRow[]
     <Card>
       {todos.length ? <TodoList todos={todos} circleId={circleId} canEdit={false} /> : <p className="px-4 py-3 text-[13px] text-ink-500">{empty}</p>}
       <Link href={href} className="flex items-center gap-1 border-t border-border-200 px-4 py-2.5 text-[13px] font-semibold text-primary-700 hover:text-primary-900">
-        All to-dos <ArrowRight className="size-3.5" aria-hidden="true" />
+        All reminders <ArrowRight className="size-3.5" aria-hidden="true" />
       </Link>
     </Card>
   );

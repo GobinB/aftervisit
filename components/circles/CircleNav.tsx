@@ -12,7 +12,7 @@ export type NavTab = { key: CircleTab; label: string; href: string };
 const SHORT_LABELS: Record<CircleTab, string> = {
   overview: "Today",
   calendar: "Calendar",
-  todos: "To-dos",
+  todos: "Reminders",
   medications: "Meds",
   summary: "Summary",
   people: "People",
@@ -72,7 +72,7 @@ export function SidebarCircleNav({ signedIn, personName, tabs }: { signedIn: boo
       {signedIn ? <SidebarLink href="/circles" icon={Home} label="Your circles" active={pathname === "/circles"} onPick={mark} /> : null}
       {personName ? (
         <>
-          <p className="mx-[18px] mt-4 mb-1 truncate text-[10px] font-semibold tracking-[0.1em] text-sidebar-muted uppercase">{personName}</p>
+          <p className="mx-[18px] mt-4 mb-1 truncate text-[11px] font-bold tracking-[0.1em] text-sidebar-text uppercase">{personName}</p>
           {tabs.map((tab) => (
             <SidebarLink key={tab.key} href={tab.href} icon={TAB_ICONS[tab.key]} label={tab.label} active={tab.key === active} onPick={mark} />
           ))}
@@ -105,10 +105,13 @@ export function BottomBar({ tabs }: { tabs: NavTab[] }) {
   const shown = fits ? tabs : tabs.slice(0, 4);
   const rest = fits ? [] : tabs.slice(4);
   const restActive = rest.some((tab) => tab.key === active);
+  // Dark bar, white bold labels; the current area gets a coral bar on top and a lighter tile.
   const item = (on: boolean) =>
-    `flex min-h-14 w-full flex-col items-center justify-center gap-0.5 text-[11px] font-medium ${on ? "text-primary-700" : "text-ink-500 hover:text-ink-900"}`;
+    `relative flex min-h-16 w-full flex-col items-center justify-center gap-1 text-[12px] font-bold tracking-[0.01em] ${
+      on ? "bg-white/[0.12] text-white before:absolute before:inset-x-3 before:top-0 before:h-[3px] before:rounded-b before:bg-heart-500" : "text-white/80 hover:bg-white/[0.06] hover:text-white"
+    }`;
   return (
-    <nav aria-label="Circle areas" className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-border-200 bg-white pb-[env(safe-area-inset-bottom)] lg:hidden">
+    <nav aria-label="Circle areas" className="no-print fixed inset-x-0 bottom-0 z-40 border-t border-white/10 bg-sidebar pb-[env(safe-area-inset-bottom)] shadow-[0_-2px_10px_rgb(0_0_0/0.12)] lg:hidden">
       <ul className="mx-auto flex max-w-xl">
         {shown.map((tab) => {
           const Icon = TAB_ICONS[tab.key];
@@ -116,7 +119,7 @@ export function BottomBar({ tabs }: { tabs: NavTab[] }) {
           return (
             <li key={tab.key} className="flex-1">
               <Link href={tab.href} aria-current={on ? "page" : undefined} className={item(on)} onClick={() => mark(tab.href)}>
-                <Icon className="size-5" strokeWidth={on ? 2.25 : 1.75} aria-hidden="true" />
+                <Icon className="size-[22px]" strokeWidth={on ? 2.5 : 2} aria-hidden="true" />
                 {SHORT_LABELS[tab.key]}
               </Link>
             </li>
@@ -127,10 +130,10 @@ export function BottomBar({ tabs }: { tabs: NavTab[] }) {
             {/* Keyed on the address, so the menu closes after a choice. */}
             <details key={pathname} className="group relative">
               <summary className={`${item(restActive)} cursor-pointer list-none [&::-webkit-details-marker]:hidden`}>
-                <MoreHorizontal className="size-5" strokeWidth={restActive ? 2.25 : 1.75} aria-hidden="true" />
+                <MoreHorizontal className="size-[22px]" strokeWidth={restActive ? 2.5 : 2} aria-hidden="true" />
                 More
               </summary>
-              <ul className="absolute right-2 bottom-full mb-2 w-48 overflow-hidden rounded-lg border border-border-200 bg-white py-1 shadow-lg">
+              <ul className="absolute right-2 bottom-full mb-2 w-52 overflow-hidden rounded-lg border border-white/10 bg-sidebar py-1 shadow-lg">
                 {rest.map((tab) => {
                   const Icon = TAB_ICONS[tab.key];
                   const on = tab.key === active;
@@ -140,7 +143,9 @@ export function BottomBar({ tabs }: { tabs: NavTab[] }) {
                         href={tab.href}
                         onClick={() => mark(tab.href)}
                         aria-current={on ? "page" : undefined}
-                        className={`flex min-h-11 items-center gap-2.5 px-3 text-[14px] ${on ? "font-semibold text-primary-700" : "text-ink-900 hover:bg-paper-100"}`}
+                        className={`flex min-h-12 items-center gap-2.5 border-l-[3px] px-3 text-[15px] font-bold ${
+                          on ? "border-heart-500 bg-white/[0.12] text-white" : "border-transparent text-white/85 hover:bg-white/[0.06] hover:text-white"
+                        }`}
                       >
                         <Icon className="size-4" aria-hidden="true" />
                         {tab.label}
@@ -175,11 +180,11 @@ function SidebarLink({
       href={href}
       onClick={() => onPick(href)}
       aria-current={active ? "page" : undefined}
-      className={`flex items-center gap-2.5 border-l-2 px-[16px] py-[9px] text-[13px] transition-colors ${
-        active ? "border-l-sidebar-accent bg-white/[0.08] text-white" : "border-transparent text-sidebar-muted hover:bg-white/5 hover:text-sidebar-text"
+      className={`mx-2 my-0.5 flex items-center gap-3 rounded-md border-l-[3px] px-3 py-2.5 text-[14px] font-semibold transition-colors ${
+        active ? "border-l-heart-500 bg-white/[0.12] text-white" : "border-transparent text-white/80 hover:bg-white/[0.06] hover:text-white"
       }`}
     >
-      <Icon className="size-4 shrink-0" aria-hidden="true" />
+      <Icon className="size-[18px] shrink-0" strokeWidth={active ? 2.5 : 2} aria-hidden="true" />
       <span className="truncate">{label}</span>
     </Link>
   );

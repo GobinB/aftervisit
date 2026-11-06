@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHead } from "@/components/circles/PageHead";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card } from "@/components/circles/Today";
@@ -12,14 +13,14 @@ import { getCircle } from "@/services/circles";
 import { listPeople } from "@/services/members";
 import { listTodos } from "@/services/todos";
 
-export const metadata: Metadata = { title: "To-dos", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Reminders", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 const EMPTY: Record<TodoView, string> = {
   open: "Nothing to do right now.",
   mine: "Nothing is on your list.",
-  volunteer: "Every to-do has someone on it.",
-  done: "Finished to-dos will show here.",
+  volunteer: "Every reminder has someone on it.",
+  done: "Finished reminders will show here.",
 };
 
 export default async function TodosPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ show?: string }> }) {
@@ -44,12 +45,15 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
 
   return (
     <>
-      <div className="mb-5">
-        <h1 className="font-display text-[26px] leading-tight tracking-[-0.01em] text-primary-900">To-dos</h1>
-        <p className="mt-1 text-[13px] text-ink-500">
-          {personName} · {counts.open} open{seesAll && counts.volunteer ? ` · ${counts.volunteer} need a volunteer` : ""}
-        </p>
-      </div>
+      <PageHead
+        title="Reminders"
+        subtitle={`${personName} · ${counts.open} open${seesAll && counts.volunteer ? ` · ${counts.volunteer} need a volunteer` : ""}`}
+        help={
+          canEdit
+            ? "Things that need doing. Type one, or tap a suggestion, pick who does it, and tick it off when it is done."
+            : "Things that need doing. Tap “I'll do it” to take one, and tick it off when it is done."
+        }
+      />
 
       {canEdit ? (
         <div className="mb-5">
@@ -57,7 +61,7 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
         </div>
       ) : null}
 
-      <nav aria-label="Which to-dos" className="mb-3 flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
+      <nav aria-label="Which reminders" className="mb-3 flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
         {views.map((key) => (
           <Link
             key={key}

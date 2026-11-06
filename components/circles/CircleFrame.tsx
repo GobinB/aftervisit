@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PageHead } from "@/components/circles/PageHead";
 import type { Actor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 
@@ -10,7 +11,7 @@ export function circleTabs(actor: Actor, circleId: string): { key: CircleTab; la
   const tabs: { key: CircleTab; label: string; href: string }[] = [{ key: "overview", label: "Today", href: base }];
   if (can(actor, "calendar:read", { circleId })) tabs.push({ key: "calendar", label: "Calendar", href: `${base}/calendar` });
   if (can(actor, "tasks:read", { circleId }) || (actor.kind === "helper" && can(actor, "tasks:read:own", { circleId, assigneeId: actor.memberId }))) {
-    tabs.push({ key: "todos", label: "To-dos", href: `${base}/todos` });
+    tabs.push({ key: "todos", label: "Reminders", href: `${base}/todos` });
   }
   if (can(actor, "medications:read", { circleId })) tabs.push({ key: "medications", label: "Medications", href: `${base}/medications` });
   if (can(actor, "summary:read", { circleId })) tabs.push({ key: "summary", label: "Care summary", href: `${base}/summary` });
@@ -35,22 +36,21 @@ export function CircleFrame({
   subtitle,
   tabs,
   active,
+  help,
   children,
 }: {
   personName: string;
   subtitle: string;
   tabs: { key: CircleTab; label: string; href: string }[];
   active: CircleTab;
+  help?: string;
   children: React.ReactNode;
 }) {
+  const title = tabs.find((tab) => tab.key === active)?.label ?? personName;
   return (
     <>
-      <div>
-        <p className="text-[11px] font-semibold tracking-[0.12em] text-ink-500 uppercase">Care circle</p>
-        <h1 className="font-display mt-1 text-[26px] leading-tight tracking-[-0.01em] text-primary-900 sm:text-[30px]">{personName}</h1>
-        <p className="mt-1 text-[13px] text-ink-500">{subtitle}</p>
-      </div>
-      <nav aria-label="Circle" className="no-print mt-4 group-data-[shell=sidebar]/shell:hidden">
+      <PageHead title={title} subtitle={`${personName} · ${subtitle}`} help={help} />
+      <nav aria-label="Circle" className="no-print -mt-1 mb-5 group-data-[shell=sidebar]/shell:hidden">
         <ul className="flex gap-x-5 overflow-x-auto border-b border-border-200 [scrollbar-width:none]">
           {tabs.map((tab) => (
             <li key={tab.key} className="shrink-0">
@@ -67,7 +67,7 @@ export function CircleFrame({
           ))}
         </ul>
       </nav>
-      <div className="mt-5">{children}</div>
+      <div>{children}</div>
     </>
   );
 }

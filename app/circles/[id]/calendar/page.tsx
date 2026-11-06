@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import type { Metadata } from "next";
+import { PageHead } from "@/components/circles/PageHead";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Agenda } from "@/components/calendar/Agenda";
@@ -45,20 +46,21 @@ export default async function CalendarPage({ params, searchParams }: { params: P
 
   return (
     <>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-[26px] leading-tight tracking-[-0.01em] text-primary-900">Calendar</h1>
-          <p className="mt-1 text-[13px] text-ink-500">{personName} · appointments, visits and to-dos that are due</p>
-        </div>
-        <div className="no-print flex flex-wrap items-center gap-2">
-          <PrintButton />
-          {canEdit ? (
-            <Link href={`${base}/new`} className="inline-flex h-9 items-center gap-2 rounded-md bg-primary-700 px-3 text-[13px] font-semibold text-white hover:bg-primary-900">
-              <Plus className="size-4" aria-hidden="true" /> Add an event
-            </Link>
-          ) : null}
-        </div>
-      </div>
+      <PageHead
+        title="Calendar"
+        subtitle={`${personName} · appointments, visits and reminders that are due`}
+        help="Appointments and reminders, day by day. Tap a day to add something, or tap an event to change it or say who is going."
+        actions={
+          <>
+            <PrintButton />
+            {canEdit ? (
+              <Link href={`${base}/new`} className="inline-flex h-10 items-center gap-2 rounded-md bg-primary-700 px-3.5 text-[14px] font-semibold text-white hover:bg-primary-900">
+                <Plus className="size-4" aria-hidden="true" /> Add an event
+              </Link>
+            ) : null}
+          </>
+        }
+      />
 
       <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
         <nav aria-label="Calendar view" className="flex gap-1.5">

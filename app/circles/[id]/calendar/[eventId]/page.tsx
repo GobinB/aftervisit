@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHead } from "@/components/circles/PageHead";
 import { notFound, redirect } from "next/navigation";
 import { EventForm } from "@/components/calendar/EventForm";
 import { getActor } from "@/lib/auth";
@@ -20,7 +21,11 @@ export default async function EditEventPage({ params }: { params: Promise<{ id: 
     .map((person) => ({ value: person.id, label: actor.kind === "helper" && person.id === actor.memberId ? "Me" : `${person.name} (${person.roleLabel})` }));
   return (
     <>
-      <h1 className="font-display mb-5 text-[26px] leading-tight text-primary-900">Edit event</h1>
+      <PageHead
+        back={{ href: `/circles/${id}/calendar`, label: "Calendar" }}
+        title="Edit event"
+        help="Change the day, time or who is going, then save."
+      />
       <EventForm circleId={id} people={people} event={event} canDelete={actor.kind === "caregiver"} isCaregiver={actor.kind === "caregiver"} />
     </>
   );

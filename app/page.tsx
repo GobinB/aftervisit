@@ -11,7 +11,7 @@ const START_HREF = "/circles/new";
 
 const FEATURES = [
   { icon: CalendarDays, title: "Calendar", body: "Appointments, and who is taking them." },
-  { icon: ListChecks, title: "To-dos", body: "Ask for help. Someone taps “I’ll do it.”" },
+  { icon: ListChecks, title: "Reminders", body: "Ask for help. Someone taps “I’ll do it.”" },
   { icon: Pill, title: "Medications", body: "Today’s list, with every change dated." },
   { icon: FileText, title: "Visit summaries", body: "Turn the after-visit summary into updates." },
 ];
@@ -56,7 +56,7 @@ export default function HomePage() {
               <p className="text-[12px] font-semibold tracking-[0.14em] text-[#F6B7AA] uppercase">Free · Nonprofit · Open source</p>
               <h1 className="font-display mt-4 text-[2.4rem] leading-[1.08] sm:text-[3.4rem]">Everyone who helps, on one page.</h1>
               <p className="mt-5 max-w-[34rem] text-[1.1rem] leading-relaxed text-white/80">
-                One place for the calendar, to-dos and medications of the person you look after. Family and aides each open their own link.
+                One place for the calendar, reminders and medications of the person you look after. Family and aides each open their own link.
               </p>
               <div className="mt-8 flex flex-col gap-3 sm:flex-row">
                 <ButtonLink href={START_HREF} variant="light" className="min-h-13 px-6">

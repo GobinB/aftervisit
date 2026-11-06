@@ -59,7 +59,7 @@ export function calendarItems(actor: Actor, circleId: string, events: CareEvent[
       id: todo.id,
       date: todo.dueDate,
       title: todo.title,
-      time: "To-do due",
+      time: "Reminder due",
       sortTime: "99:99",
       location: null,
       notes: null,

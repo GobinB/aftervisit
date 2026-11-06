@@ -34,7 +34,7 @@ export function PhonePreview({ className = "" }: { className?: string }) {
         </div>
       </div>
       <figcaption className="sr-only">
-        A phone showing a fictional Today screen for Margaret Lee: a cardiology visit that needs someone to go, and two to-dos with who has each one.
+        A phone showing a fictional Today screen for Margaret Lee: a cardiology visit that needs someone to go, and two reminders with who has each one.
       </figcaption>
     </figure>
   );
