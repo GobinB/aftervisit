@@ -1,5 +1,5 @@
 import "server-only";
-import { dataEnv } from "@/lib/data-env";
+import { dataEnv, deploymentSetting } from "@/lib/data-env";
 
 function num(v: string | undefined, fallback: number): number {
   const n = Number(v);
@@ -13,7 +13,7 @@ export const env = {
   supabaseUrl: data.supabaseUrl,
   /** Publishable key. Required for Google sign-in and for a caregiver's own session (RLS). */
   anonKey: data.anonKey,
-  serviceRoleKey: data.serviceRoleKey,
+  serviceRoleKey: deploymentSetting("SUPABASE_SERVICE_ROLE_KEY"),
   appUrl: (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, ""),
   ttlDays: num(process.env.HANDOFF_TTL_DAYS, 30),
   maxUploadMb: num(process.env.MAX_UPLOAD_MB, 10),
@@ -21,7 +21,7 @@ export const env = {
   // Server salt for IP, PIN and manage-key hashes.
   salt: process.env.IP_HASH_SALT ?? "",
   /** HMAC key for helper-link cookies. Empty means helper sign-in is off. */
-  helperSessionSecret: data.helperSessionSecret,
+  helperSessionSecret: deploymentSetting("HELPER_SESSION_SECRET"),
 };
 
 export const RATE_LIMITS = { extract: 10, create: 10, ack: 30, update: 60, manage: 60, feedback: 20 } as const;
