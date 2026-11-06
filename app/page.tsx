@@ -3,6 +3,7 @@ import Link from "next/link";
 import { ButtonLink } from "@/components/Button";
 import { PhonePreview } from "@/components/home/PhonePreview";
 import { PageShell } from "@/components/PageShell";
+import { InstallApp } from "@/components/pwa/InstallApp";
 import { StartSample } from "@/components/StartSample";
 
 /** Where a caregiver starts. /circles/new sends a signed-out visitor to Google sign-in first. */
@@ -29,10 +30,10 @@ const PROMISES = [
 
 const INSTALL = [
   {
-    phone: "iPhone",
+    phone: "iPhone and iPad",
     steps: [
-      { icon: Share, text: "Open this site in Safari and tap Share." },
-      { icon: SquarePlus, text: "Tap Add to Home Screen." },
+      { icon: Share, text: "Tap Share: at the bottom on iPhone (tap ••• first if you don't see it), at the top on iPad." },
+      { icon: SquarePlus, text: "Tap Add to Home Screen, then Add." },
     ],
   },
   {
@@ -76,6 +77,9 @@ export default function HomePage() {
                 Put it on your phone like an app.
               </h2>
               <p className="mt-2 text-ink-500">Nothing to download from an app store. It also works in any web browser, on a computer too.</p>
+            </div>
+            <div className="mt-6 max-w-xl">
+              <InstallApp band />
             </div>
             <div className="mt-7 grid gap-4 md:grid-cols-2">
               {INSTALL.map(({ phone, steps }) => (

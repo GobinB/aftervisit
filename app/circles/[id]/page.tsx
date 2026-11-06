@@ -115,11 +115,14 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
 
   return (
     <>
-      <InstallApp />
       {header}
       {canManage && people ? (
         <>
           <StatCards stats={buildTodayCards(id, content, medications, todos)} />
+          {/* After the scan card, so scanning stays the first thing on the screen. */}
+          <div className="mt-5 empty:hidden">
+            <InstallApp />
+          </div>
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="min-w-0 space-y-5">
               {comingUp}
@@ -176,6 +179,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
       ) : (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-5">
+            <InstallApp />
             {comingUp}
             {todoSection}
             {meds}
