@@ -4,7 +4,7 @@
  * ("Call the clinic if: fever, chills") apply to that line only.
  */
 import type { MedicationChange } from "../schema";
-import { MED_GROUP_HEADING_RE } from "./normalize";
+import { isMedGroupHeading } from "./normalize";
 import { wordCount } from "./util";
 
 const SMALL_WORDS = new Set(["from", "with", "your", "this", "that", "into", "about", "after", "before", "what", "when", "which", "have", "these"]);
@@ -52,7 +52,7 @@ export function classifyHeading(label: string): SectionInfo | null {
       const info: SectionInfo = { kind: r.kind };
       if (r.kind === "medications") {
         if (/\b(start|new|begin|added)\b/.test(l)) info.medKindHint = "new";
-        else if (/\b(stop|discontinue|discontinued|hold)\b/.test(l)) info.medKindHint = "stopped";
+        else if (/\b(stop|stopped|discontinue|discontinued|hold|do not take)\b/.test(l)) info.medKindHint = "stopped";
         else if (/\b(continue|not changed|unchanged|current|keep)\b/.test(l)) info.medKindHint = "continue";
         else if (/\b(change|changed|adjust)\b/.test(l)) info.medKindHint = "dose_changed";
       }
@@ -66,9 +66,14 @@ export function classifyHeading(label: string): SectionInfo | null {
 export function headingOf(line: string): SectionInfo | null {
   const t = line.trim();
   if (t.length > 70) return null;
-  if (MED_GROUP_HEADING_RE.test(t)) return classifyHeading(t);
+  if (isMedGroupHeading(t)) return classifyHeading(t);
   const words = wordCount(t);
   const endsColon = /:$/.test(t);
+  // A lead-in to a warning-sign list: "Call your doctor or return to the emergency department if you have:"
+  if (endsColon && words <= 16) {
+    const lead = classifyHeading(t.replace(/:$/, ""));
+    if (lead?.kind === "watch") return lead;
+  }
   const letters = t.replace(/[^A-Za-z]/g, "");
   const allCaps = letters.length >= 3 && letters === letters.toUpperCase() && words <= 9;
   const titleCase =

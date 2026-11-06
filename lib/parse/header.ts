@@ -3,6 +3,7 @@
  * patient first name from labelled fields ("Provider:", "Reason for visit:") and
  * credential patterns ("Anita Patel, MD").
  */
+import { findTime } from "./dates";
 import { DATE_RE, capitalize, stripTrailingPunct, toIsoDate, wordCount } from "./util";
 
 /** Short lines that carry an MRN / DOB anywhere are identifier lines. */
@@ -20,6 +21,11 @@ const LABELS = [
   "patient name",
   "patient",
   "name",
+  "discharge date",
+  "date of discharge",
+  "admission date",
+  "admit date",
+  "date of admission",
   "visit date",
   "date of visit",
   "date of service",
@@ -82,8 +88,8 @@ function field(line: string, labels: string[]): string | undefined {
 
 const CRED = String.raw`(?:MD|M\.D\.|DO|D\.O\.|NP|FNP|FNP-C|DNP|PA-C|PA|APRN|ARNP|CNM|RN)`;
 const NAME = String.raw`[A-Z][a-zA-Z'’-]+(?:\s+[A-Z]\.?(?=\s))?(?:\s+[A-Z][a-zA-Z'’-]+){0,2}`;
-const PROVIDER_CRED_RE = new RegExp(String.raw`(?:Dr\.?\s+)?(${NAME}),?\s+(${CRED})\b(?:\s*\(([^)]{3,60})\))?`);
-const DR_NAME_RE = new RegExp(String.raw`\bDr\.?\s+(${NAME})`);
+export const PROVIDER_CRED_RE = new RegExp(String.raw`(?:Dr\.?\s+)?(${NAME}),?\s+(${CRED})\b(?:\s*\(([^)]{3,60})\))?`);
+export const DR_NAME_RE = new RegExp(String.raw`\bDr\.?\s+(${NAME})`);
 
 export interface HeaderInfo {
   patientFirstName?: string;
@@ -94,7 +100,7 @@ export interface HeaderInfo {
   reason?: string;
 }
 
-function formatProvider(name: string, cred: string): string {
+export function formatProvider(name: string, cred: string): string {
   const c = cred.replace(/\./g, "").toUpperCase();
   const clean = name.trim().replace(/^Dr\.?\s+/, "");
   if (c === "MD" || c === "DO") return `Dr. ${clean}`;
@@ -103,6 +109,8 @@ function formatProvider(name: string, cred: string): string {
 
 export function looksLikeClinicLine(line: string): boolean {
   if (line.length > 90 || HEADER_LINE_RE.test(line)) return false;
+  // "Your next appointment: Tuesday 9:15 AM Cardiology" is an appointment, not a letterhead.
+  if (/^[A-Za-z' -]{1,40}:\s+\S/.test(line) || findTime(line)) return false;
   const letters = line.replace(/[^A-Za-z]/g, "");
   const caps = letters.length > 3 && letters === letters.toUpperCase();
   return (
@@ -125,10 +133,15 @@ export function cleanClinicName(line: string): string {
   return s;
 }
 
-/** Extract header fields from the given lines. Returns which line indexes were consumed. */
+/**
+ * Extract header fields from the given lines. Returns which line indexes were consumed.
+ * Lines in `skip` (an "Upcoming appointments" entry, say) are not header lines even when
+ * they carry a "Date:" or "Provider:" label.
+ */
 export function parseHeader(
   lines: string[],
   patientFirstName?: string,
+  skip: Set<number> = new Set(),
 ): { info: HeaderInfo; consumed: Set<number> } {
   const info: HeaderInfo = {};
   const consumed = new Set<number>();
@@ -145,7 +158,19 @@ export function parseHeader(
   // Only scan the top of the document for loose provider/date matches.
   const headerZone = Math.min(lines.length, 25);
 
+  // A hospital stay is dated by its discharge, not its admission.
+  for (const line of lines) {
+    const discharge = field(line, ["discharge date", "date of discharge"]);
+    const iso = discharge ? toIsoDate(discharge) : undefined;
+    if (iso) {
+      info.date = iso;
+      datedFromLabel = true;
+      break;
+    }
+  }
+
   lines.forEach((line, i) => {
+    if (skip.has(i)) return;
     const isHeaderLine = HEADER_LINE_RE.test(line) || /\s(?:visit date|provider|reason for visit)\s*:/i.test(line);
     if (isIdentifierLine(line)) consumed.add(i);
     if (!isHeaderLine) return;
@@ -212,6 +237,7 @@ export function parseHeader(
   // Fallbacks within the header zone: an unlabelled "Name, MD" and the first date not on a DOB line.
   for (let i = 0; i < headerZone; i++) {
     const line = lines[i];
+    if (skip.has(i)) continue;
     if (!info.provider) {
       const m = PROVIDER_CRED_RE.exec(line) ?? null;
       if (m) {
@@ -243,7 +269,7 @@ export function parseHeader(
   // "Visit with Dr. Sam Lee on Oct 1, 2026 (Neurology)"
   for (let i = 0; i < Math.min(lines.length, 6); i++) {
     const line = lines[i];
-    if (consumed.has(i)) continue;
+    if (consumed.has(i) || skip.has(i)) continue;
     if (/^(?:your\s+)?(?:visit|appointment|seen|telehealth visit|video visit)\b/i.test(line) && DATE_RE.test(line) && /\b(?:Dr\.?\s|MD\b|DO\b|NP\b|PA\b)/.test(line)) {
       const sp = /\(([A-Za-z &/-]{3,40})\)\s*$/.exec(line);
       if (sp && !info.specialty) info.specialty = sp[1].trim();

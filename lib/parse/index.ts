@@ -1,11 +1,16 @@
 /**
  * Built-in heuristic parser (Section 5.3). Deterministic, no network, no API key.
  * Every non-heading source line is placed in exactly one bucket; anything that matches
- * no classifier goes to otherNotes, in source order. Nothing is invented or dropped.
+ * no classifier goes to otherNotes, in source order. Nothing is invented or dropped,
+ * with one deliberate exception: page furniture in multi-page text ("Page 2 of 3",
+ * "Printed on ...", the letterhead and patient line repeated on every page) is removed
+ * during normalization. See pages.ts.
  */
 import type { HandoffDraft, MedicationChange, Task } from "../schema";
+import { APPOINTMENT_LABEL_RE, appointmentTask, findAppointmentEntries } from "./appointments";
+import { findExplicitDate } from "./dates";
 import { isIdentifierLine, parseHeader } from "./header";
-import { classifyMedication, DOSE_RE, expandAbbreviations } from "./medications";
+import { classifyMedication, DOSE_RE, expandAbbreviations, MED_NOTE_RE } from "./medications";
 import { normalize } from "./normalize";
 import { headingOf, inlineHeadingOf, type SectionInfo } from "./sections";
 import { categorize, hasTiming, isImperative, makeTask, splitTasks } from "./tasks";
@@ -43,7 +48,19 @@ export function parseWithTrace(input: ParseInput): { draft: HandoffDraft; trace:
   const lines = norm.map((l) => l.text);
   const buckets: Bucket[] = new Array(lines.length).fill("other");
 
-  const { info, consumed } = parseHeader(lines, input.patientFirstName);
+  // Upcoming-appointment blocks first, so their "Date:" and "Provider:" lines are not read as the visit header.
+  const entries = findAppointmentEntries(
+    lines,
+    norm.map((l) => l.paragraphStart),
+  );
+  const entryAt = new Map<number, number[]>();
+  const inEntry = new Set<number>();
+  for (const e of entries) {
+    entryAt.set(e[0], e);
+    for (const i of e) inEntry.add(i);
+  }
+
+  const { info, consumed } = parseHeader(lines, input.patientFirstName, inEntry);
 
   const medications: MedicationChange[] = [];
   const tasks: Task[] = [];
@@ -57,12 +74,24 @@ export function parseWithTrace(input: ParseInput): { draft: HandoffDraft; trace:
 
   let currentLine = "";
   const addTasks = (text: string, confident: boolean) => {
-    for (const part of splitTasks(text)) tasks.push(makeTask(part, confident, currentLine));
+    for (const part of splitTasks(text)) tasks.push(makeTask(part, confident, currentLine, info.date));
   };
   const withQuote = (m: MedicationChange): MedicationChange => ({ ...m, sourceQuote: currentLine });
 
   lines.forEach((line, i) => {
     currentLine = line;
+    if (inEntry.has(i)) {
+      const entry = entryAt.get(i);
+      if (entry) {
+        const quote = entry.map((j) => lines[j]).join(" ");
+        const task = appointmentTask(entry.map((j) => lines[j]), info.date, quote);
+        if (task) tasks.push(task);
+        else otherNotes.push(quote);
+      }
+      buckets[i] = "task";
+      lastBucket = "task";
+      return;
+    }
     if (consumed.has(i)) {
       buckets[i] = isIdentifierLine(line) ? "identifier" : "visit";
       return;
@@ -88,6 +117,23 @@ export function parseWithTrace(input: ParseInput): { draft: HandoffDraft; trace:
       buckets[i] = b;
       lastBucket = b;
     };
+
+    // "Your next appointment: Tuesday, December 1, 2026 9:15 AM Cardiology - Dr. Lee"
+    if (inline && inline.info.kind === "tasks" && APPOINTMENT_LABEL_RE.test(inline.label) && findExplicitDate(content)) {
+      const task = appointmentTask([content], info.date, line);
+      if (task) {
+        tasks.push(task);
+        return place("task");
+      }
+    }
+
+    // A note under the previous medication: "Reason: kidney function was low", "What changed: ..."
+    if (lastBucket === "medication" && medications.length && ctx.kind === "medications" && MED_NOTE_RE.test(content)) {
+      const prev = medications[medications.length - 1];
+      prev.detail = `${prev.detail}. ${cleanItem(content)}`;
+      prev.sourceQuote = prev.sourceQuote ? `${prev.sourceQuote} ${line}` : line;
+      return place("medication");
+    }
 
     // Medications: dose pattern anywhere, or any named line in a Medications section.
     const inMeds = ctx.kind === "medications";

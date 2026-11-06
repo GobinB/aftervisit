@@ -29,7 +29,7 @@ export function medVerbKind(line: string): Kind | undefined {
 }
 
 const LEAD_VERB_RE =
-  /^(?:(?:please|then|also)\s+)?(?:start(?:ing)?(?:\s+taking)?|begin(?:\s+taking)?|new|add(?:ed)?|stop(?:ped)?(?:\s+taking)?|discontinue[ds]?|hold|quit(?:\s+taking)?|do not (?:take|use)|increase[ds]?|decrease[ds]?|change[ds]?|adjust(?:ed)?|raise|lower|reduce[ds]?|continue(?:\s+taking)?|keep taking|resume|take|taking|use|prescribed)\b[\s:,-]*(?:your\s+|the\s+|a\s+)?/i;
+  /^(?:(?:please|then|also)\s+)?(?:start(?:ing)?(?:\s+taking)?|begin(?:\s+taking)?|new|add(?:ed)?|stop(?:ped)?(?:\s+taking)?|discontinue[ds]?|hold|quit(?:\s+taking)?|do not (?:take|use)|increase[ds]?|decrease[ds]?|change[ds]?|adjust(?:ed)?|raise|lower|reduce[ds]?|continue(?:\s+taking)?|keep taking|resume|take|taking|use|prescribed|inhale|inject|chew|dissolve|place|insert|instill|swallow|give|apply)\b[\s:,-]*(?:your\s+|the\s+|a\s+)?/i;
 
 const NOT_A_NAME = new Set([
   "to", "by", "from", "at", "the", "your", "dose", "doses", "of", "a", "an", "and", "or", "with", "for", "in",
@@ -56,6 +56,13 @@ const ABBREVIATIONS: [RegExp, string][] = [
   [/\bw\/\s?/gi, "with "],
   [/\bw\/o\b/gi, "without"],
 ];
+
+/**
+ * A note under a medication rather than a medication: "Reason: kidney function was low",
+ * "What changed: how much to take", "Commonly known as: Glucophage".
+ */
+export const MED_NOTE_RE =
+  /^(?:reason(?: for (?:stopping|change|changing))?|what changed|indications?|notes?|comments?|commonly known as|also known as|brand name|previously|last dose|prescribed by|refills?|quantity|qty|dispense|instructions?)\s*:/i;
 
 export function expandAbbreviations(s: string): string {
   let out = s;
