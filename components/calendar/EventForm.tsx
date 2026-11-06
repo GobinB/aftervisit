@@ -4,11 +4,14 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useId, useState, useTransition } from "react";
 import { deleteEventAction, saveEventAction } from "@/app/actions/events";
+import { WhoChips } from "@/components/todos/TodoForm";
+import { Chips } from "@/components/ui/Chips";
+import { eventSuggestions } from "@/lib/suggestions";
 import { REPEATS, REPEAT_LABELS, type CareEvent, type Repeat } from "@/lib/schema/events";
 import { localToday } from "@/lib/schema/todos";
 
-const field = "mt-1 block h-10 w-full rounded-md border border-border-200 bg-white px-3 text-[14px] text-ink-900";
-const label = "block text-[13px] font-medium text-ink-900";
+const field = "mt-1 block h-12 w-full rounded-lg border border-border-200 bg-white px-3 text-[16px] text-ink-900 sm:h-11 sm:text-[15px]";
+const label = "block text-[15px] font-semibold text-ink-900";
 
 /** Add or edit an event. Only what it is and the date are needed. */
 export function EventForm({
@@ -18,6 +21,7 @@ export function EventForm({
   initialDate,
   canDelete,
   isCaregiver,
+  doctors = [],
 }: {
   circleId: string;
   people: { value: string; label: string }[];
@@ -25,6 +29,7 @@ export function EventForm({
   initialDate?: string;
   canDelete: boolean;
   isCaregiver: boolean;
+  doctors?: { name: string; specialty?: string }[];
 }) {
   const id = useId();
   const router = useRouter();
@@ -86,7 +91,8 @@ export function EventForm({
         <label htmlFor={`${id}-title`} className={label}>
           What
         </label>
-        <input id={`${id}-title`} className={field} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="Cardiology appointment" />
+        <input id={`${id}-title`} className={field} value={title} onChange={(e) => setTitle(e.target.value)} maxLength={200} placeholder="e.g. Cardiology appointment" />
+        {!event ? <Chips label="Suggestions" options={eventSuggestions(doctors)} value={title} onPick={setTitle} /> : null}
       </div>
 
       <div className="grid gap-4 sm:grid-cols-3">
@@ -122,24 +128,22 @@ export function EventForm({
           <label htmlFor={`${id}-where`} className={label}>
             Where
           </label>
-          <input id={`${id}-where`} className={field} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={300} placeholder="Riverbend Clinic, 2nd floor" />
-        </div>
-        <div>
-          <label htmlFor={`${id}-who`} className={label}>
-            Who&apos;s going
-          </label>
-          <select id={`${id}-who`} className={field} value={going} onChange={(e) => setGoing(e.target.value)}>
-            <option value="none">Not needed</option>
-            <option value="volunteer">Needs someone to go</option>
-            <option value="caregiver">{isCaregiver ? "Me" : "The caregiver"}</option>
-            {people.map((person) => (
-              <option key={person.value} value={person.value}>
-                {person.label}
-              </option>
-            ))}
-          </select>
+          <input id={`${id}-where`} className={field} value={location} onChange={(e) => setLocation(e.target.value)} maxLength={300} placeholder="e.g. Riverbend Clinic, 2nd floor" />
         </div>
       </div>
+      <fieldset>
+        <legend className={label}>Who&apos;s going?</legend>
+        <WhoChips
+          value={going}
+          onPick={setGoing}
+          people={people}
+          options={[
+            { value: "none", label: "Nobody needed" },
+            { value: "volunteer", label: "Needs someone" },
+            { value: "caregiver", label: isCaregiver ? "Me" : "The caregiver" },
+          ]}
+        />
+      </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
@@ -171,7 +175,7 @@ export function EventForm({
         <textarea
           id={`${id}-notes`}
           rows={2}
-          className="mt-1 block w-full rounded-md border border-border-200 bg-white px-3 py-2 text-[14px] text-ink-900"
+          className="mt-1 block w-full rounded-lg border border-border-200 bg-white px-3 py-2 text-[16px] text-ink-900 sm:text-[15px]"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           maxLength={1000}
@@ -185,7 +189,7 @@ export function EventForm({
         </p>
       ) : null}
       <div className="flex flex-wrap items-center gap-2">
-        <button type="submit" disabled={pending} className="inline-flex h-10 items-center rounded-md bg-primary-700 px-4 text-[14px] font-semibold text-white hover:bg-primary-900 disabled:opacity-50">
+        <button type="submit" disabled={pending} className="inline-flex h-12 items-center rounded-lg bg-primary-700 px-5 text-[16px] font-semibold text-white hover:bg-primary-900 disabled:opacity-50">
           {pending ? "Saving" : "Save event"}
         </button>
         <Link href={`/circles/${circleId}/calendar`} className="inline-flex h-10 items-center rounded-md px-3 text-[14px] font-medium text-ink-500 hover:text-ink-900">

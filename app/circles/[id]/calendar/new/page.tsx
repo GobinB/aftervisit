@@ -36,6 +36,7 @@ export default async function NewEventPage({ params, searchParams }: { params: P
         initialDate={/^\d{4}-\d{2}-\d{2}$/.test(date ?? "") ? date : undefined}
         canDelete={false}
         isCaregiver={actor.kind === "caregiver"}
+        doctors={content?.doctors ?? []}
       />
     </>
   );

@@ -24,7 +24,7 @@ export default async function NewMedicationPage({ params }: { params: Promise<{ 
         subtitle={`For ${personName}. Only the name is needed; add the rest when you have it.`}
         help="Start typing the name and tap it in the list. Then tap the dose and how often, or type your own."
       />
-      <MedicationForm circleId={id} />
+      <MedicationForm circleId={id} doctors={(content?.doctors ?? []).map((doctor) => doctor.name)} />
     </>
   );
 }

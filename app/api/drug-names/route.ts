@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { rankDrugNames } from "@/lib/drug-names";
 
 /**
  * Medication name suggestions from the U.S. National Library of Medicine's RxNorm list.
@@ -29,14 +30,6 @@ export async function GET(request: NextRequest) {
   } catch {
     list = cached?.names ?? [];
   }
-  const starts: string[] = [];
-  const contains: string[] = [];
-  for (const name of list) {
-    const lower = name.toLowerCase();
-    if (lower.startsWith(query)) starts.push(name);
-    else if (contains.length < 8 && lower.includes(query)) contains.push(name);
-    if (starts.length >= 8) break;
-  }
-  const result = [...starts, ...contains].slice(0, 8).map((name) => (name === name.toUpperCase() || name === name.toLowerCase() ? name.charAt(0).toUpperCase() + name.slice(1).toLowerCase() : name));
+  const result = rankDrugNames(list, query);
   return NextResponse.json({ names: result }, { headers: { "Cache-Control": "private, max-age=3600" } });
 }
