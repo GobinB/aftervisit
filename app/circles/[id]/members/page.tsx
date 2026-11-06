@@ -19,14 +19,8 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
   const keys = ownKeys.filter((item) => item.circleId === id);
   return (
     <>
-      <CircleFrame personName={circle?.person_name ?? "Your care circle"} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} help="Everyone who helps. Add a person to give them their own link, or tap a name to share it again." active="people">
-        {listed.canManage ? (
-          <p className="mb-8 max-w-2xl text-ink-500">
-            Each person gets their own link to just the parts you choose. You see a new link once: copy it, share it, or send it from your own
-            mail app. All Hands Care does not send messages.
-          </p>
-        ) : null}
-        <MembersPanel circleId={id} people={listed.people} canManage={listed.canManage} keyVersion={keys[0]?.circleKeyVersion ?? null} />
+      <CircleFrame personName={circle?.person_name ?? "Your care circle"} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} help="Everyone who helps. Add a person to give them their own link. Tap a name to copy or share their link, make a new one, or remove them." active="people">
+        <MembersPanel circleId={id} personName={circle?.person_name ?? "the circle"} people={listed.people} canManage={listed.canManage} keyVersion={keys[0]?.circleKeyVersion ?? null} />
       </CircleFrame>
     </>
   );

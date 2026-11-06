@@ -393,7 +393,7 @@ function SuccessPanel({
           <KeyRound size={20} className="mt-0.5 shrink-0 text-primary-700" aria-hidden="true" />
           <span>
             PIN: <strong className="font-mono text-lg tracking-[0.3em]">{pin}</strong>
-            <span className="block text-sm text-ink-500">Everyone uses the same PIN. Send it separately, by voice or a different message.</span>
+            <span className="block text-sm text-ink-500">Everyone uses the same PIN. Give it to them with the link.</span>
           </span>
         </p>
       ) : (

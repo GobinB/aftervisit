@@ -6,7 +6,7 @@ import { COPY } from "@/lib/copy";
 import { hashInvite, INVITE_RE, newInviteToken } from "@/lib/invites";
 import { can } from "@/lib/permissions";
 import { caregiverDisplayName } from "@/lib/caregiver-name";
-import { CAREGIVER_ROLE_LABELS, HELPER_ROLE_LABELS, MEMBER_TTL_DAYS, type AddMemberInput, type HelperRole, type PersonView, type Visibility } from "@/lib/schema/circles";
+import { CAREGIVER_ROLE_LABELS, HELPER_ROLE_LABELS, MEMBER_TTL_DAYS, type AddMemberInput, type HelperRole, type PersonView, type Visibility, VisibilitySchema } from "@/lib/schema/circles";
 import { PinSchema } from "@/lib/schema";
 import { hashPin } from "@/lib/tokens";
 import { clientFor, serviceClient } from "@/store/db";
@@ -129,7 +129,7 @@ async function log(actor: Actor, circleId: string, action: string, memberId: str
 export async function addMember(
   actor: Actor,
   input: AddMemberInput,
-): Promise<{ ok: true; token: string; name: string; email: string | null } | { ok: false; error: string }> {
+): Promise<{ ok: true; token: string; memberId: string; name: string; email: string | null } | { ok: false; error: string }> {
   if (!can(actor, "members:manage", { circleId: input.circleId })) return { ok: false, error: denied };
   const id = randomUUID();
   const token = newInviteToken();
@@ -146,7 +146,7 @@ export async function addMember(
   });
   if (error) return { ok: false, error: generic };
   await log(actor, input.circleId, "member_added", id);
-  return { ok: true, token, name: input.name, email: input.email?.trim() ? input.email.trim() : null };
+  return { ok: true, token, memberId: id, name: input.name, email: input.email?.trim() ? input.email.trim() : null };
 }
 
 export async function changeRole(actor: Actor, circleId: string, memberId: string, role: HelperRole) {
@@ -225,7 +225,7 @@ export async function newMemberLink(actor: Actor, circleId: string, memberId: st
     .maybeSingle();
   if (error || !data) return { ok: false as const, error: generic };
   await log(actor, circleId, "member_link", memberId);
-  return { ok: true as const, token, name: data.name as string, email: (data.email as string | null) ?? null };
+  return { ok: true as const, token, memberId, name: data.name as string, email: (data.email as string | null) ?? null };
 }
 
 export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: true; people: PersonView[]; canManage: boolean } | { ok: false; error: string }> {
@@ -253,7 +253,7 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
   if (names || canManage) {
     const memberRows = await db
       .from("members")
-      .select("id, name, role, email, expires_at, revoked_at, last_seen_at, locked_until")
+      .select("id, name, role, email, expires_at, revoked_at, last_seen_at, locked_until, visibility")
       .eq("circle_id", circleId)
       .order("created_at");
     if (memberRows.error) return { ok: false, error: generic };
@@ -272,6 +272,8 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
         view.revokedAt = (row.revoked_at as string | null) ?? null;
         view.lastSeenAt = (row.last_seen_at as string | null) ?? null;
         view.locked = !!activeLock(row.locked_until as string | null);
+        const visibility = VisibilitySchema.safeParse(row.visibility ?? {});
+        view.hidden = visibility.success ? (visibility.data.hidden ?? []) : [];
       }
       people.push(view);
     }

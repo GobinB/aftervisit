@@ -12,7 +12,7 @@ export async function addMemberAction(input: unknown) {
   if (!actor) return { ok: false as const, error: "Sign in to continue." };
   const result = await addMember(actor, parsed.data);
   if (!result.ok) return result;
-  return { ok: true as const, name: result.name, email: result.email, token: result.token };
+  return { ok: true as const, memberId: result.memberId, name: result.name, email: result.email, token: result.token };
 }
 
 export async function changeRoleAction(input: unknown) {
@@ -54,5 +54,5 @@ export async function newLinkAction(input: unknown) {
   if (!actor) return { ok: false as const, error: "Sign in to continue." };
   const result = await newMemberLink(actor, parsed.data.circleId, parsed.data.memberId);
   if (!result.ok) return result;
-  return { ok: true as const, name: result.name, email: result.email, token: result.token };
+  return { ok: true as const, memberId: result.memberId, name: result.name, email: result.email, token: result.token };
 }

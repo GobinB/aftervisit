@@ -198,4 +198,6 @@ export interface PersonView {
   revokedAt?: string | null;
   locked?: boolean;
   email?: string | null;
+  /** Areas hidden from this person. Only for a viewer who may manage people. */
+  hidden?: string[];
 }
