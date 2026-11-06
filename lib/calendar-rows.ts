@@ -13,6 +13,9 @@ export type CalendarItem = {
   title: string;
   time: string;
   sortTime: string;
+  /** "09:00" for an event at a time; null for an all-day event or a reminder. */
+  startTime: string | null;
+  endTime: string | null;
   location: string | null;
   notes: string | null;
   who: string | null;
@@ -42,6 +45,8 @@ export function calendarItems(actor: Actor, circleId: string, events: CareEvent[
       title: event.title,
       time: timeText(event),
       sortTime: event.startTime ?? "",
+      startTime: event.startTime,
+      endTime: event.endTime,
       location: event.location,
       notes: event.notes,
       who: nameOf(event.going),
@@ -61,6 +66,8 @@ export function calendarItems(actor: Actor, circleId: string, events: CareEvent[
       title: todo.title,
       time: "Reminder due",
       sortTime: "99:99",
+      startTime: null,
+      endTime: null,
       location: null,
       notes: null,
       who,
