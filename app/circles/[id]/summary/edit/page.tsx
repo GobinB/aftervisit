@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { PageHead } from "@/components/circles/PageHead";
-import { PART_TITLES, SUMMARY_PARTS, SummaryEditor, type SummaryPart } from "@/components/circles/SummaryEditor";
+import { SummaryEditor } from "@/components/circles/SummaryEditor";
+import { PART_TITLES, SUMMARY_PARTS, type SummaryPart } from "@/lib/summary-parts";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { getCircle } from "@/services/circles";

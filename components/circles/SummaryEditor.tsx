@@ -7,17 +7,7 @@ import { saveCareSummary } from "@/app/actions/circles";
 import { Chips } from "@/components/ui/Chips";
 import { careSummaryError, type SummaryRow } from "@/lib/circle-form";
 import type { CircleContent } from "@/lib/schema/circles";
-
-export const SUMMARY_PARTS = ["allergies", "doctors", "contacts", "pharmacy", "poa"] as const;
-export type SummaryPart = (typeof SUMMARY_PARTS)[number];
-
-export const PART_TITLES: Record<SummaryPart, string> = {
-  allergies: "Allergies",
-  doctors: "Doctors",
-  contacts: "Who to call in an emergency",
-  pharmacy: "Pharmacy",
-  poa: "Power of attorney",
-};
+import { PART_TITLES, type SummaryPart } from "@/lib/summary-parts";
 
 /** Common allergies, one tap each. Anything else can be typed. */
 const COMMON_ALLERGIES = ["Penicillin", "Sulfa drugs", "Aspirin", "Ibuprofen", "Codeine", "Latex", "Iodine contrast", "Peanuts", "Shellfish", "Eggs", "Bee stings"];
@@ -26,6 +16,9 @@ const SPECIALTIES = ["Primary care", "Cardiology", "Neurology", "Orthopedics", "
 
 const field = "mt-1 block min-h-12 w-full rounded-lg border border-border-200 bg-white px-3 text-[16px] text-ink-900 outline-none focus:border-action-500";
 const label = "block text-[14px] font-medium text-ink-900";
+
+/** One part on its own already has the page title, so its heading is for screen readers only. */
+const legend = (part: SummaryPart | null) => (part ? "sr-only" : "font-display text-[20px] text-primary-900");
 
 const blank = (): SummaryRow => ({ name: "", extra: "", phone: "" });
 
@@ -171,7 +164,7 @@ export function SummaryEditor({ circleId, content, part }: { circleId: string; c
     <form onSubmit={save} className="max-w-xl space-y-7" noValidate>
       {shows("allergies") ? (
         <fieldset>
-          <legend className="font-display text-[20px] text-primary-900">{PART_TITLES.allergies}</legend>
+          <legend className={legend(part)}>{PART_TITLES.allergies}</legend>
           <p className="mt-1 text-[14px] text-ink-500">Tap any that apply, or type one.</p>
           {allergies.length ? (
             <ul className="mt-3 flex flex-wrap gap-2">
@@ -224,21 +217,21 @@ export function SummaryEditor({ circleId, content, part }: { circleId: string; c
 
       {shows("doctors") ? (
         <fieldset>
-          <legend className="font-display mb-3 text-[20px] text-primary-900">{PART_TITLES.doctors}</legend>
+          <legend className={`${legend(part)} mb-3`}>{PART_TITLES.doctors}</legend>
           {rows("doctor", doctors, setDoctors, "What kind of doctor", SPECIALTIES)}
         </fieldset>
       ) : null}
 
       {shows("contacts") ? (
         <fieldset>
-          <legend className="font-display mb-3 text-[20px] text-primary-900">{PART_TITLES.contacts}</legend>
+          <legend className={`${legend(part)} mb-3`}>{PART_TITLES.contacts}</legend>
           {rows("contact", contacts, setContacts, "Who they are", RELATIONSHIPS)}
         </fieldset>
       ) : null}
 
       {shows("pharmacy") ? (
         <fieldset className="space-y-3">
-          <legend className="font-display mb-3 text-[20px] text-primary-900">{PART_TITLES.pharmacy}</legend>
+          <legend className={`${legend(part)} mb-3`}>{PART_TITLES.pharmacy}</legend>
           <div>
             <label className={label} htmlFor={`${id}-ph-name`}>
               Name
@@ -262,7 +255,7 @@ export function SummaryEditor({ circleId, content, part }: { circleId: string; c
 
       {shows("poa") ? (
         <fieldset>
-          <legend className="font-display mb-1 text-[20px] text-primary-900">{PART_TITLES.poa}</legend>
+          <legend className={`${legend(part)} mb-1`}>{PART_TITLES.poa}</legend>
           <label className={label} htmlFor={`${id}-poa`}>
             Where the papers are kept
           </label>

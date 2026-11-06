@@ -6,6 +6,7 @@ import { useEffect, useId, useMemo, useState } from "react";
 import { ButtonLink } from "@/components/Button";
 import { EmptyNote, inputClass, MedRow, SectionCard, TaskRow, TextItemRow } from "@/components/review/parts";
 import { SourceRail, SourceSheet } from "@/components/review/SourcePanel";
+import { BackLink } from "@/components/circles/PageHead";
 import { StepHeader } from "@/components/StepHeader";
 import { useToast } from "@/components/Toast";
 import { COPY } from "@/lib/copy";
@@ -134,6 +135,7 @@ export default function ReviewPage() {
   return (
     <div>
       <div className="mx-auto max-w-[720px] lg:mx-0 lg:max-w-none">
+        <BackLink href={circleId ? `/circles/${circleId}` : "/"} label={circleId ? "Today" : "Home"} />
         <StepHeader current="Review" circle={Boolean(circleId)} />
       </div>
       <div className="flex gap-6">

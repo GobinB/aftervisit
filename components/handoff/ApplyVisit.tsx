@@ -4,6 +4,7 @@ import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { applyVisitAction, type VisitContext } from "@/app/actions/visits";
+import { BackLink } from "@/components/circles/PageHead";
 import { StepHeader } from "@/components/StepHeader";
 import { doseText, scheduleText, MED_SCHEDULE_LABELS } from "@/lib/schema/medications";
 import type { HandoffDraft } from "@/lib/schema";
@@ -174,6 +175,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
   const current = context.medications.filter((med) => med.status === "active");
   return (
     <div className="mx-auto max-w-[820px] pb-8">
+      <BackLink href="/new/review" label="Review" />
       <StepHeader current="Share" circle />
       <h1 className="font-display text-[28px] leading-tight text-primary-900">Update {context.personName}&apos;s circle</h1>
       <p className="mt-1 text-[14px] text-ink-500">Untick anything you don&apos;t want. Nothing is saved until you press the button.</p>

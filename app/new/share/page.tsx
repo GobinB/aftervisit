@@ -8,6 +8,7 @@ import { FeedbackCard } from "@/components/Feedback";
 import { PinInput } from "@/components/PinInput";
 import { inputClass } from "@/components/review/parts";
 import { RoleChips } from "@/components/RoleChips";
+import { BackLink } from "@/components/circles/PageHead";
 import { StepHeader } from "@/components/StepHeader";
 import { Switch } from "@/components/Switch";
 import { COPY, emailBody, emailSubject, smsBody } from "@/lib/copy";
@@ -150,6 +151,7 @@ export default function SharePage() {
 
   return (
     <div className="mx-auto max-w-[720px]">
+      <BackLink href="/new/review" label="Review" />
       <StepHeader current="Share" />
       <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Who should see this?</h1>
       <p className="mt-2 text-ink-500">Add the people who help: family, a home aide, the day program, a care manager.</p>
