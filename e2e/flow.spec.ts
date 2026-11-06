@@ -478,10 +478,14 @@ test("creating a handoff requires consent (server-side)", async ({ page }, info)
 test("privacy page describes access honestly", async ({ page }, info) => {
   test.skip(info.project.name !== "desktop-chrome", "content check; run once");
   await page.goto("/privacy");
-  await expect(page.getByText("Anyone who has a person's link can open it if the handoff has no PIN.")).toBeVisible();
-  await expect(page.getByText(/so these are self-reported/)).toBeVisible();
-  await expect(page.getByText(/sees only the parts you chose for them/)).toBeVisible();
-  await expect(page.getByText("The full text of the summary is not saved.")).toBeVisible();
+  await expect(page.getByText(/Anyone who has a person.s link can open it/)).toBeVisible();
+  await expect(page.getByText(/every phone that opened the old link is signed out/)).toBeVisible();
+  await expect(page.getByText(/They are not encrypted with a key only you hold/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "privacy@allhandscare.org" }).first()).toBeVisible();
+  await page.getByRole("link", { name: "Health data notice" }).first().click();
+  await expect(page.getByRole("heading", { name: "Health data notice" })).toBeVisible();
+  await expect(page.getByText(/We do not sell health information/)).toBeVisible();
+  await page.goto("/privacy");
   const body = (await page.locator("main").innerText()).toLowerCase();
   expect(body).not.toContain("not a hipaa covered entity");
   expect(body).not.toMatch(/no (third-party )?ai/);

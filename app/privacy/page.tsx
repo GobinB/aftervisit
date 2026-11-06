@@ -1,7 +1,9 @@
 import { Eye, HeartHandshake, ShieldCheck, Trash2, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
+import Link from "next/link";
 import { SOURCE_URL } from "@/components/AppBar";
 import { PageShell } from "@/components/PageShell";
+import { PRIVACY_EMAIL } from "@/lib/contact";
 import { providerDisclosure } from "@/lib/extract/provider";
 import { MEMBER_TTL_DAYS } from "@/lib/schema/circles";
 
@@ -9,25 +11,30 @@ export const metadata: Metadata = { title: "Privacy" };
 export const dynamic = "force-dynamic";
 
 const TTL_DAYS = Number(process.env.HANDOFF_TTL_DAYS || 30);
-const EFFECTIVE = "November 5, 2026";
+const EFFECTIVE = "November 6, 2026";
 
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
   { icon: HeartHandshake, title: "Never sold, no ads", body: "We don't sell information, show ads, or use tracking cookies." },
-  { icon: ShieldCheck, title: "Only what's needed", body: "We keep what you enter. The full text of a visit summary is not saved." },
+  { icon: ShieldCheck, title: "Only what's needed", body: "We keep what you enter. A visit summary's photos are kept only if you choose to keep them." },
   { icon: Trash2, title: "Delete it any time", body: "Deleting a circle closes it for everyone at once, and erases it for good after 30 days." },
 ];
 
 const SECTIONS = [
+  { id: "who", title: "Who we are" },
   { id: "collect", title: "Information we collect" },
   { id: "use", title: "How we use it" },
   { id: "see", title: "Who can see it" },
   { id: "services", title: "Services we use" },
   { id: "keep", title: "How long we keep it" },
   { id: "choices", title: "Your choices" },
+  { id: "rights", title: "Your rights" },
+  { id: "others", title: "Information about other people" },
   { id: "security", title: "Security" },
+  { id: "breach", title: "If something goes wrong" },
   { id: "children", title: "Children" },
-  { id: "changes", title: "Changes and questions" },
+  { id: "changes", title: "Changes" },
+  { id: "contact", title: "Contact us" },
 ];
 
 export default function PrivacyPage() {
@@ -59,8 +66,12 @@ export default function PrivacyPage() {
               <p className="mt-1 text-ink-900">
                 HIPAA covers doctors, hospitals, health plans and the companies that work for them. All Hands Care is a free tool that families
                 use on their own, so HIPAA generally does not apply to what you keep here. We still treat it as sensitive health information:
-                it is encrypted on its way to and from the site, every circle is walled off from every other in the database, and files are
-                kept in private storage. All Hands Care has not yet completed a formal privacy and security review.
+                it is encrypted on its way to and from the site, every circle is walled off from every other, and saved photos are kept in
+                private storage that only you can open. Some states have their own health-data laws; see our{" "}
+                <Link className="underline" href="/privacy/health-data">
+                  health data notice
+                </Link>
+                . All Hands Care has not yet completed a formal privacy and security review.
               </p>
             </div>
           </div>
@@ -87,6 +98,18 @@ export default function PrivacyPage() {
               <p className="text-[14px] text-ink-500">Effective {EFFECTIVE}</p>
 
               <div className="mt-8 space-y-9">
+                <section id="who">
+                  <h3>Who we are</h3>
+                  <p>
+                    All Hands Care is a free, nonprofit, open-source care page for families. &ldquo;We&rdquo; means the people who run it. Write
+                    to us any time at{" "}
+                    <a className="text-primary-700 underline" href={`mailto:${PRIVACY_EMAIL}`}>
+                      {PRIVACY_EMAIL}
+                    </a>
+                    .
+                  </p>
+                </section>
+
                 <section id="collect">
                   <h3>Information we collect</h3>
                   <ul>
@@ -100,15 +123,16 @@ export default function PrivacyPage() {
                     </li>
                     <li>
                       <strong>The people you add:</strong> their name, role, which parts they can see, an optional email for your own mail app,
-                      and when they last opened their link. Links and PINs are stored only as one-way hashes.
+                      and when they last opened their link. On our server, links and PINs are stored only as one-way hashes. Your own browser
+                      remembers each person&apos;s link (never the PIN) so you can share it again; signing out removes them.
                     </li>
                     <li>
                       <strong>What people do on their link:</strong> who took or finished a reminder and who said they would go to an event.
                     </li>
                     <li>
-                      <strong>Visit summaries.</strong> Pasted text and PDFs are read on our server to build a draft and are not saved. Photos
-                      are read in your browser; only the text is sent. We keep only the items you confirm. The original document is kept only
-                      if you choose to attach it.
+                      <strong>Visit summaries.</strong> Photos are read in your browser; only the text is sent to our server. Pasted text and
+                      PDFs are read on our server. Either way the text is used to build a draft and is not saved: we keep only the items you
+                      confirm. The photos (or PDF) are kept only if you leave &ldquo;Keep the photos&rdquo; on, and only you can see them.
                     </li>
                     <li>
                       <strong>Feedback</strong> you send, stored without your name, IP address or any link to your circle.
@@ -128,15 +152,16 @@ export default function PrivacyPage() {
                 <section id="see">
                   <h3>Who can see it</h3>
                   <ul>
-                    <li>You, the caregiver who signed in.</li>
+                    <li>You, the caregiver who signed in. Saved photos of visit summaries are for your eyes only.</li>
                     <li>
                       The people you add, through their own link, and only the parts their role and your choices allow. Home aides and day
                       programs see only the reminders given to them.
                     </li>
                     <li>
-                      Anyone who has a person&apos;s link can open it, because a link can be forwarded. Add a PIN for a second step, and turn
-                      off a link if it is shared by mistake.
+                      Anyone who has a person&apos;s link can open it, because a link can be forwarded. Add a PIN for a second step. If a link
+                      is shared by mistake, make a new link or remove the person: every phone that opened the old link is signed out.
                     </li>
+                    <li>The people you add see your name as it appears on your Google account.</li>
                     <li>Pages opened from a link ask search engines not to index them.</li>
                   </ul>
                 </section>
@@ -144,7 +169,7 @@ export default function PrivacyPage() {
                 <section id="services">
                   <h3>Services we use</h3>
                   <ul>
-                    <li>Vercel hosts the site. Supabase stores the information, in the United States.</li>
+                    <li>Vercel hosts the site. Supabase stores the information and saved photos, in the United States, encrypted at rest.</li>
                     <li>Google provides sign-in for caregivers.</li>
                     <li>
                       Visit summary drafts are built by <strong>{provider.label}</strong>.
@@ -163,17 +188,30 @@ export default function PrivacyPage() {
                       Medication name suggestions come from the U.S. National Library of Medicine&apos;s public list. Our server downloads the
                       whole list and searches it itself, so what you type is not sent to the Library.
                     </li>
+                    <li>
+                      To read photos in your browser, it downloads the reading engine from jsDelivr and Project Naptha. They see that a browser
+                      asked for the engine (its IP address), never your photos or their text.
+                    </li>
                     <li>Vercel Web Analytics counts page visits without cookies.</li>
+                    <li>These companies handle information only to provide their service to us. We do not sell or share it with anyone else.</li>
                   </ul>
                 </section>
 
                 <section id="keep">
                   <h3>How long we keep it</h3>
                   <ul>
-                    <li>A care circle is kept until you delete it. Nobody can open it after that, and 30 days later it is erased for good, with everything in it.</li>
+                    <li>
+                      A care circle is kept until you delete it. Nobody can open it after that, and 30 days later it is erased for good, with
+                      everything in it, saved photos included.
+                    </li>
+                    <li>Saved photos of a visit summary are kept until you delete them, or the circle.</li>
+                    <li>Our database provider keeps backup copies for up to 7 days, so erased information leaves the backups within a week.</li>
                     <li>A shared visit summary (handoff) is deleted {TTL_DAYS} days after it is made, with any attached original.</li>
                     <li>A helper&apos;s browser stays signed in to a circle for up to {MEMBER_TTL_DAYS} days after they last open it.</li>
-                    <li>Cookies are used only to keep you signed in.</li>
+                    <li>
+                      Cookies are used only to run the site: to keep you signed in, to keep a helper&apos;s link open on their phone, to remember
+                      which circle you opened last, and for a few minutes while Google sign-in finishes. None are used for ads or tracking.
+                    </li>
                   </ul>
                 </section>
 
@@ -182,16 +220,52 @@ export default function PrivacyPage() {
                   <ul>
                     <li>Change what each person sees, or turn off their link, from People.</li>
                     <li>Delete a circle from its Settings. Nobody can open it again, every link stops working, and it is erased after 30 days.</li>
+                    <li>Delete saved photos of a visit summary from Care summary, Saved visit summaries.</li>
                     <li>Only share information you are allowed to share: you confirm this when you start a circle.</li>
                   </ul>
+                </section>
+
+                <section id="rights">
+                  <h3>Your rights</h3>
+                  <p>Wherever you live, you can ask us to:</p>
+                  <ul>
+                    <li>show you the information we hold about you, or the person you care for, and who it has been shared with;</li>
+                    <li>give you a copy of it;</li>
+                    <li>correct it;</li>
+                    <li>delete it.</li>
+                  </ul>
+                  <p>
+                    Most of this you can do yourself in the app. For anything else, email{" "}
+                    <a className="text-primary-700 underline" href={`mailto:${PRIVACY_EMAIL}`}>
+                      {PRIVACY_EMAIL}
+                    </a>
+                    . We will check that the request comes from you, and answer within 45 days. If we say no, you can ask us to look again by
+                    replying to that email; we answer that within 45 days too. If you live in Washington and we still say no, you can
+                    complain to the Washington State Attorney General. More for Washington, Nevada and Connecticut is in our{" "}
+                    <Link className="text-primary-700 underline" href="/privacy/health-data">
+                      health data notice
+                    </Link>
+                    .
+                  </p>
+                </section>
+
+                <section id="others">
+                  <h3>Information about other people</h3>
+                  <p>
+                    A circle holds information about the person you care for and the people you add. Only enter it if you are allowed to:
+                    you are that person, or they (or their legal representative) agreed. Someone you added who wants to be removed can ask
+                    you, or email us and we will help.
+                  </p>
                 </section>
 
                 <section id="security">
                   <h3>Security</h3>
                   <p>
-                    Information is encrypted between your device and the site. In the database, each circle is walled off from every other,
-                    and only the people you add can reach it. No system is perfectly secure, and All Hands Care has not yet completed a formal
-                    review. The code is open source, so anyone can{" "}
+                    Information is encrypted between your device and the site, and stored encrypted by our database provider. For
+                    caregivers, the database itself walls each circle off from every other. People with a link reach a circle only through our
+                    server, which checks on every request what their role and your choices let them see. Saved photos are in private storage
+                    and are only ever shown to you, after the same check. They are not encrypted with a key only you hold. No system is
+                    perfectly secure, and All Hands Care has not yet completed a formal review. The code is open source, so anyone can{" "}
                     <a className="text-primary-700 underline" href={SOURCE_URL} target="_blank" rel="noreferrer">
                       read how it works
                     </a>
@@ -199,16 +273,39 @@ export default function PrivacyPage() {
                   </p>
                 </section>
 
+                <section id="breach">
+                  <h3>If something goes wrong</h3>
+                  <p>
+                    If we learn that someone who should not have seen information in All Hands Care did see it, we will tell the caregivers
+                    affected, by email to their Google address, as soon as we can: what happened, what information, and what we are doing
+                    about it. We will also tell anyone the law requires us to.
+                  </p>
+                </section>
+
                 <section id="children">
                   <h3>Children</h3>
-                  <p>All Hands Care is for adults caring for someone. It is not meant for children under 13 to use on their own.</p>
+                  <p>
+                    Caregivers and the people they add must be 18 or older. A circle can be about a child in your care, entered by an adult
+                    who is allowed to.
+                  </p>
                 </section>
 
                 <section id="changes">
-                  <h3>Changes and questions</h3>
+                  <h3>Changes</h3>
                   <p>
-                    If this policy changes, we will update the date above and say what changed. All Hands Care organizes what you and the
-                    clinician wrote; it does not give medical advice.
+                    If this policy changes, we will update the date above and say what changed. Before a big change, we will show a notice in
+                    the app. All Hands Care organizes what you and the clinician wrote; it does not give medical advice.
+                  </p>
+                </section>
+
+                <section id="contact">
+                  <h3>Contact us</h3>
+                  <p>
+                    Questions, requests or worries about privacy:{" "}
+                    <a className="text-primary-700 underline" href={`mailto:${PRIVACY_EMAIL}`}>
+                      {PRIVACY_EMAIL}
+                    </a>
+                    .
                   </p>
                 </section>
               </div>

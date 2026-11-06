@@ -21,6 +21,9 @@ export function Footer() {
             <Link href="/privacy" className="underline-offset-4 hover:text-primary-900 hover:underline">
               Privacy
             </Link>
+            <Link href="/privacy/health-data" className="underline-offset-4 hover:text-primary-900 hover:underline">
+              Health data notice
+            </Link>
             <a href={SOURCE_URL} className="underline-offset-4 hover:text-primary-900 hover:underline" target="_blank" rel="noreferrer">
               Source code
             </a>
