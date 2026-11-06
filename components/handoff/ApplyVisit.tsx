@@ -10,6 +10,11 @@ import { doseText, scheduleText, MED_SCHEDULE_LABELS } from "@/lib/schema/medica
 import type { HandoffDraft } from "@/lib/schema";
 import { planMedications, type MedPlan } from "@/lib/visit-apply";
 import { resolveDue } from "@/lib/parse/dates";
+import { createDocumentAction } from "@/app/actions/documents";
+import { Switch } from "@/components/ui/Switch";
+import { keepPages } from "@/lib/page-image";
+import { MAX_PAGE_BYTES } from "@/lib/schema/documents";
+import { getOriginalPages } from "@/lib/store";
 import { WhoChips } from "@/components/todos/TodoForm";
 
 type Done = { added: number; changed: number; stopped: number; todos: number; events: number; failed: number };
@@ -76,6 +81,12 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState<Done | null>(null);
   const [pending, start] = useTransition();
+  // The photos (or PDF) read on the first step, still in memory. Kept only if the switch stays on.
+  const [pages] = useState(() => getOriginalPages());
+  const pdf = pages.length === 1 && (pages[0].type === "application/pdf" || /\.pdf$/i.test(pages[0].name));
+  const canKeep = !pdf || pages[0].size <= MAX_PAGE_BYTES;
+  const [keep, setKeep] = useState(true);
+  const [kept, setKept] = useState<{ status: "saving"; done: number } | { status: "kept"; id: string } | { status: "failed"; error: string } | null>(null);
   const plans = useMemo(() => planMedications(draft.medications, context.medications), [draft, context]);
   // Follow-up appointments with a date (stated, or counted from the visit date) go on the calendar.
   // Everything else, and an appointment without a date, becomes a reminder.
@@ -134,10 +145,32 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         todos,
         events,
       });
-      if (!result.ok) setError(result.error);
-      else setDone(result);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      setDone(result);
+      if (keep && pages.length && canKeep) await keepTheSummary();
     });
   };
+
+  /** Saves the photos (or PDF) after the circle is updated, page by page with a count on screen. */
+  async function keepTheSummary() {
+    setKept({ status: "saving", done: 0 });
+    const created = await createDocumentAction({
+      circleId,
+      ...(draft.visit.date ? { visitDate: draft.visit.date } : {}),
+      ...(draft.visit.clinic ? { clinic: draft.visit.clinic.slice(0, 300) } : {}),
+      kind: pdf ? "pdf" : "photos",
+      pageCount: pages.length,
+    }).catch(() => ({ ok: false as const, error: "The photos could not be kept." }));
+    if (!created.ok) {
+      setKept({ status: "failed", error: created.error });
+      return;
+    }
+    const sent = await keepPages(circleId, created.id, pages, pdf ? "pdf" : "photos", (n) => setKept({ status: "saving", done: n }));
+    setKept(sent.ok ? { status: "kept", id: created.id } : { status: "failed", error: sent.error });
+  }
 
   if (done) {
     const parts = [
@@ -154,6 +187,25 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
           <CheckCircle2 className="size-8 text-ok" aria-hidden="true" />
           <h1 className="font-display mt-3 text-[26px] text-primary-900">{context.personName}&apos;s circle is up to date</h1>
           <p className="mt-2 text-ink-500">{parts.length ? `${parts.join(", ")}.` : "Nothing was changed."} Everyone you allow sees it on their link.</p>
+          {kept ? (
+            <p role="status" className={`mt-3 rounded-md px-3 py-2 text-[14px] ${kept.status === "failed" ? "bg-attn-bg text-attn-ink" : "bg-sky-100 text-primary-900"}`}>
+              {kept.status === "saving" ? (
+                <>
+                  <Loader2 className="mr-1.5 inline size-4 animate-spin align-[-3px]" aria-hidden="true" />
+                  Keeping the {pdf ? "PDF" : "photos"}… {pdf ? "" : `${kept.done} of ${pages.length}`}
+                </>
+              ) : kept.status === "kept" ? (
+                <>
+                  The {pdf ? "PDF is" : `${pages.length === 1 ? "photo is" : "photos are"}`} kept with this visit.{" "}
+                  <Link href={`/circles/${circleId}/visits/${kept.id}`} className="font-semibold underline underline-offset-2">
+                    See {pdf ? "it" : "them"}
+                  </Link>
+                </>
+              ) : (
+                <>The circle is updated, but the {pdf ? "PDF" : "photos"} could not be kept: {kept.error}</>
+              )}
+            </p>
+          ) : null}
           {done.failed ? (
             <p role="alert" className="mt-3 rounded-md bg-attn-bg px-3 py-2 text-[13px] text-attn-ink">
               {done.failed} change{done.failed === 1 ? "" : "s"} could not be saved. Check the Medications and Reminders pages.
@@ -318,6 +370,22 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
           )}
         </div>
       </section>
+
+      {pages.length ? (
+        <section className="mt-6 rounded-lg border border-border-200 bg-white p-4">
+          <Switch
+            id="keep-original"
+            checked={keep && canKeep}
+            onChange={setKeep}
+            label={pdf ? "Keep the PDF with this visit" : `Keep the ${pages.length === 1 ? "photo" : `${pages.length} photos`} with this visit`}
+            helper={
+              canKeep
+                ? "So you can look at the original later. Only you can see it, and you can delete it any time."
+                : "This PDF is too large to keep. The circle is still updated."
+            }
+          />
+        </section>
+      ) : null}
 
       {error ? (
         <p role="alert" className="mt-4 rounded-md bg-attn-bg px-3 py-2 text-[13px] text-attn-ink">
