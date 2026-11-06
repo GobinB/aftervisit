@@ -35,7 +35,9 @@ export async function middleware(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  // Refreshes an expired session and checks its signature locally against Supabase's public key,
+  // without a call to the auth server on every page.
+  await supabase.auth.getClaims();
   // Remember which circle was opened last, so the installed app reopens it. Only the id is kept.
   const circle = /^\/circles\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1];
   if (circle && request.cookies.get("ahc_last_circle")?.value !== circle) {

@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { caregiverDisplayName } from "@/lib/caregiver-name";
 import { env } from "@/lib/env";
 import { HELPER_COOKIE, readHelperCookie, signHelperCookie, type HelperClaim } from "@/lib/helper-cookie";
 import { HELPER_ROLES, MEMBER_TTL_DAYS, VisibilitySchema, type HelperRole, type Visibility } from "@/lib/schema/circles";
@@ -21,6 +22,8 @@ export type Actor =
   | {
       kind: "caregiver";
       userId: string;
+      /** The caregiver's own name from Google, when it has one. */
+      name?: string | null;
       circleIds: string[];
       role: CaregiverRole | null;
       accessToken: string;
@@ -58,6 +61,7 @@ export async function setHelperSession(claim: HelperClaim): Promise<boolean> {
 
 type CaregiverRecord = {
   userId: string;
+  name: string | null;
   accessToken: string;
   circleIds: string[];
   roles: Record<string, CaregiverRole>;
@@ -68,11 +72,15 @@ const loadCaregiver = cache(async function loadCaregiver(): Promise<CaregiverRec
   if (!env.supabaseUrl || !env.anonKey) return null;
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+    // getClaims verifies the session's signature locally (ES256 public key, cached), so a page
+    // does not wait on the auth server. The middleware has already refreshed an expired session.
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+    const claims = claimsData?.claims;
+    if (claimsError || !claims?.sub) return null;
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData.session?.access_token;
-    if (!user || !accessToken) return null;
+    if (!accessToken) return null;
+    const user = { id: claims.sub, name: caregiverDisplayName(claims.user_metadata) };
     const db = userClient(accessToken);
     const [{ data: memberships, error }, { data: circles }] = await Promise.all([
       db.from("circle_caregivers").select("circle_id, role"),
@@ -90,7 +98,7 @@ const loadCaregiver = cache(async function loadCaregiver(): Promise<CaregiverRec
       roles[circleId] = role;
       circleIds.push(circleId);
     }
-    return { userId: user.id, accessToken, circleIds, roles };
+    return { userId: user.id, name: user.name, accessToken, circleIds, roles };
   } catch {
     return null;
   }
@@ -146,6 +154,7 @@ export const getActor = cache(async function getActor(circleId?: string): Promis
     return {
       kind: "caregiver",
       userId: caregiver.userId,
+      name: caregiver.name,
       circleIds: caregiver.circleIds,
       role: caregiver.roles[circleId] ?? null,
       accessToken: caregiver.accessToken,
@@ -159,6 +168,7 @@ export const getActor = cache(async function getActor(circleId?: string): Promis
     return {
       kind: "caregiver",
       userId: caregiver.userId,
+      name: caregiver.name,
       circleIds: caregiver.circleIds,
       role: null,
       accessToken: caregiver.accessToken,

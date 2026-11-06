@@ -235,9 +235,22 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
   if (!canManage && !names && !caregivers) return { ok: false, error: "You cannot view people on this circle." };
   const db = clientFor(actor);
   const people: PersonView[] = [];
-  const caregiverRows = await db.from("circle_caregivers").select("user_id, role").eq("circle_id", circleId);
+  // The caregivers and the helpers are read at once rather than one after the other.
+  const [caregiverRows, memberRows] = await Promise.all([
+    db.from("circle_caregivers").select("user_id, role").eq("circle_id", circleId),
+    names || canManage
+      ? db
+          .from("members")
+          .select("id, name, role, email, expires_at, revoked_at, last_seen_at, locked_until, visibility")
+          .eq("circle_id", circleId)
+          .order("created_at")
+      : Promise.resolve(null),
+  ]);
   if (caregiverRows.error) return { ok: false, error: generic };
-  const displayNames = await caregiverNames((caregiverRows.data ?? []).map((row) => row.user_id as string));
+  // A caregiver looking at their own circle already has their name; only others need a lookup.
+  const own = actor.kind === "caregiver" && actor.name ? new Map([[actor.userId, actor.name]]) : new Map<string, string>();
+  const lookup = (caregiverRows.data ?? []).map((row) => row.user_id as string).filter((id) => !own.has(id));
+  const displayNames = new Map([...own, ...(await caregiverNames(lookup))]);
   for (const row of caregiverRows.data ?? []) {
     if (row.role !== "owner") continue;
     const role = "owner" as const;
@@ -250,12 +263,7 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
       kind: "caregiver",
     });
   }
-  if (names || canManage) {
-    const memberRows = await db
-      .from("members")
-      .select("id, name, role, email, expires_at, revoked_at, last_seen_at, locked_until, visibility")
-      .eq("circle_id", circleId)
-      .order("created_at");
+  if (memberRows) {
     if (memberRows.error) return { ok: false, error: generic };
     for (const row of memberRows.data ?? []) {
       const role = row.role as HelperRole;

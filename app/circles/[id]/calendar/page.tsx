@@ -2,6 +2,7 @@ import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import { PageHead } from "@/components/circles/PageHead";
 import Link from "next/link";
+import { PendingLink } from "@/components/ui/PendingLink";
 import { notFound, redirect } from "next/navigation";
 import { Agenda } from "@/components/calendar/Agenda";
 import { MonthGrid } from "@/components/calendar/MonthGrid";
@@ -23,7 +24,7 @@ export const metadata: Metadata = { title: "Calendar", robots: { index: false, f
 export const dynamic = "force-dynamic";
 
 const pill = (on: boolean) =>
-  `inline-flex h-8 items-center rounded-full border px-3 text-[13px] font-medium ${on ? "border-primary-700 bg-primary-700 text-white" : "border-border-200 bg-white text-ink-900 hover:bg-paper-100"}`;
+  `inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-[15px] font-semibold ${on ? "border-primary-700 bg-primary-700 text-white" : "border-border-200 bg-white text-ink-900 hover:bg-paper-100"}`;
 
 export default async function CalendarPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ view?: string; month?: string; date?: string }> }) {
   const { id } = await params;
@@ -75,12 +76,12 @@ export default async function CalendarPage({ params, searchParams }: { params: P
           }
         />
         <div className="no-print mb-3 flex gap-2">
-          <Link href={`${base}?view=day&date=${addDays(day, -1)}`} className="inline-flex h-11 items-center gap-1 rounded-lg border border-border-200 bg-white px-3 text-[14px] font-semibold text-primary-700 hover:bg-sky-100">
+          <PendingLink href={`${base}?view=day&date=${addDays(day, -1)}`} className="inline-flex h-11 items-center gap-1 rounded-lg border border-border-200 bg-white px-3 text-[14px] font-semibold text-primary-700 hover:bg-sky-100">
             <ChevronLeft className="size-4" aria-hidden="true" /> Day before
-          </Link>
-          <Link href={`${base}?view=day&date=${addDays(day, 1)}`} className="inline-flex h-11 items-center gap-1 rounded-lg border border-border-200 bg-white px-3 text-[14px] font-semibold text-primary-700 hover:bg-sky-100">
+          </PendingLink>
+          <PendingLink href={`${base}?view=day&date=${addDays(day, 1)}`} className="inline-flex h-11 items-center gap-1 rounded-lg border border-border-200 bg-white px-3 text-[14px] font-semibold text-primary-700 hover:bg-sky-100">
             Next day <ChevronRight className="size-4" aria-hidden="true" />
-          </Link>
+          </PendingLink>
         </div>
         <h2 className="mb-2 text-[12px] font-bold tracking-[0.1em] text-ink-500 uppercase">Appointments and reminders</h2>
         <Card className="mb-5">
@@ -118,22 +119,22 @@ export default async function CalendarPage({ params, searchParams }: { params: P
 
       <div className="no-print mb-3 flex flex-wrap items-center justify-between gap-2">
         <nav aria-label="Calendar view" className="flex gap-1.5">
-          <Link href={base} aria-current={view === "list" ? "page" : undefined} className={pill(view === "list")}>
+          <PendingLink href={base} aria-current={view === "list" ? "page" : undefined} className={pill(view === "list")}>
             Upcoming
-          </Link>
-          <Link href={`${base}?view=month&month=${month}`} aria-current={view === "month" ? "page" : undefined} className={pill(view === "month")}>
+          </PendingLink>
+          <PendingLink href={`${base}?view=month&month=${month}`} aria-current={view === "month" ? "page" : undefined} className={pill(view === "month")}>
             Month
-          </Link>
+          </PendingLink>
         </nav>
         {view === "month" ? (
           <div className="flex items-center gap-1">
-            <Link href={`${base}?view=month&month=${shiftMonth(month, -1)}`} aria-label="Previous month" className="inline-flex size-8 items-center justify-center rounded-md border border-border-200 bg-white hover:bg-paper-100">
-              <ChevronLeft className="size-4" aria-hidden="true" />
-            </Link>
+            <PendingLink href={`${base}?view=month&month=${shiftMonth(month, -1)}`} aria-label="Previous month" className="inline-flex size-11 items-center justify-center rounded-md border border-border-200 bg-white hover:bg-paper-100">
+              <ChevronLeft className="size-5" aria-hidden="true" />
+            </PendingLink>
             <span className="min-w-32 text-center text-[14px] font-semibold text-ink-900">{monthText(month)}</span>
-            <Link href={`${base}?view=month&month=${shiftMonth(month, 1)}`} aria-label="Next month" className="inline-flex size-8 items-center justify-center rounded-md border border-border-200 bg-white hover:bg-paper-100">
-              <ChevronRight className="size-4" aria-hidden="true" />
-            </Link>
+            <PendingLink href={`${base}?view=month&month=${shiftMonth(month, 1)}`} aria-label="Next month" className="inline-flex size-11 items-center justify-center rounded-md border border-border-200 bg-white hover:bg-paper-100">
+              <ChevronRight className="size-5" aria-hidden="true" />
+            </PendingLink>
           </div>
         ) : null}
       </div>

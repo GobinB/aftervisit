@@ -1,13 +1,11 @@
 import type { Metadata } from "next";
 import { PageHead } from "@/components/circles/PageHead";
-import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Card } from "@/components/circles/Today";
 import { TodoForm } from "@/components/todos/TodoForm";
-import { TodoList } from "@/components/todos/TodoList";
+import { TodoViews } from "@/components/todos/TodoViews";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { TODO_VIEWS, TODO_VIEW_LABELS, filterTodos, sortTodos, type TodoView } from "@/lib/schema/todos";
+import { TODO_VIEWS, filterTodos, sortTodos, type TodoView } from "@/lib/schema/todos";
 import { todoRows, viewerOf } from "@/lib/todo-rows";
 import { getCircle } from "@/services/circles";
 import { listPeople } from "@/services/members";
@@ -37,8 +35,9 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
   const views: TodoView[] = seesAll ? [...TODO_VIEWS] : ["open", "done"];
   const view: TodoView = views.includes(show as TodoView) ? (show as TodoView) : views[0];
   const viewer = viewerOf(actor);
-  const rows = todoRows(actor, id, sortTodos(filterTodos(todos, view, viewer)), people);
-  const counts = Object.fromEntries(views.map((key) => [key, filterTodos(todos, key, viewer).length])) as Record<TodoView, number>;
+  // Every list is sent at once, so switching between them on the phone is instant.
+  const lists = Object.fromEntries(views.map((key) => [key, todoRows(actor, id, sortTodos(filterTodos(todos, key, viewer)), people)])) as Record<TodoView, ReturnType<typeof todoRows>>;
+  const counts = Object.fromEntries(views.map((key) => [key, lists[key].length])) as Record<TodoView, number>;
   const options = (people ?? [])
     .filter((person) => person.kind === "member" && !person.revokedAt)
     .map((person) => ({ value: person.id, label: `${person.name} (${person.roleLabel})` }));
@@ -61,29 +60,7 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
         </div>
       ) : null}
 
-      <nav aria-label="Which reminders" className="mb-3 flex gap-1.5 overflow-x-auto [scrollbar-width:none]">
-        {views.map((key) => (
-          <Link
-            key={key}
-            href={key === views[0] ? `/circles/${id}/todos` : `/circles/${id}/todos?show=${key}`}
-            aria-current={key === view ? "page" : undefined}
-            className={`inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border px-3 text-[13px] font-medium ${
-              key === view ? "border-primary-700 bg-primary-700 text-white" : "border-border-200 bg-white text-ink-900 hover:bg-paper-100"
-            }`}
-          >
-            {TODO_VIEW_LABELS[key]}
-            <span className={`tabular-nums ${key === view ? "text-white/80" : "text-ink-500"}`}>{counts[key]}</span>
-          </Link>
-        ))}
-      </nav>
-
-      <Card>
-        {rows.length ? (
-          <TodoList todos={rows} circleId={id} canEdit={canEdit} />
-        ) : (
-          <p className="px-4 py-10 text-center text-[14px] text-ink-500">{EMPTY[view]}</p>
-        )}
-      </Card>
+      <TodoViews circleId={id} views={views} initial={view} lists={lists} empty={EMPTY} canEdit={canEdit} />
     </>
   );
 }
