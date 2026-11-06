@@ -91,6 +91,28 @@ function continues(prev: string, line: string): boolean {
   return SOFT_END_RE.test(prev) && /^[A-Za-z0-9]/.test(line) && !/^[A-Z][A-Za-z /&]{1,30}:/.test(line) && !looksLikeHeadingLine(line);
 }
 
+/**
+ * True when most lines on a page are followed by exactly one blank line, the shape
+ * tesseract gives for a photographed page. Needs a handful of gaps to judge.
+ */
+function isDoubleSpaced(lines: string[], isBlank: (l: string) => boolean): boolean {
+  let gaps = 0;
+  let single = 0;
+  let run = -1; // -1 until the first non-blank line
+  for (const l of lines) {
+    if (isBlank(l)) {
+      if (run >= 0) run++;
+      continue;
+    }
+    if (run >= 0) {
+      gaps++;
+      if (run === 1) single++;
+    }
+    run = 0;
+  }
+  return gaps >= 4 && single / gaps >= 0.6;
+}
+
 export function normalize(raw: string): NormalizedLine[] {
   const cleaned = raw
     .replace(/\r\n?/g, "\n")
@@ -101,12 +123,17 @@ export function normalize(raw: string): NormalizedLine[] {
     .replace(/ﬂ/g, "fl");
   const text = stripPageFurniture(cleaned).text;
 
+  const isBlank = (l: string) => !l.trim() || /^[-_=*.·•|¦\s]+$/.test(l.trim());
+  const pageDoubleSpaced = text.split(`\n${PAGE_BREAK}\n`).map((page) => isDoubleSpaced(page.split("\n"), isBlank));
+
   const out: NormalizedLine[] = [];
-  // What separates this line from the previous one: nothing, a blank line, or a page break.
-  let gap: "none" | "blank" | "page" = "blank";
+  let page = 0;
+  let blankRun = 0;
+  let pageBreak = false;
   for (const rawLine of text.split("\n")) {
     if (rawLine === PAGE_BREAK) {
-      if (gap === "none") gap = "page";
+      pageBreak = true;
+      page++;
       continue;
     }
     const unpiped = stripStrayPipes(rawLine);
@@ -114,9 +141,18 @@ export function normalize(raw: string): NormalizedLine[] {
     let line = stripBullet(unpiped).replace(/\s+/g, " ").trim();
     line = fixOcrDigits(line).replace(/(^|[.!?]\s+)l([ft])\b/g, (_m, pre: string, c: string) => `${pre}I${c}`).replace(/\blf\b/g, "if");
     if (!line || /^[-_=*.·•|\s]+$/.test(line)) {
-      gap = "blank";
+      blankRun++;
       continue;
     }
+    // What separates this line from the previous one: nothing, a blank line, or a page break.
+    // On a double-spaced page (browser OCR puts a blank line after almost every line) one blank
+    // line is an ordinary line break and only two or more end a paragraph.
+    const softBlank = blankRun === 1 && pageDoubleSpaced[page];
+    const gap: "none" | "blank" | "page" =
+      out.length === 0 || (blankRun > 0 && !softBlank) ? "blank" : pageBreak ? "page" : "none";
+    blankRun = 0;
+    pageBreak = false;
+
     const prev = out[out.length - 1];
     // Join a line that wraps mid-sentence (also across a page break, never across a blank line).
     if (prev && gap !== "blank" && !hadBullet && !looksLikeHeadingLine(prev.text) && continues(prev.text, line)) {
@@ -127,7 +163,6 @@ export function normalize(raw: string): NormalizedLine[] {
       continue;
     }
     out.push({ text: line, paragraphStart: gap !== "none" });
-    gap = "none";
   }
   return out;
 }

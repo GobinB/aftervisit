@@ -190,6 +190,10 @@ const FIXTURES: Record<string, Expected> = {
   },
 };
 
+// The same Epic summary, rendered to images and read by tesseract.js in the browser: a blank line
+// after almost every line, and pages joined with "\n\n\f\n\n". It should read exactly like the clean text.
+FIXTURES["multipage-epic-primary-tesseract.txt"] = FIXTURES["multipage-epic-primary.txt"];
+
 /** Everything a caregiver would see, without the original text. */
 const visible = (d: HandoffDraft) => JSON.stringify({ ...d, sourceText: undefined });
 
@@ -349,6 +353,58 @@ describe("OCR clean-up", () => {
       "Check your blood pressure every morning and write it down.",
     ]);
     expect(norm("Check your blood pressure\n\nwrite it down.")).toHaveLength(2);
+  });
+});
+
+describe("double-spaced OCR pages", () => {
+  const norm = (s: string) => normalize(s).map((l) => [l.text, l.paragraphStart]);
+
+  test("one blank line is a line break and two end a paragraph", () => {
+    const page = ["Upcoming Appointments", "", "Nov 20 10:30 AM", "", "Dr. Lee", "", "Maplewood Clinic", "", "", "Bring your list", "", "of medicines."].join("\n");
+    expect(norm(page)).toEqual([
+      ["Upcoming Appointments", true],
+      ["Nov 20 10:30 AM", false],
+      ["Dr. Lee", false],
+      ["Maplewood Clinic", false],
+      ["Bring your list of medicines.", true],
+    ]);
+  });
+
+  test("a mostly single-spaced page keeps a blank line as a paragraph break", () => {
+    const page = "Assessment\nKnee strain.\nImproving.\n\nPlan\nRest.\nIce.\nElevate.";
+    expect(norm(page).filter(([, p]) => p).map(([t]) => t)).toEqual(["Assessment", "Plan"]);
+  });
+
+  test("tesseract text gives the same draft as the clean text", () => {
+    const clean = parse({ text: fixture("multipage-epic-primary.txt") });
+    const ocr = parse({ text: fixture("multipage-epic-primary-tesseract.txt") });
+    const shape = (d: HandoffDraft) => ({
+      visit: d.visit,
+      meds: d.medications.map((m) => [m.kind, m.name, m.detail]),
+      tasks: d.tasks.map((t) => [t.category, t.title, t.dueText, t.dueDate, t.dueTime]),
+      watchFor: d.watchFor,
+      questions: d.questions,
+      otherNotes: d.otherNotes,
+    });
+    expect(shape(ocr)).toEqual(shape(clean));
+  });
+
+  test("appointment entries with no blank lines between them split on a new date or time", () => {
+    const text = [
+      "Upcoming Appointments",
+      "Friday November 20, 2026",
+      "10:30 AM",
+      "Follow-up Visit with Priya Natarajan, MD",
+      "Maplewood Family Clinic",
+      "9:15 AM",
+      "Tuesday December 1, 2026",
+      "Cardiology with Michael Lee, MD",
+      "Maplewood Heart Center, Suite 210",
+    ].join("\n");
+    expect(parse({ text }).tasks.map((t) => [t.title, t.dueDate, t.dueTime])).toEqual([
+      ["Follow-up visit with Dr. Priya Natarajan at Maplewood Family Clinic", "2026-11-20", "10:30"],
+      ["Cardiology appointment with Dr. Michael Lee at Maplewood Heart Center, Suite 210", "2026-12-01", "09:15"],
+    ]);
   });
 });
 

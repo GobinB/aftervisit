@@ -28,14 +28,14 @@ function hasProvider(line: string): boolean {
 
 /**
  * Group lines under appointment headings into one entry per appointment. An entry is a run
- * of short, non-sentence lines; a new one starts at a blank line, or when a second date or
- * a second provider shows up. Sentences ("Follow up with your doctor within 7 days.") are
+ * of short, non-sentence lines; a new one starts at a blank line, or when a second date,
+ * time or provider shows up. Sentences ("Follow up with your doctor within 7 days.") are
  * left for the ordinary task classifier. Returns the line indexes of each entry.
  */
 export function findAppointmentEntries(lines: string[], paragraphStart: boolean[]): number[][] {
   const entries: number[][] = [];
   let inSection = false;
-  let cur: { idx: number[]; date: boolean; provider: boolean } | null = null;
+  let cur: { idx: number[]; date: boolean; time: boolean; provider: boolean } | null = null;
   const close = () => {
     if (cur && (cur.date || cur.provider)) entries.push(cur.idx);
     cur = null;
@@ -70,10 +70,12 @@ export function findAppointmentEntries(lines: string[], paragraphStart: boolean[
     // A provider line followed straight by a date line opens the next entry (provider-first layout).
     const leadsNext =
       provider && !date && i + 1 < lines.length && !paragraphStart[i + 1] && findExplicitDate(lines[i + 1]) !== null && !hasProvider(lines[i + 1]);
-    if (cur && ((date && cur.date) || (provider && cur.provider) || (leadsNext && cur.date))) close();
-    if (!cur) cur = { idx: [], date: false, provider: false };
+    // A second date, time or provider means the next appointment has begun, blank line or not.
+    if (cur && ((date && cur.date) || (time && cur.time) || (provider && cur.provider) || (leadsNext && cur.date))) close();
+    if (!cur) cur = { idx: [], date: false, time: false, provider: false };
     cur.idx.push(i);
     cur.date ||= date;
+    cur.time ||= time;
     cur.provider ||= provider;
   });
   close();
