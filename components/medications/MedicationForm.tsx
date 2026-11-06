@@ -46,7 +46,7 @@ export function MedicationForm({ circleId, medication, doctors = [] }: { circleI
     }
     const controller = new AbortController();
     const timer = window.setTimeout(() => {
-      fetch(`/api/drug-names?q=${encodeURIComponent(query)}`, { signal: controller.signal })
+      fetch("/api/drug-names", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ q: query }), signal: controller.signal })
         .then((response) => (response.ok ? response.json() : { names: [] }))
         .then((body: { names?: string[] }) => setSuggestions(body.names ?? []))
         .catch(() => undefined);

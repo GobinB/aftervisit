@@ -21,8 +21,10 @@ async function names(): Promise<string[]> {
   return list;
 }
 
-export async function GET(request: NextRequest) {
-  const query = (request.nextUrl.searchParams.get("q") ?? "").trim().toLowerCase();
+/** POST, so what was typed travels in the body and never lands in request logs as part of a URL. */
+export async function POST(request: NextRequest) {
+  const body = (await request.json().catch(() => null)) as { q?: unknown } | null;
+  const query = (typeof body?.q === "string" ? body.q : "").trim().toLowerCase();
   if (query.length < 2 || query.length > 60) return NextResponse.json({ names: [] });
   let list: string[] = [];
   try {
@@ -31,5 +33,5 @@ export async function GET(request: NextRequest) {
     list = cached?.names ?? [];
   }
   const result = rankDrugNames(list, query);
-  return NextResponse.json({ names: result }, { headers: { "Cache-Control": "private, max-age=3600" } });
+  return NextResponse.json({ names: result }, { headers: { "Cache-Control": "no-store" } });
 }

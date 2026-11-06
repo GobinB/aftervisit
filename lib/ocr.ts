@@ -39,7 +39,7 @@ async function prepare(blob: Blob): Promise<Blob> {
   }
 }
 
-async function toImageBlob(file: File): Promise<Blob> {
+export async function toImageBlob(file: File): Promise<Blob> {
   const isHeic = /image\/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name);
   if (!isHeic) return file;
   const heic2any = (await import("heic2any")).default;

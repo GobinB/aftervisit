@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import { activeLock, HARD_LOCK_AFTER, LOCK_MINUTES, MAX_PIN_ATTEMPTS, toPinCheck, type TryPinRow } from "@/lib/access";
 import type { Actor } from "@/lib/auth";
 import { COPY } from "@/lib/copy";
+import { linkTag } from "@/lib/helper-cookie";
 import { hashInvite, INVITE_RE, newInviteToken } from "@/lib/invites";
 import { can } from "@/lib/permissions";
 import { caregiverDisplayName } from "@/lib/caregiver-name";
@@ -56,7 +57,7 @@ async function memberByToken(token: string) {
   if (!INVITE_RE.test(token)) return null;
   const { data, error } = await serviceClient()
     .from("members")
-    .select("id, circle_id, role, pin_hash, locked_until, revoked_at, expires_at")
+    .select("id, circle_id, role, pin_hash, locked_until, revoked_at, expires_at, token_hash")
     .eq("token_hash", hashInvite(token))
     .maybeSingle();
   if (error) throw error;
@@ -84,7 +85,7 @@ export async function previewMemberLink(token: string): Promise<MemberLinkPrevie
 export async function openMemberToken(
   token: string,
   pin?: string,
-): Promise<{ ok: true; memberId: string; circleId: string; role: HelperRole } | { ok: false; error: string }> {
+): Promise<{ ok: true; memberId: string; circleId: string; role: HelperRole; link: string } | { ok: false; error: string }> {
   const row = await memberByToken(token);
   if (!row) return { ok: false, error: COPY.notFound };
   if (row.revoked_at) return { ok: false, error: COPY.revoked };
@@ -112,7 +113,7 @@ export async function openMemberToken(
       return { ok: false, error: "Enter the 4-digit PIN." };
     }
   }
-  return { ok: true, memberId: row.id as string, circleId: row.circle_id as string, role: row.role as HelperRole };
+  return { ok: true, memberId: row.id as string, circleId: row.circle_id as string, role: row.role as HelperRole, link: linkTag(row.token_hash as string) };
 }
 
 async function log(actor: Actor, circleId: string, action: string, memberId: string) {
@@ -214,6 +215,8 @@ export async function newMemberLink(actor: Actor, circleId: string, memberId: st
     .from("members")
     .update({
       token_hash: hashInvite(token),
+      // A new link also lets a removed person back in. Old devices stay out: their cookies name the old link.
+      revoked_at: null,
       pin_failures: 0,
       locked_until: null,
       lock_count: 0,
@@ -235,9 +238,22 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
   if (!canManage && !names && !caregivers) return { ok: false, error: "You cannot view people on this circle." };
   const db = clientFor(actor);
   const people: PersonView[] = [];
-  const caregiverRows = await db.from("circle_caregivers").select("user_id, role").eq("circle_id", circleId);
+  // The caregivers and the helpers are read at once rather than one after the other.
+  const [caregiverRows, memberRows] = await Promise.all([
+    db.from("circle_caregivers").select("user_id, role").eq("circle_id", circleId),
+    names || canManage
+      ? db
+          .from("members")
+          .select("id, name, role, email, expires_at, revoked_at, last_seen_at, locked_until, visibility")
+          .eq("circle_id", circleId)
+          .order("created_at")
+      : Promise.resolve(null),
+  ]);
   if (caregiverRows.error) return { ok: false, error: generic };
-  const displayNames = await caregiverNames((caregiverRows.data ?? []).map((row) => row.user_id as string));
+  // A caregiver looking at their own circle already has their name; only others need a lookup.
+  const own = actor.kind === "caregiver" && actor.name ? new Map([[actor.userId, actor.name]]) : new Map<string, string>();
+  const lookup = (caregiverRows.data ?? []).map((row) => row.user_id as string).filter((id) => !own.has(id));
+  const displayNames = new Map([...own, ...(await caregiverNames(lookup))]);
   for (const row of caregiverRows.data ?? []) {
     if (row.role !== "owner") continue;
     const role = "owner" as const;
@@ -250,12 +266,7 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
       kind: "caregiver",
     });
   }
-  if (names || canManage) {
-    const memberRows = await db
-      .from("members")
-      .select("id, name, role, email, expires_at, revoked_at, last_seen_at, locked_until, visibility")
-      .eq("circle_id", circleId)
-      .order("created_at");
+  if (memberRows) {
     if (memberRows.error) return { ok: false, error: generic };
     for (const row of memberRows.data ?? []) {
       const role = row.role as HelperRole;

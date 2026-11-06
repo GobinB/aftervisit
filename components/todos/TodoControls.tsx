@@ -6,32 +6,44 @@ import { useEffect, useState, useTransition } from "react";
 import { claimTodoAction, setTodoDoneAction } from "@/app/actions/todos";
 import { localToday } from "@/lib/schema/todos";
 
-/** The round check: marks a to-do done, or open again. */
+/**
+ * The round check: marks a reminder done, or open again. It changes the moment it is tapped and
+ * saves in the background; if saving fails it goes back and says so.
+ */
 export function DoneToggle({ circleId, id, title, done }: { circleId: string; id: string; title: string; done: boolean }) {
   const router = useRouter();
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
+  const [shown, setShown] = useState(done);
   const [error, setError] = useState<string | null>(null);
+  useEffect(() => setShown(done), [done]);
   return (
     <span className="inline-flex flex-col">
       <button
         type="button"
         role="checkbox"
-        aria-checked={done}
-        aria-label={done ? `Mark "${title}" not done` : `Mark "${title}" done`}
-        disabled={pending}
+        aria-checked={shown}
+        aria-label={shown ? `Mark "${title}" not done` : `Mark "${title}" done`}
         onClick={() => {
+          const next = !shown;
+          setShown(next);
           setError(null);
           start(async () => {
-            const result = await setTodoDoneAction({ circleId, id, done: !done });
-            if (!result.ok) setError(result.error);
-            else router.refresh();
+            const result = await setTodoDoneAction({ circleId, id, done: next });
+            if (!result.ok) {
+              setShown(!next);
+              setError(result.error);
+            } else router.refresh();
           });
         }}
-        className={`flex size-6 items-center justify-center rounded-full border-2 transition-colors disabled:opacity-50 ${
-          done ? "border-ok bg-ok text-white" : "border-ink-500/40 bg-white text-transparent hover:border-ok hover:text-ok/60"
-        }`}
+        className={`-m-2.5 flex size-11 items-center justify-center rounded-full`}
       >
-        <Check className="size-3.5" strokeWidth={3} aria-hidden="true" />
+        <span
+          className={`flex size-7 items-center justify-center rounded-full border-2 transition-colors ${
+            shown ? "border-ok bg-ok text-white" : "border-ink-500/40 bg-white text-transparent hover:border-ok hover:text-ok/60"
+          }`}
+        >
+          <Check className="size-4" strokeWidth={3} aria-hidden="true" />
+        </span>
       </button>
       {error ? (
         <span role="alert" className="mt-1 text-[12px] text-attn-ink">
@@ -42,27 +54,35 @@ export function DoneToggle({ circleId, id, title, done }: { circleId: string; id
   );
 }
 
-/** "I'll do it" on a to-do nobody has taken. */
+/** "I'll do it" on a reminder nobody has taken. It says "It's yours" at once and saves in the background. */
 export function ClaimButton({ circleId, id }: { circleId: string; id: string }) {
   const router = useRouter();
-  const [pending, start] = useTransition();
+  const [, start] = useTransition();
+  const [taken, setTaken] = useState(false);
   const [error, setError] = useState<string | null>(null);
   return (
     <span className="inline-flex flex-col items-end">
       <button
         type="button"
-        disabled={pending}
+        disabled={taken}
         onClick={() => {
+          setTaken(true);
           setError(null);
           start(async () => {
             const result = await claimTodoAction({ circleId, id });
-            if (!result.ok) setError(result.error);
+            if (!result.ok) {
+              setTaken(false);
+              setError(result.error);
+            }
             router.refresh();
           });
         }}
-        className="inline-flex h-8 items-center gap-1.5 rounded-md bg-primary-700 px-2.5 text-[12px] font-semibold text-white hover:bg-primary-900 disabled:opacity-50"
+        className={`inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 text-[14px] font-semibold ${
+          taken ? "bg-ok-bg text-ok-ink" : "bg-primary-700 text-white hover:bg-primary-900"
+        }`}
       >
-        <Hand className="size-3.5" aria-hidden="true" /> {pending ? "Saving" : "I'll do it"}
+        {taken ? <Check className="size-4" aria-hidden="true" /> : <Hand className="size-4" aria-hidden="true" />}
+        {taken ? "It's yours" : "I'll do it"}
       </button>
       {error ? (
         <span role="alert" className="mt-1 text-[12px] text-attn-ink">

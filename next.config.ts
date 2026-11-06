@@ -21,6 +21,9 @@ const nextConfig: NextConfig = {
   poweredByHeader: false,
   // A stray lockfile higher up the tree would otherwise be taken as the workspace root.
   outputFileTracingRoot: process.cwd(),
+  // Pages already opened in the last 30 seconds come back at once when a tab is tapped again.
+  // Saving anything refreshes them, so a change is never hidden behind this.
+  experimental: { staleTimes: { dynamic: 30 } },
   async headers() {
     return [
       {

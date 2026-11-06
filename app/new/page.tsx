@@ -8,7 +8,7 @@ import { BackLink } from "@/components/circles/PageHead";
 import { StepHeader } from "@/components/StepHeader";
 import { COPY } from "@/lib/copy";
 import type { HandoffDraft } from "@/lib/schema";
-import { setOriginalFile, useFlow } from "@/lib/store";
+import { setOriginalFile, setOriginalPages, useFlow } from "@/lib/store";
 
 const MAX_MB = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB || 10);
 const MIN_TEXT = 50;
@@ -144,6 +144,7 @@ export default function IntakePage() {
       await new Promise((r) => setTimeout(r, wait + 350));
 
       setOriginalFile(files.length === 1 ? files[0] : null);
+      setOriginalPages(pasteMode ? [] : files);
       setOriginalName(files.length === 1 ? files[0].name : null);
       startDraft(data.draft, { isSample: false, unsorted: !!data.unsorted, caregiverFirstName: caregiver.trim(), circleId: circle?.id ?? null });
       router.push("/new/review");

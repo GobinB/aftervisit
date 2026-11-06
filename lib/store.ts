@@ -79,6 +79,7 @@ export const useFlow = create<FlowState>()(
       setOriginalName: (originalName) => set({ originalName }),
       reset: () => {
         originalFile = null;
+        originalPages = [];
         set(initial);
       },
     }),
@@ -96,6 +97,17 @@ export const setOriginalFile = (f: File | null) => {
   originalFile = f;
 };
 export const getOriginalFile = () => originalFile;
+
+/**
+ * The photos (or the PDF) of the summary being read, in page order. Memory only: they are lost on
+ * a reload and never written to the browser's storage. Shown on Review, and kept with the visit
+ * on Update when the caregiver leaves "Keep the photos" on.
+ */
+let originalPages: File[] = [];
+export const setOriginalPages = (files: File[]) => {
+  originalPages = files;
+};
+export const getOriginalPages = () => originalPages;
 
 /** Sections shown on Review: Other notes only when it has something in it. */
 export function activeSections(draft: HandoffDraft | null): SectionKey[] {

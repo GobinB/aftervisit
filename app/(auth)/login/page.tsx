@@ -27,7 +27,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
     <div className="flex min-h-dvh flex-col bg-surface-50">
       <main id="main" className="flex flex-1 flex-col items-center justify-center px-4 py-12">
         <Link href="/" className="rounded-lg" aria-label="All Hands Care home">
-          <Logo />
+          <Logo size={44} />
         </Link>
         <div className="mt-8 w-full max-w-md rounded-2xl border border-border-200 bg-white p-6 sm:p-8">
           <h1 className="font-display text-center text-page text-primary-900">Sign in</h1>

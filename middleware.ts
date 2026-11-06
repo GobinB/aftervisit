@@ -1,5 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
+import { dataEnv } from "@/lib/data-env";
+import { SESSION_COOKIE_OPTIONS } from "@/lib/session-cookie";
 
 /**
  * Refreshes the caregiver session cookie on every page request, so a caregiver who opens the app
@@ -18,12 +20,12 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(target);
   }
 
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  const { supabaseUrl: url, anonKey: key } = dataEnv();
   if (!url || !key) return NextResponse.next({ request });
 
   let supabaseResponse = NextResponse.next({ request });
   const supabase = createServerClient(url, key, {
+    cookieOptions: SESSION_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();
@@ -35,7 +37,9 @@ export async function middleware(request: NextRequest) {
       },
     },
   });
-  await supabase.auth.getUser();
+  // Refreshes an expired session and checks its signature locally against Supabase's public key,
+  // without a call to the auth server on every page.
+  await supabase.auth.getClaims();
   // Remember which circle was opened last, so the installed app reopens it. Only the id is kept.
   const circle = /^\/circles\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1];
   if (circle && request.cookies.get("ahc_last_circle")?.value !== circle) {

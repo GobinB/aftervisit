@@ -2,6 +2,7 @@ import { json } from "@/lib/access";
 import { db, hardDeleteHandoff } from "@/lib/db";
 import { env } from "@/lib/env";
 import { hashToken, safeEqual } from "@/lib/tokens";
+import { removeCircleFiles } from "@/services/documents";
 
 export const runtime = "nodejs";
 export const maxDuration = 60;
@@ -10,7 +11,7 @@ export const maxDuration = 60;
  * Daily purge (vercel.json, 03:00 UTC). Vercel Cron sends CRON_SECRET as a bearer token.
  * Deletes each expired row's stored original, then the row. Reads also check expires_at,
  * so an expired link is never served between runs. Then erases circles deleted more than
- * 30 days ago, with everything in them.
+ * 30 days ago, with everything in them, saved visit summaries included.
  */
 export async function GET(req: Request) {
   const auth = req.headers.get("authorization") ?? "";
@@ -37,6 +38,14 @@ export async function GET(req: Request) {
   const monthAgo = new Date(Date.now() - 30 * 86_400_000).toISOString();
   await db().from("handoff_tombstones").delete().lt("created_at", monthAgo);
   await db().from("rate_limits").delete().lt("window_start", new Date(Date.now() - 86_400_000).toISOString());
+
+  // Saved visit summaries are files, not rows: remove them before their circles are erased.
+  const { data: ending } = await db().from("circles").select("id").not("deleted_at", "is", null).lt("deleted_at", monthAgo);
+  try {
+    await removeCircleFiles((ending ?? []).map((row) => row.id as string));
+  } catch {
+    return json({ purged, failed, error: "file_purge_failed" }, 500);
+  }
 
   const circles = await db().rpc("purge_deleted_circles", { p_days: 30 });
   if (circles.error) return json({ purged, failed, error: "circle_purge_failed" }, 500);

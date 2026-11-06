@@ -1,8 +1,9 @@
 import "server-only";
 import { cookies } from "next/headers";
 import { cache } from "react";
+import { caregiverDisplayName } from "@/lib/caregiver-name";
 import { env } from "@/lib/env";
-import { HELPER_COOKIE, readHelperCookie, signHelperCookie, type HelperClaim } from "@/lib/helper-cookie";
+import { HELPER_COOKIE, readHelperCookie, sameLink, signHelperCookie, type HelperClaim } from "@/lib/helper-cookie";
 import { HELPER_ROLES, MEMBER_TTL_DAYS, VisibilitySchema, type HelperRole, type Visibility } from "@/lib/schema/circles";
 import { serviceClient, userClient } from "@/store/db";
 import { createSupabaseServerClient } from "@/store/supabase-server";
@@ -21,6 +22,8 @@ export type Actor =
   | {
       kind: "caregiver";
       userId: string;
+      /** The caregiver's own name from Google, when it has one. */
+      name?: string | null;
       circleIds: string[];
       role: CaregiverRole | null;
       accessToken: string;
@@ -58,6 +61,7 @@ export async function setHelperSession(claim: HelperClaim): Promise<boolean> {
 
 type CaregiverRecord = {
   userId: string;
+  name: string | null;
   accessToken: string;
   circleIds: string[];
   roles: Record<string, CaregiverRole>;
@@ -68,11 +72,15 @@ const loadCaregiver = cache(async function loadCaregiver(): Promise<CaregiverRec
   if (!env.supabaseUrl || !env.anonKey) return null;
   try {
     const supabase = await createSupabaseServerClient();
-    const { data: userData } = await supabase.auth.getUser();
-    const user = userData.user;
+    // getClaims verifies the session's signature locally (ES256 public key, cached), so a page
+    // does not wait on the auth server. The middleware has already refreshed an expired session.
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
+    const claims = claimsData?.claims;
+    if (claimsError || !claims?.sub) return null;
     const { data: sessionData } = await supabase.auth.getSession();
     const accessToken = sessionData.session?.access_token;
-    if (!user || !accessToken) return null;
+    if (!accessToken) return null;
+    const user = { id: claims.sub, name: caregiverDisplayName(claims.user_metadata) };
     const db = userClient(accessToken);
     const [{ data: memberships, error }, { data: circles }] = await Promise.all([
       db.from("circle_caregivers").select("circle_id, role"),
@@ -90,7 +98,7 @@ const loadCaregiver = cache(async function loadCaregiver(): Promise<CaregiverRec
       roles[circleId] = role;
       circleIds.push(circleId);
     }
-    return { userId: user.id, accessToken, circleIds, roles };
+    return { userId: user.id, name: user.name, accessToken, circleIds, roles };
   } catch {
     return null;
   }
@@ -105,12 +113,14 @@ async function loadHelper(circleId: string): Promise<Actor | null> {
     const db = serviceClient();
     const { data, error } = await db
       .from("members")
-      .select("id, role, visibility, revoked_at, expires_at, last_seen_at")
+      .select("id, role, visibility, revoked_at, expires_at, last_seen_at, token_hash")
       .eq("id", claim.memberId)
       .eq("circle_id", circleId)
       .maybeSingle();
     if (error || !data) return null;
     if (data.revoked_at) return null;
+    // Made from an older link: "New link" and a new key for files sign those devices out.
+    if (!sameLink(claim.link, data.token_hash as string | null)) return null;
     if (new Date(data.expires_at as string).getTime() <= Date.now()) return null;
     const role = data.role as string;
     if (!HELPER_ROLES.includes(role as HelperRole)) return null;
@@ -126,10 +136,8 @@ async function loadHelper(circleId: string): Promise<Actor | null> {
         })
         .eq("id", data.id as string);
     }
+    // The role always comes from the member row; the cookie's copy is never trusted or rewritten here.
     const helperRole = role as HelperRole;
-    if (helperRole !== claim.role) {
-      await setHelperSession({ memberId: data.id as string, circleId, role: helperRole });
-    }
     return { kind: "helper", memberId: data.id as string, circleId, role: helperRole, visibility };
   } catch {
     return null;
@@ -146,6 +154,7 @@ export const getActor = cache(async function getActor(circleId?: string): Promis
     return {
       kind: "caregiver",
       userId: caregiver.userId,
+      name: caregiver.name,
       circleIds: caregiver.circleIds,
       role: caregiver.roles[circleId] ?? null,
       accessToken: caregiver.accessToken,
@@ -159,6 +168,7 @@ export const getActor = cache(async function getActor(circleId?: string): Promis
     return {
       kind: "caregiver",
       userId: caregiver.userId,
+      name: caregiver.name,
       circleIds: caregiver.circleIds,
       role: null,
       accessToken: caregiver.accessToken,

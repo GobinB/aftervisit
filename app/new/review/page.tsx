@@ -1,5 +1,5 @@
 "use client";
-import { CalendarCheck, Eye, FileText, HelpCircle, Info, NotebookPen, Pill, Stethoscope } from "lucide-react";
+import { CalendarCheck, Eye, FileText, HelpCircle, Images, Info, NotebookPen, Pill, Stethoscope } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useState } from "react";
@@ -14,7 +14,7 @@ import { classifyMedication } from "@/lib/parse/medications";
 import { makeTask } from "@/lib/parse/tasks";
 import { itemId } from "@/lib/parse/util";
 import type { HandoffDraft, MedicationChange, Task } from "@/lib/schema";
-import { activeSections, useFlow, type SectionKey } from "@/lib/store";
+import { activeSections, getOriginalPages, useFlow, type SectionKey } from "@/lib/store";
 
 type ListKey = "medications" | "tasks" | "watchFor" | "questions" | "otherNotes";
 
@@ -31,6 +31,8 @@ export default function ReviewPage() {
   const router = useRouter();
   const toast = useToast();
   const { draft, reviewed, isSample, unsorted, recipients, updateDraft, setReviewed, circleId } = useFlow();
+  // The photos taken on the first step, still in this tab's memory (gone after a reload).
+  const [pages] = useState(() => getOriginalPages());
   const [hydrated, setHydrated] = useState(false);
   const [query, setQuery] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
@@ -128,6 +130,8 @@ export default function ReviewPage() {
   };
 
   const lowMeds = draft.medications.some((m) => m.confidence === "low");
+  const lowCount = draft.medications.filter((m) => m.confidence === "low").length + draft.tasks.filter((t) => t.confidence === "low").length;
+  const photoCount = pages.filter((file) => !/pdf/i.test(file.type)).length;
   const lowTasks = draft.tasks.some((t) => t.confidence === "low");
   const blocked = "Accept or edit the items marked Please check this first.";
   const v = draft.visit;
@@ -141,7 +145,21 @@ export default function ReviewPage() {
       <div className="flex gap-6">
         <div className="mx-auto w-full max-w-[720px] min-w-0 lg:mx-0 lg:flex-1">
           <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Review the draft</h1>
-          <p className="mt-2 text-ink-500">Nothing is shared until you confirm each section. Edit anything that looks wrong.</p>
+          <p className="mt-2 text-ink-500">Nothing is saved until you confirm each section. Edit anything that looks wrong.</p>
+          {!isSample ? (
+            <div className="mt-4 rounded-xl border border-sky-100 bg-sky-100/60 px-4 py-3 text-[15px] text-primary-900">
+              <p className="font-semibold">The app read this summary, and it can make mistakes.</p>
+              <ul className="mt-1 list-disc space-y-0.5 pl-5">
+                <li>{photoCount ? "Compare each medicine and date with the photos." : "Compare each medicine and date with the original."}</li>
+                {lowCount ? (
+                  <li>
+                    {lowCount} {lowCount === 1 ? "item was" : "items were"} hard to read and {lowCount === 1 ? "is" : "are"} marked <strong>Please check this</strong>.
+                  </li>
+                ) : null}
+                <li>Tap &ldquo;View original instruction&rdquo; on any item to see where it came from.</li>
+              </ul>
+            </div>
+          ) : null}
 
           {isSample ? (
             <div className="mt-4 flex gap-3 rounded-xl bg-sky-100 px-4 py-3 text-primary-900">
@@ -166,7 +184,8 @@ export default function ReviewPage() {
             onClick={() => setSheetOpen(true)}
             className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border-200 bg-white px-3 font-medium text-primary-700 lg:hidden"
           >
-            <FileText size={18} aria-hidden="true" /> Show the original summary
+            {photoCount ? <Images size={18} aria-hidden="true" /> : <FileText size={18} aria-hidden="true" />}
+            {photoCount ? `Look at the ${photoCount === 1 ? "photo" : `${photoCount} photos`}` : "Show the original summary"}
           </button>
 
           <datalist id={nameListId}>
@@ -403,10 +422,10 @@ export default function ReviewPage() {
             ) : null}
           </div>
         </div>
-        <SourceRail source={draft.sourceText} query={query} />
+        <SourceRail source={draft.sourceText} query={query} pages={pages} />
       </div>
 
-      <SourceSheet open={sheetOpen} onClose={() => setSheetOpen(false)} source={draft.sourceText} query={query} />
+      <SourceSheet open={sheetOpen} onClose={() => setSheetOpen(false)} source={draft.sourceText} query={query} pages={pages} />
 
       {/* ConfirmBar */}
       <div
