@@ -425,7 +425,7 @@ export default function ReviewPage() {
               {circleId ? "Confirm and update the circle" : "Confirm and create handoff"}
             </ButtonLink>
           ) : (
-            <button type="button" disabled className="min-h-12 w-full cursor-not-allowed rounded-xl bg-primary-700 px-5 font-semibold text-white opacity-50 sm:w-auto">
+            <button type="button" disabled className="min-h-[48px] w-full cursor-not-allowed rounded-xl bg-primary-700 px-5 font-semibold text-white opacity-50 sm:w-auto">
               {circleId ? "Confirm and update the circle" : "Confirm and create handoff"}
             </button>
           )}

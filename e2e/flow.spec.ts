@@ -149,7 +149,7 @@ test("pasted text reaches Review in under 3 seconds", async ({ page }) => {
 test("text-based PDF upload produces a draft", async ({ page }) => {
   await isolateIp(page);
   await page.goto("/new");
-  await page.locator('input[type="file"]').setInputFiles("public/sample-avs.pdf");
+  await page.locator('input[type="file"][accept*="pdf"]').setInputFiles("public/sample-avs.pdf");
   await expect(page.getByText("sample-avs.pdf")).toBeVisible();
   await page.getByRole("button", { name: "Build the handoff" }).click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
@@ -173,14 +173,14 @@ test("scanned PDF shows the take-a-photo suggestion", async ({ page }) => {
   await maker.close();
   test.skip(!pdf, "page.pdf() is only available in Chromium");
   await page.goto("/new");
-  await page.locator('input[type="file"]').setInputFiles({ name: "scan.pdf", mimeType: "application/pdf", buffer: pdf! });
+  await page.locator('input[type="file"][accept*="pdf"]').setInputFiles({ name: "scan.pdf", mimeType: "application/pdf", buffer: pdf! });
   await page.getByRole("button", { name: "Build the handoff" }).click();
   await expect(page.getByText(/This PDF looks like a scan/)).toBeVisible();
 });
 
 test("unsupported file type is rejected with the friendly message", async ({ page }) => {
   await page.goto("/new");
-  await page.locator('input[type="file"]').setInputFiles({ name: "notes.docx", mimeType: "application/msword", buffer: Buffer.from("x") });
+  await page.locator('input[type="file"][multiple]').setInputFiles({ name: "notes.docx", mimeType: "application/msword", buffer: Buffer.from("x") });
   await expect(page.getByText(/That file type is not supported yet/)).toBeVisible();
 });
 
@@ -203,13 +203,30 @@ test("photo is read in the browser; only text is sent", async ({ page }, info) =
   });
 
   await page.goto("/new");
-  await page.locator('input[type="file"]').setInputFiles({ name: "avs-photo.png", mimeType: "image/png", buffer: png });
-  await page.getByRole("button", { name: "Build the handoff" }).click();
+  await page.locator('input[type="file"][multiple]').setInputFiles({ name: "avs-photo.png", mimeType: "image/png", buffer: png });
+  await page.getByRole("button", { name: "Done: read 1 page" }).click();
   await expect(page.getByRole("progressbar", { name: "Reading the photo" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible({ timeout: 120_000 });
   await expect(page.getByRole("region", { name: /Medication changes/ }).getByText("Lisinopril")).toBeVisible();
   expect(bodies.length).toBe(1);
   expect(bodies[0]).toContain("application/json");
+});
+
+test("several photos: pages can be added, moved and removed before Done", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop-chrome", "layout check; run once");
+  await page.goto("/new");
+  const png = (name: string) => ({ name, mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") });
+  await page.locator('input[type="file"][multiple]').setInputFiles([png("one.png"), png("two.png")]);
+  await page.locator('input[type="file"][multiple]').setInputFiles([png("three.png")]);
+  const pages = page.getByRole("list", { name: "Pages" });
+  await expect(pages.getByText("Page 3")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Done: read 3 pages" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Move page 1 earlier" })).toBeDisabled();
+  await page.getByRole("button", { name: "Move page 1 later" }).click();
+  await page.getByRole("button", { name: "Remove page 3" }).click();
+  await expect(pages.getByText("Page 3")).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Done: read 2 pages" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add a page" })).toBeVisible();
 });
 
 test("low-confidence items block the section until accepted", async ({ page }) => {
@@ -386,7 +403,7 @@ test("attached original: served through a checked link, gone the moment the hand
   test.skip(info.project.name !== "desktop-chrome", "storage check; run once");
   await isolateIp(page);
   await page.goto("/new");
-  await page.locator('input[type="file"]').setInputFiles("public/sample-avs.pdf");
+  await page.locator('input[type="file"][accept*="pdf"]').setInputFiles("public/sample-avs.pdf");
   await page.getByLabel("Your first name").fill("Jordan");
   await page.getByRole("button", { name: "Build the handoff" }).click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
