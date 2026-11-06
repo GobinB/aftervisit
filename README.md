@@ -66,7 +66,7 @@ cp .env.example .env.local
 ```
 
 1. Apply every migration in order, including `supabase/migrations/0004_circles_members.sql`, `supabase/migrations/0005_create_circle.sql`, and `supabase/migrations/0006_circle_key_guard.sql`. With the Supabase CLI: `supabase link` (the project ref stays on your machine, not in git) then `supabase db push`. `supabase/seed.sql` loads a fictional family and is what a preview branch will run. Do not put real family data in it.
-2. Fill in `.env.local`. Today, production and preview deployments share one Supabase project. The URL and keys are environment variables only. Planned: preview deployments move to Supabase Branching so each pull request gets its own database from the migrations and the seed. See [docs/decisions/0005-code-vs-data.md](docs/decisions/0005-code-vs-data.md).
+2. Fill in `.env.local`. The URL and keys are environment variables only. Vercel preview deployments never read the production settings: on a preview build the app reads only the `PREVIEW_` variables below (a separate test project), and runs without a database when they are unset (`lib/data-env.ts`). See [docs/decisions/0005-code-vs-data.md](docs/decisions/0005-code-vs-data.md).
 
 | Variable | Notes |
 | --- | --- |
@@ -74,6 +74,7 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable key. Google sign-in and a caregiver's own session (row-level security) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only. Existing handoff routes, and helper sessions. Bypasses row-level security; helper access is checked in `lib/permissions.ts` |
 | `HELPER_SESSION_SECRET` | HMAC key for helper-link cookies (`openssl rand -hex 32`) |
+| `PREVIEW_SUPABASE_URL`, `PREVIEW_SUPABASE_ANON_KEY`, `PREVIEW_SUPABASE_SERVICE_ROLE_KEY`, `PREVIEW_HELPER_SESSION_SECRET` | Optional, Vercel previews only: a separate test project. The four settings above are ignored on preview builds |
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` | Google client. Read by `supabase/config.toml` for local auth. Hosted Google settings are in the Supabase dashboard |
 | `NEXT_PUBLIC_APP_URL` | Base for share links and the Google redirect (`{origin}/callback`). Leave unset locally to use the request origin |
 | `HANDOFF_TTL_DAYS` | Default 30 |
