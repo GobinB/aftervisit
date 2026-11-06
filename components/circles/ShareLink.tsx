@@ -1,67 +1,83 @@
 "use client";
 
-import { useEffect, useId, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { Check, Copy, Mail, MessageSquare } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { mailtoHref, smsHref } from "@/lib/share-message";
 
-const field =
-  "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500";
+export type ShareableLink = { url: string; name: string; email: string | null; pin?: string | null; personName?: string };
 
-/** Copy, share, or hand the full link to the mail app. The key is in the hash. */
-export function ShareLink({ link, onDone }: { link: { url: string; name: string; email: string | null }; onDone: () => void }) {
-  const inputId = useId();
+const choice =
+  "flex min-h-16 w-full items-center gap-3 rounded-xl border-2 px-4 text-left text-[17px] font-bold transition-colors focus-visible:outline-offset-2";
+
+/**
+ * One screen with three choices for sending a person their link: Email, Text, or Copy.
+ * Email and Text open the phone's own apps with a ready-written message holding the link and the PIN.
+ */
+export function ShareLink({ link, onDone, fresh = true }: { link: ShareableLink; onDone: () => void; fresh?: boolean }) {
   const [copied, setCopied] = useState(false);
-  const [canShare, setCanShare] = useState(false);
+  const heading = useRef<HTMLHeadingElement>(null);
+  const first = link.name.trim().split(/\s+/)[0] || link.name;
+  const details = { name: link.name, personName: link.personName, url: link.url, pin: link.pin };
+
   useEffect(() => {
-    setCanShare(typeof navigator.share === "function");
+    heading.current?.focus();
+    heading.current?.scrollIntoView({ block: "center", behavior: "smooth" });
   }, []);
 
-  const mail = `mailto:${link.email ?? ""}?subject=${encodeURIComponent("A link for you")}&body=${encodeURIComponent(`Here is your All Hands Care link:\n${link.url}\n\nIf there is a PIN, it will come separately.`)}`;
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(link.url);
+      setCopied(true);
+    } catch {
+      setCopied(false);
+    }
+  };
 
   return (
-    <div role="status" className="space-y-3 rounded-2xl border border-border-200 bg-sky-100 p-4">
-      <p className="font-semibold text-primary-900">Link for {link.name}</p>
-      <p className="text-sm text-ink-500">Shown once. Copy the whole link and send it the way you usually do. All Hands Care does not send it for you.</p>
-      <label className="sr-only" htmlFor={inputId}>
-        Personal link for {link.name}
-      </label>
-      <input id={inputId} readOnly value={link.url} onFocus={(event) => event.target.select()} className={field} />
-      <div className="grid gap-2">
-        <Button
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(link.url);
-              setCopied(true);
-            } catch {
-              setCopied(false);
-            }
-          }}
-        >
-          Copy link
-        </Button>
-        {canShare ? (
-          <Button
-            variant="secondary"
-            onClick={async () => {
-              try {
-                await navigator.share({ title: "All Hands Care", text: `A link for ${link.name}:\n${link.url}`, url: link.url });
-              } catch {
-                // The person closed the share sheet.
-              }
-            }}
-          >
-            Share
-          </Button>
-        ) : null}
-        <a href={mail} className="inline-flex min-h-12 items-center justify-center rounded-xl border-2 border-primary-700 px-5 font-semibold text-primary-700">
-          Email link
-        </a>
-        <Button variant="ghost" onClick={onDone}>
-          Done
-        </Button>
-      </div>
-      <p aria-live="polite" className="text-sm text-primary-700">
-        {copied ? "Copied." : ""}
+    <section aria-labelledby="share-title" className="rounded-2xl border-2 border-primary-700/30 bg-white p-4 shadow-sm sm:p-5">
+      {fresh ? (
+        <p className="mb-1 inline-flex items-center gap-1.5 text-[13px] font-semibold text-ok-ink">
+          <Check className="size-4" aria-hidden="true" /> {first} is added
+        </p>
+      ) : null}
+      <h2 id="share-title" ref={heading} tabIndex={-1} className="font-display text-[24px] leading-tight text-primary-900 outline-none">
+        Send {first} their link
+      </h2>
+      <p className="mt-1 text-[15px] text-ink-500">
+        Pick one. A message is written for you{link.pin ? ", with the PIN in it" : ""}.
       </p>
-    </div>
+      <div className="mt-4 grid gap-2.5">
+        <a href={mailtoHref(link.email, details)} className={`${choice} border-primary-700 bg-primary-700 text-white hover:bg-primary-900`}>
+          <Mail className="size-6 shrink-0" aria-hidden="true" />
+          <span className="flex-1">
+            Email
+            {link.email ? <span className="block text-[13px] font-medium text-white/80">{link.email}</span> : null}
+          </span>
+        </a>
+        <a href={smsHref(details)} className={`${choice} border-primary-700 bg-white text-primary-700 hover:bg-sky-100`}>
+          <MessageSquare className="size-6 shrink-0" aria-hidden="true" />
+          <span className="flex-1">Text message</span>
+        </a>
+        <button type="button" onClick={copy} className={`${choice} border-border-200 bg-white text-ink-900 hover:bg-paper-100`}>
+          {copied ? <Check className="size-6 shrink-0 text-ok" aria-hidden="true" /> : <Copy className="size-6 shrink-0" aria-hidden="true" />}
+          <span className="flex-1">{copied ? "Link copied" : "Copy link"}</span>
+        </button>
+      </div>
+      {link.pin ? (
+        <p className="mt-3 text-[14px] text-ink-500">
+          {first}&apos;s PIN is <span className="font-bold tracking-[0.15em] text-ink-900 tabular-nums">{link.pin}</span>
+        </p>
+      ) : null}
+      <p aria-live="polite" className="sr-only">
+        {copied ? "Link copied." : ""}
+      </p>
+      <button
+        type="button"
+        onClick={onDone}
+        className="mt-4 inline-flex min-h-11 w-full items-center justify-center rounded-lg px-4 text-[15px] font-semibold text-ink-500 hover:bg-paper-100 hover:text-ink-900"
+      >
+        Done
+      </button>
+    </section>
   );
 }

@@ -5,14 +5,18 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useState, useTransition } from "react";
 import { saveMedicationAction } from "@/app/actions/medications";
+import { Chips } from "@/components/ui/Chips";
+import { Suggest } from "@/components/ui/Suggest";
+import { AMOUNTS, HOW_OFTEN, INSTRUCTIONS, REASONS, STRENGTHS, howOftenKey } from "@/lib/suggestions";
 import { MED_FORMS, MED_FORM_LABELS, MED_SCHEDULES, MED_SCHEDULE_LABELS, WEEKDAY_SHORT, type Medication, type MedSchedule } from "@/lib/schema/medications";
 
-const field = "mt-1 block h-10 w-full rounded-md border border-border-200 bg-white px-3 text-[14px] text-ink-900 focus:border-primary-700";
-const label = "block text-[13px] font-medium text-ink-900";
+// 16 px text on phones, so iPhones do not zoom in when a field is tapped.
+const field = "mt-1 block h-12 w-full rounded-lg border border-border-200 bg-white px-3 text-[16px] text-ink-900 focus:border-primary-700 sm:h-11 sm:text-[15px]";
+const label = "block text-[15px] font-semibold text-ink-900";
 const UNIT: Partial<Record<MedSchedule, string>> = { every_x_days: "days", every_x_weeks: "weeks", every_x_months: "months" };
 
 /** Add or edit one medication. Only the name is required. */
-export function MedicationForm({ circleId, medication }: { circleId: string; medication?: Medication }) {
+export function MedicationForm({ circleId, medication, doctors = [] }: { circleId: string; medication?: Medication; doctors?: string[] }) {
   const id = useId();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -90,36 +94,33 @@ export function MedicationForm({ circleId, medication }: { circleId: string; med
         <label htmlFor={`${id}-name`} className={label}>
           Name
         </label>
-        <input
+        <Suggest
           id={`${id}-name`}
           className={field}
           value={name}
-          onChange={(event) => setName(event.target.value)}
-          list={`${id}-names`}
-          autoComplete="off"
-          required
+          onChange={setName}
+          suggestions={suggestions}
+          label="Medication names"
           maxLength={120}
-          placeholder="Lisinopril"
+          placeholder="Start typing, e.g. lisinopril"
+          emptyHint="No match in the list. That's fine: keep the name as you typed it."
         />
-        <datalist id={`${id}-names`}>
-          {suggestions.map((suggestion) => (
-            <option key={suggestion} value={suggestion} />
-          ))}
-        </datalist>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid gap-5 sm:grid-cols-2">
         <div>
           <label htmlFor={`${id}-dose`} className={label}>
             Strength
           </label>
-          <input id={`${id}-dose`} className={field} value={dose} onChange={(event) => setDose(event.target.value)} maxLength={80} placeholder="10 mg" />
+          <input id={`${id}-dose`} className={field} value={dose} onChange={(event) => setDose(event.target.value)} maxLength={80} placeholder="e.g. 10 mg" />
+          <Chips label="Common strengths" options={STRENGTHS} value={dose} onPick={setDose} />
         </div>
         <div>
           <label htmlFor={`${id}-amount`} className={label}>
             How much
           </label>
-          <input id={`${id}-amount`} className={field} value={amount} onChange={(event) => setAmount(event.target.value)} maxLength={80} placeholder="1 tablet" />
+          <input id={`${id}-amount`} className={field} value={amount} onChange={(event) => setAmount(event.target.value)} maxLength={80} placeholder="e.g. 1 tablet" />
+          <Chips label="Common amounts" options={AMOUNTS} value={amount} onPick={setAmount} />
         </div>
         <div>
           <label htmlFor={`${id}-form`} className={label}>
@@ -137,7 +138,30 @@ export function MedicationForm({ circleId, medication }: { circleId: string; med
       </div>
 
       <fieldset className="space-y-3">
-        <legend className={label}>When</legend>
+        <legend className={label}>How often</legend>
+        <ul aria-label="Common schedules" className="flex flex-wrap gap-2">
+          {HOW_OFTEN.map((item) => {
+            const on = howOftenKey(schedule, times) === item.key;
+            return (
+              <li key={item.key}>
+                <button
+                  type="button"
+                  aria-pressed={on}
+                  onClick={() => {
+                    setSchedule(item.schedule);
+                    setTimes(item.times);
+                  }}
+                  className={`inline-flex min-h-11 items-center rounded-full border px-4 text-[15px] font-semibold ${
+                    on ? "border-primary-700 bg-primary-700 text-white" : "border-border-200 bg-white text-primary-900 hover:bg-sky-100"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+        <p className="text-[13px] text-ink-500">Or set it yourself:</p>
         <select aria-label="How often" className={field} value={schedule} onChange={(event) => setSchedule(event.target.value as MedSchedule)}>
           {MED_SCHEDULES.map((value) => (
             <option key={value} value={value}>
@@ -205,7 +229,8 @@ export function MedicationForm({ circleId, medication }: { circleId: string; med
           <label htmlFor={`${id}-reason`} className={label}>
             What it is for
           </label>
-          <input id={`${id}-reason`} className={field} value={reason} onChange={(event) => setReason(event.target.value)} maxLength={200} placeholder="Blood pressure" />
+          <input id={`${id}-reason`} className={field} value={reason} onChange={(event) => setReason(event.target.value)} maxLength={200} placeholder="e.g. Blood pressure" />
+          <Chips label="Common reasons" options={REASONS} value={reason} onPick={setReason} />
         </div>
         <div>
           <label htmlFor={`${id}-instructions`} className={label}>
@@ -217,8 +242,9 @@ export function MedicationForm({ circleId, medication }: { circleId: string; med
             value={instructions}
             onChange={(event) => setInstructions(event.target.value)}
             maxLength={500}
-            placeholder="With food"
+            placeholder="e.g. With food"
           />
+          <Chips label="Common instructions" options={INSTRUCTIONS} value={instructions} onPick={setInstructions} />
         </div>
       </div>
 
@@ -235,7 +261,8 @@ export function MedicationForm({ circleId, medication }: { circleId: string; med
             <label htmlFor={`${id}-prescriber`} className={label}>
               Prescribed by
             </label>
-            <input id={`${id}-prescriber`} className={field} value={prescriber} onChange={(event) => setPrescriber(event.target.value)} maxLength={120} placeholder="Dr. Patel" />
+            <input id={`${id}-prescriber`} className={field} value={prescriber} onChange={(event) => setPrescriber(event.target.value)} maxLength={120} placeholder="e.g. Dr. Patel" />
+            <Chips label="Their doctors" options={doctors} value={prescriber} onPick={setPrescriber} />
           </div>
           <div>
             <label htmlFor={`${id}-refills`} className={label}>
@@ -258,7 +285,7 @@ export function MedicationForm({ circleId, medication }: { circleId: string; med
         </p>
       ) : null}
       <div className="flex items-center gap-2">
-        <button type="submit" disabled={pending} className="inline-flex h-10 items-center rounded-md bg-primary-700 px-4 text-[14px] font-semibold text-white hover:bg-primary-900 disabled:opacity-50">
+        <button type="submit" disabled={pending} className="inline-flex h-12 items-center rounded-lg bg-primary-700 px-5 text-[16px] font-semibold text-white hover:bg-primary-900 disabled:opacity-50">
           {pending ? "Saving" : "Save medication"}
         </button>
         <Link href={`/circles/${circleId}/medications`} className="inline-flex h-10 items-center rounded-md px-3 text-[14px] font-medium text-ink-500 hover:text-ink-900">

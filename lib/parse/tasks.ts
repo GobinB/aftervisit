@@ -2,8 +2,11 @@
  * Step 5: task classifier. Lines that begin with an imperative or contain a timing
  * phrase. Category from keywords; dueText is the captured timing phrase. One line is
  * one task, split on semicolons and " and " when both halves start with a verb.
+ * dueDate (and dueTime) are set only when the line states an explicit calendar date;
+ * relative phrases ("in 2 weeks") stay in dueText for the app to resolve.
  */
 import type { Task } from "../schema";
+import { findExplicitDate, findTime, isoForMatch } from "./dates";
 import { capitalize, cleanItem, itemId, splitTopLevel, wordCount } from "./util";
 
 const IMPERATIVES = [
@@ -25,7 +28,7 @@ const DATE = String.raw`(?:\d{1,2}[/-]\d{1,2}(?:[/-]\d{2,4})?|${MONTH}\s+\d{1,2}
 
 export const TIMING_RE = new RegExp(
   [
-    String.raw`\bwithin\s+(?:the\s+next\s+)?${NUM}(?:\s*(?:-|to)\s*${NUM})?\s+${UNIT}`,
+    String.raw`\bwithin\s+(?:the\s+next\s+)?${NUM}(?:\s*(?:-|to)\s*${NUM})?\s+${UNIT}(?:\s+(?:of|after|from)\s+(?:discharge|leaving the hospital|your (?:visit|discharge)|today))?`,
     String.raw`\bin\s+(?:about\s+)?${NUM}(?:\s*(?:-|to)\s*${NUM})?\s+${UNIT}`,
     String.raw`\b(?:by|before|on|after)\s+${DATE}`,
     String.raw`\bbefore\s+(?:your|the)\s+next\s+(?:visit|appointment)`,
@@ -70,24 +73,61 @@ export function splitTasks(line: string): string[] {
   return [line];
 }
 
-export function makeTask(text: string, confident: boolean, sourceQuote?: string): Task {
-  const timing = TIMING_RE.exec(text);
+/** Date phrase to lift out of a task title: "on 11/20/2026 at 10:30 AM", "by Nov 14". */
+function explicitDue(text: string, visitDate?: string): { start: number; end: number; date?: string; time?: string } | null {
+  const m = findExplicitDate(text);
+  if (!m) return null;
+  // "after Nov 14" is not a due date.
+  const before = text.slice(0, m.index);
+  if (/\bafter\s+$/i.test(before)) return null;
+  const lead = /(?:\b(?:on|by|before|for|due)\s+)$/i.exec(before);
+  const start = lead ? m.index - lead[0].length : m.index;
+  let end = m.end;
+  // A time right after the date: "11/20/2026 at 10:30 AM", "Nov 20, 9:15am".
+  const after = text.slice(m.end);
+  const t = /^,?\s*(?:at\s+|@\s*)?/.exec(after)!;
+  const time = findTime(after);
+  let clock: string | undefined;
+  if (time && time.index === t[0].length) {
+    clock = time.time;
+    end = m.end + time.end;
+  }
+  const date = isoForMatch(m, visitDate) ?? undefined;
+  return { start, end, date, time: date ? clock : undefined };
+}
+
+export function makeTask(text: string, confident: boolean, sourceQuote?: string, visitDate?: string): Task {
   let title = text;
   let dueText: string | undefined;
-  if (timing) {
-    dueText = timing[0].trim().toLowerCase();
-    const without = (text.slice(0, timing.index) + text.slice(timing.index + timing[0].length))
+  let dueDate: string | undefined;
+  let dueTime: string | undefined;
+  const explicit = explicitDue(text, visitDate);
+  const timing = TIMING_RE.exec(text);
+  const cut = (start: number, end: number) =>
+    (text.slice(0, start) + text.slice(end))
       .replace(/\s+([.,;])/g, "$1")
       .replace(/\s{2,}/g, " ")
       .replace(/\b(?:to|and)\s*$/i, "")
       .trim();
+  if (explicit) {
+    // Keep the source's own wording for an explicit date: "on 11/20/2026 at 10:30 AM".
+    dueText = text.slice(explicit.start, explicit.end).trim();
+    dueDate = explicit.date;
+    dueTime = explicit.time;
+    const without = cut(explicit.start, explicit.end);
+    if (wordCount(without) >= 3) title = without;
+  } else if (timing) {
+    dueText = capitalize(timing[0].trim()).toLowerCase();
+    const without = cut(timing.index, timing.index + timing[0].length);
     if (wordCount(without) >= 3) title = without;
   }
   return {
     id: itemId("task"),
     title: cleanItem(title),
     category: categorize(text),
-    dueText: dueText ? capitalize(dueText).toLowerCase() : undefined,
+    dueText,
+    ...(dueDate ? { dueDate } : {}),
+    ...(dueTime ? { dueTime } : {}),
     sourceQuote: sourceQuote?.trim() || undefined,
     confidence: confident ? "high" : "low",
   };

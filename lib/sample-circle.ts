@@ -93,6 +93,6 @@ const item = (fields: Partial<CalendarItem> & Pick<CalendarItem, "key" | "date" 
 export const SAMPLE_CALENDAR: CalendarItem[] = [
   item({ key: "sample-pt", date: "2026-10-07", title: "Physical therapy", time: "9 AM to 10 AM", location: "Riverbend Rehab", who: "Rosa Diaz", repeats: true }),
   item({ key: "sample-cardio", date: "2026-10-09", title: "Cardiology follow-up", time: "10:30 AM", location: "Riverbend Clinic, 2nd floor", notes: "Bring the medication list", needsSomeone: true }),
-  item({ key: "sample-refill", date: "2026-10-09", title: "Pick up the new prescription", time: "To-do due", kind: "todo", who: "Rosa Diaz" }),
+  item({ key: "sample-refill", date: "2026-10-09", title: "Pick up the new prescription", time: "Reminder due", kind: "todo", who: "Rosa Diaz" }),
   item({ key: "sample-birthday", date: "2026-10-12", title: "Lisa's birthday dinner", time: "All day", who: "Lisa Lee" }),
 ];

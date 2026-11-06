@@ -24,7 +24,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const key = (await listOwnCircleKeys(actor)).find((item) => item.circleId === id) ?? null;
   return (
     <>
-      <CircleFrame personName={content.person_name} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} active="settings">
+      <CircleFrame personName={content.person_name} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} help="Rarely needed. Change the key that protects attached files, or delete this circle." active="settings">
         <div className="max-w-xl space-y-6">
           {key && canRotate ? (
             <section aria-labelledby="key-title" className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">
@@ -45,7 +45,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               ) : (
                 <>
                   <p className="mt-4 text-ink-500">
-                    Only needed once you keep files in this circle. People, medications, to-dos and the calendar work without it.
+                    Only needed once you keep files in this circle. People, medications, reminders and the calendar work without it.
                   </p>
                   <div className="mt-4">
                     <RestoreKeys circles={[key]} />

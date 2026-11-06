@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHead } from "@/components/circles/PageHead";
 import { notFound, redirect } from "next/navigation";
 import { MedicationForm } from "@/components/medications/MedicationForm";
 import { getActor } from "@/lib/auth";
@@ -17,9 +18,13 @@ export default async function NewMedicationPage({ params }: { params: Promise<{ 
   const personName = content?.person_name ?? "Your care circle";
   return (
     <>
-      <h1 className="font-display mb-1 text-[26px] leading-tight text-primary-900">Add a medication</h1>
-      <p className="mb-5 text-[13px] text-ink-500">For {personName}. Only the name is needed; add the rest when you have it.</p>
-      <MedicationForm circleId={id} />
+      <PageHead
+        back={{ href: `/circles/${id}/medications`, label: "Medications" }}
+        title="Add a medication"
+        subtitle={`For ${personName}. Only the name is needed; add the rest when you have it.`}
+        help="Start typing the name and tap it in the list. Then tap the dose and how often, or type your own."
+      />
+      <MedicationForm circleId={id} doctors={(content?.doctors ?? []).map((doctor) => doctor.name)} />
     </>
   );
 }

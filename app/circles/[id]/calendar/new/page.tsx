@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { PageHead } from "@/components/circles/PageHead";
 import { notFound, redirect } from "next/navigation";
 import { EventForm } from "@/components/calendar/EventForm";
 import { getActor } from "@/lib/auth";
@@ -23,14 +24,19 @@ export default async function NewEventPage({ params, searchParams }: { params: P
     .map((person) => ({ value: person.id, label: actor.kind === "helper" && person.id === actor.memberId ? "Me" : `${person.name} (${person.roleLabel})` }));
   return (
     <>
-      <h1 className="font-display mb-1 text-[26px] leading-tight text-primary-900">Add an event</h1>
-      <p className="mb-5 text-[13px] text-ink-500">For {personName}. Everyone who can see the calendar will see it.</p>
+      <PageHead
+        back={{ href: `/circles/${id}/calendar`, label: "Calendar" }}
+        title="Add an event"
+        subtitle={`For ${personName}. Everyone who can see the calendar will see it.`}
+        help="Give it a name and a day. Pick who is going, or leave it open so someone can offer."
+      />
       <EventForm
         circleId={id}
         people={people}
         initialDate={/^\d{4}-\d{2}-\d{2}$/.test(date ?? "") ? date : undefined}
         canDelete={false}
         isCaregiver={actor.kind === "caregiver"}
+        doctors={content?.doctors ?? []}
       />
     </>
   );

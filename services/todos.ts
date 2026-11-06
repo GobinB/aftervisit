@@ -8,8 +8,8 @@ const COLUMNS = "id, title, note, due_date, assignee_member_id, assigned_to_care
 type Row = Record<string, unknown>;
 type Result = { ok: true } | { ok: false; error: string };
 
-const generic = "The to-do could not be saved. Try again.";
-const denied = "You cannot change this to-do.";
+const generic = "The reminder could not be saved. Try again.";
+const denied = "You cannot change this reminder.";
 
 function toTodo(row: Row): Todo {
   const memberId = (row.assignee_member_id as string | null) ?? null;
@@ -63,7 +63,7 @@ function assigneeColumns(assignee: TodoInput["assignee"]) {
 
 /** Adds a to-do, or edits one when input.id is set. Only the caregiver. */
 export async function saveTodo(actor: Actor, input: TodoInput): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  if (actor.kind !== "caregiver" || !can(actor, "tasks:manage", { circleId: input.circleId })) return { ok: false, error: "Only the caregiver can add or edit to-dos." };
+  if (actor.kind !== "caregiver" || !can(actor, "tasks:manage", { circleId: input.circleId })) return { ok: false, error: "Only the caregiver can add or edit reminders." };
   const db = clientFor(actor);
   const row = { title: input.title, note: input.note ?? null, due_date: input.dueDate ?? null, ...assigneeColumns(input.assignee) };
   if (input.id) {

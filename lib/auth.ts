@@ -6,6 +6,7 @@ import { HELPER_COOKIE, readHelperCookie, signHelperCookie, type HelperClaim } f
 import { HELPER_ROLES, MEMBER_TTL_DAYS, VisibilitySchema, type HelperRole, type Visibility } from "@/lib/schema/circles";
 import { serviceClient, userClient } from "@/store/db";
 import { createSupabaseServerClient } from "@/store/supabase-server";
+import { caregiverHome, LAST_CIRCLE_COOKIE } from "@/lib/home-path";
 
 /** One caregiver signs in per circle: its owner. Everyone else uses a personal link. */
 export type CaregiverRole = "owner";
@@ -167,12 +168,15 @@ export const getActor = cache(async function getActor(circleId?: string): Promis
 });
 
 /**
- * Where the installed app opens. A caregiver goes to their circles. Someone with a helper link
+ * Where the installed app opens. A caregiver goes to their circle (see caregiverHome). Someone with a helper link
  * goes to the first circle whose link still works. Anyone else gets the home page.
  */
 export async function homePath(): Promise<string> {
   const caregiver = await loadCaregiver();
-  if (caregiver) return "/circles";
+  if (caregiver) {
+    const jar = await cookies();
+    return caregiverHome(caregiver.circleIds, jar.get(LAST_CIRCLE_COOKIE)?.value);
+  }
   if (!env.helperSessionSecret) return "/";
   try {
     const jar = await cookies();

@@ -109,9 +109,10 @@ describe("applying a visit", () => {
     };
     clientFor.mockReturnValue({
       from: (table: string) => ({
-        insert: async (row: Record<string, unknown>) => {
+        insert: (row: Record<string, unknown>) => {
           inserts.push({ table, row });
-          return { error: null };
+          // Awaited directly for most tables; events ask for the new id back.
+          return Object.assign(Promise.resolve({ error: null }), { select: () => ({ single: async () => ({ data: { id: "e1" }, error: null }) }) });
         },
         update: (row: Record<string, unknown>) => {
           updates.push(row);
@@ -120,12 +121,43 @@ describe("applying a visit", () => {
       }),
     });
     const result = await applyVisit(owner, input);
-    expect(result).toEqual({ ok: true, added: 1, changed: 0, stopped: 1, todos: 1, failed: 0 });
+    expect(result).toEqual({ ok: true, added: 1, changed: 0, stopped: 1, todos: 1, events: 0, failed: 0 });
     expect(inserts.find((i) => i.table === "medications")?.row).toMatchObject({ circle_id: circleId, source: "handoff", start_date: "2026-11-03" });
     expect(updates[0]).toMatchObject({ status: "stopped", stop_date: "2026-11-03", source: "handoff" });
     expect(eqs).toContainEqual(["circle_id", circleId]);
     expect(inserts.find((i) => i.table === "todos")?.row).toMatchObject({ assigned_to_caregiver: true, source: "handoff", note: "From the visit at Riverbend Clinic" });
     expect(inserts.find((i) => i.table === "activity")?.row).toMatchObject({ action: "visit_applied" });
+  });
+
+  test("follow-up appointments go on the calendar with who is going", async () => {
+    const inserts: { table: string; row: Record<string, unknown> }[] = [];
+    clientFor.mockReturnValue({
+      from: (table: string) => ({
+        insert: (row: Record<string, unknown>) => {
+          inserts.push({ table, row });
+          return Object.assign(Promise.resolve({ error: null }), { select: () => ({ single: async () => ({ data: { id: "e1" }, error: null }) }) });
+        },
+      }),
+    });
+    const withEvent = ApplyVisitSchema.parse({
+      circleId,
+      visitDate: "2026-11-03",
+      clinic: "Riverbend Clinic",
+      meds: [],
+      todos: [],
+      events: [{ title: "Cardiology appointment with Dr. Lee", date: "2026-12-01", startTime: "09:15", going: "volunteer" }],
+    });
+    const result = await applyVisit(owner, withEvent);
+    expect(result).toMatchObject({ ok: true, events: 1, failed: 0 });
+    expect(inserts.find((i) => i.table === "events")?.row).toMatchObject({
+      circle_id: circleId,
+      title: "Cardiology appointment with Dr. Lee",
+      event_date: "2026-12-01",
+      start_time: "09:15",
+      needs_volunteer: true,
+      notes: "From the visit at Riverbend Clinic",
+    });
+    expect(ApplyVisitSchema.safeParse({ ...withEvent, events: [{ ...withEvent.events[0], date: "Dec 1" }] }).success).toBe(false);
   });
 
   test("unknown fields and ids that are not uuids are refused", () => {

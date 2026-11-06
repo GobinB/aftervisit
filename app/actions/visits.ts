@@ -42,7 +42,7 @@ export async function applyVisitAction(input: unknown) {
   if (!actor) return { ok: false as const, error: "Sign in to update the circle." };
   const result = await applyVisit(actor, parsed.data);
   if (result.ok) {
-    for (const path of ["", "/medications", "/todos"]) revalidatePath(`/circles/${parsed.data.circleId}${path}`);
+    for (const path of ["", "/medications", "/todos", "/calendar"]) revalidatePath(`/circles/${parsed.data.circleId}${path}`);
   }
   return result;
 }

@@ -53,7 +53,7 @@ export type VisibilityArea = (typeof VISIBILITY_AREAS)[number];
 export const AREA_LABELS: Record<VisibilityArea, string> = {
   updates: "Updates",
   medications: "Medications",
-  tasks: "To-dos",
+  tasks: "Reminders",
   calendar: "Calendar",
   documents: "Documents",
   summary: "Care summary",
@@ -198,4 +198,6 @@ export interface PersonView {
   revokedAt?: string | null;
   locked?: boolean;
   email?: string | null;
+  /** Areas hidden from this person. Only for a viewer who may manage people. */
+  hidden?: string[];
 }

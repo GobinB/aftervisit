@@ -1,7 +1,6 @@
 import { Eye, HeartHandshake, ShieldCheck, Trash2, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { SOURCE_URL } from "@/components/AppBar";
-import { DemoNotice } from "@/components/DemoNotice";
 import { PageShell } from "@/components/PageShell";
 import { providerDisclosure } from "@/lib/extract/provider";
 import { MEMBER_TTL_DAYS } from "@/lib/schema/circles";
@@ -64,7 +63,6 @@ export default function PrivacyPage() {
                 kept in private storage. All Hands Care has not yet completed a formal privacy and security review.
               </p>
             </div>
-            <DemoNotice className="mt-4" />
           </div>
         </section>
 
@@ -98,14 +96,14 @@ export default function PrivacyPage() {
                     </li>
                     <li>
                       <strong>What you enter for the person you look after:</strong> the care summary (allergies, doctors, pharmacy, emergency
-                      contacts), the calendar, to-dos and medication list, with each medication change and when it was made.
+                      contacts), the calendar, reminders and medication list, with each medication change and when it was made.
                     </li>
                     <li>
                       <strong>The people you add:</strong> their name, role, which parts they can see, an optional email for your own mail app,
                       and when they last opened their link. Links and PINs are stored only as one-way hashes.
                     </li>
                     <li>
-                      <strong>What people do on their link:</strong> who took or finished a to-do and who said they would go to an event.
+                      <strong>What people do on their link:</strong> who took or finished a reminder and who said they would go to an event.
                     </li>
                     <li>
                       <strong>Visit summaries.</strong> Pasted text and PDFs are read on our server to build a draft and are not saved. Photos
@@ -133,7 +131,7 @@ export default function PrivacyPage() {
                     <li>You, the caregiver who signed in.</li>
                     <li>
                       The people you add, through their own link, and only the parts their role and your choices allow. Home aides and day
-                      programs see only the to-dos given to them.
+                      programs see only the reminders given to them.
                     </li>
                     <li>
                       Anyone who has a person&apos;s link can open it, because a link can be forwarded. Add a PIN for a second step, and turn

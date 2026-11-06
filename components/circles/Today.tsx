@@ -1,6 +1,7 @@
-import { AlertTriangle, ArrowRight, Clock3, HeartPulse, ListChecks, Phone, Users, Eye, type LucideIcon } from "lucide-react";
+import { AlertTriangle, ArrowRight, Camera, ChevronRight, Clock3, HeartPulse, ListChecks, Phone, Pill, Plus, Users, Eye, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { PageHead } from "@/components/circles/PageHead";
 import { PeopleList } from "@/components/circles/PeopleList";
 import { TodoList, type TodoRow } from "@/components/todos/TodoList";
 import { TodayDate } from "@/components/circles/TodayDate";
@@ -9,7 +10,7 @@ import type { CircleContent, PersonView } from "@/lib/schema/circles";
 import { doseText, scheduleText, type Medication } from "@/lib/schema/medications";
 import type { Alert, FeedItem, Stat, Tone } from "@/lib/today";
 
-const STAT_ICONS: Record<string, LucideIcon> = { helpers: Users, opened: Eye, todos: ListChecks, waiting: Clock3, allergies: HeartPulse };
+const STAT_ICONS: Record<string, LucideIcon> = { helpers: Users, opened: Eye, todos: ListChecks, reminders: ListChecks, waiting: Clock3, allergies: HeartPulse, meds: Pill, scan: Camera };
 
 const VALUE_TONE: Record<Tone, string> = {
   blue: "text-primary-700",
@@ -17,6 +18,7 @@ const VALUE_TONE: Record<Tone, string> = {
   amber: "text-med",
   attn: "text-attn",
   neutral: "text-ink-900",
+  primary: "text-white",
 };
 const CHIP_TONE: Record<Tone, string> = {
   blue: "border-sky-100 bg-sky-100/60 text-primary-700",
@@ -24,21 +26,23 @@ const CHIP_TONE: Record<Tone, string> = {
   amber: "border-med-bg bg-med-bg/60 text-med-ink",
   attn: "border-attn-bg bg-attn-bg/60 text-attn-ink",
   neutral: "border-border-200 bg-paper-100 text-ink-500",
+  primary: "border-white/20 bg-white/10 text-white",
 };
-const DOT_TONE: Record<Tone, string> = { blue: "bg-primary-700", green: "bg-ok", amber: "bg-med", attn: "bg-attn", neutral: "bg-ink-500/50" };
+const DOT_TONE: Record<Tone, string> = { blue: "bg-primary-700", green: "bg-ok", amber: "bg-med", attn: "bg-attn", neutral: "bg-ink-500/50", primary: "bg-primary-700" };
 
 /** Page title row: what day it is for whom, and the caregiver's main actions. */
-export function TodayHeader({ personName, actions }: { personName: string; actions?: ReactNode }) {
+export function TodayHeader({ personName, actions, help }: { personName: string; actions?: ReactNode; help?: string }) {
   return (
-    <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-      <div>
-        <h1 className="font-display text-[26px] leading-tight tracking-[-0.01em] text-primary-900">Today</h1>
-        <p className="mt-1 text-[13px] text-ink-500">
+    <PageHead
+      title="Today"
+      subtitle={
+        <>
           {personName} · <TodayDate />
-        </p>
-      </div>
-      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
-    </div>
+        </>
+      }
+      help={help}
+      actions={actions}
+    />
   );
 }
 
@@ -50,36 +54,76 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
   return <div className={`rounded-lg border border-border-200 bg-white ${className}`}>{children}</div>;
 }
 
+/**
+ * The cards at the top of Today. A "primary" card (scanning a visit summary) is the main action:
+ * navy, wider on phones, with a large camera icon.
+ */
 export function StatCards({ stats }: { stats: Stat[] }) {
   return (
     <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
       {stats.map((stat) => {
         const Icon = STAT_ICONS[stat.key] ?? Users;
-        const body = (
+        const primary = stat.tone === "primary";
+        const body = primary ? (
+          <>
+            <span className="flex size-12 items-center justify-center rounded-xl bg-heart-500 text-white">
+              <Icon className="size-6" strokeWidth={2.25} aria-hidden="true" />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[17px] leading-snug font-bold text-white">{stat.label}</span>
+              <span className="mt-0.5 block text-[13px] text-white/80">{stat.detail}</span>
+            </span>
+            <ChevronRight className="size-5 shrink-0 text-white/80" aria-hidden="true" />
+          </>
+        ) : (
           <>
             <span className="flex items-start justify-between gap-2">
-              <span className="text-[11px] font-semibold tracking-[0.1em] text-ink-500 uppercase">{stat.label}</span>
+              <span className="text-[12px] font-bold tracking-[0.08em] text-ink-500 uppercase">{stat.label}</span>
               <span className={`flex size-7 shrink-0 items-center justify-center rounded-md border ${CHIP_TONE[stat.tone]}`}>
                 <Icon className="size-3.5" aria-hidden="true" />
               </span>
             </span>
             <span className={`mt-2 block text-[28px] leading-none font-semibold tabular-nums ${VALUE_TONE[stat.tone]}`}>{stat.value}</span>
-            <span className="mt-2 block truncate text-[12px] text-ink-500">{stat.detail}</span>
+            <span className="mt-2 block truncate text-[13px] text-ink-500">{stat.detail}</span>
           </>
         );
+        const box = primary
+          ? "flex h-full min-h-[92px] items-center gap-3 rounded-lg bg-primary-700 p-4 shadow-sm transition-colors hover:bg-primary-900"
+          : "block h-full rounded-lg border border-border-200 bg-white p-4 transition-colors hover:border-primary-700/40";
         return (
-          <li key={stat.key}>
+          <li key={stat.key} className={primary ? "col-span-2 lg:col-span-1" : ""}>
             {stat.href ? (
-              <Link href={stat.href} className="block h-full rounded-lg border border-border-200 bg-white p-4 transition-colors hover:border-primary-700/40">
+              <Link href={stat.href} className={box}>
                 {body}
               </Link>
             ) : (
-              <div className="h-full rounded-lg border border-border-200 bg-white p-4">{body}</div>
+              <div className={box}>{body}</div>
             )}
           </li>
         );
       })}
     </ul>
+  );
+}
+
+/** Parts of the care summary not filled in yet. Each is optional and disappears once added. */
+export function AddDetails({ items }: { items: { key: string; label: string; href: string }[] }) {
+  if (!items.length) return null;
+  return (
+    <Card>
+      <p className="border-b border-border-200 px-4 py-2.5 text-[13px] text-ink-500">When you have a minute. All optional.</p>
+      <ul className="divide-y divide-border-200">
+        {items.map((item) => (
+          <li key={item.key}>
+            <Link href={item.href} className="flex min-h-12 items-center gap-3 px-4 py-2.5 text-[15px] font-semibold text-primary-700 hover:bg-sky-100/60">
+              <Plus className="size-4 shrink-0" aria-hidden="true" />
+              <span className="flex-1">{item.label}</span>
+              <ChevronRight className="size-4 text-ink-500" aria-hidden="true" />
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Card>
   );
 }
 
@@ -225,7 +269,7 @@ export function TodosGlance({ todos, circleId, href, empty }: { todos: TodoRow[]
     <Card>
       {todos.length ? <TodoList todos={todos} circleId={circleId} canEdit={false} /> : <p className="px-4 py-3 text-[13px] text-ink-500">{empty}</p>}
       <Link href={href} className="flex items-center gap-1 border-t border-border-200 px-4 py-2.5 text-[13px] font-semibold text-primary-700 hover:text-primary-900">
-        All to-dos <ArrowRight className="size-3.5" aria-hidden="true" />
+        All reminders <ArrowRight className="size-3.5" aria-hidden="true" />
       </Link>
     </Card>
   );

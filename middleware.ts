@@ -2,7 +2,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
 /**
- * Refreshes the caregiver session cookie. Helper cookies are checked in getActor.
+ * Refreshes the caregiver session cookie on every page request, so a caregiver who opens the app
+ * now and then stays signed in: Supabase's cookies last 400 days and each refresh renews them.
+ * Helper cookies are checked in getActor.
  * When auth env is unset, the public demo keeps working.
  */
 export async function middleware(request: NextRequest) {
@@ -34,6 +36,17 @@ export async function middleware(request: NextRequest) {
     },
   });
   await supabase.auth.getUser();
+  // Remember which circle was opened last, so the installed app reopens it. Only the id is kept.
+  const circle = /^\/circles\/([0-9a-f-]{36})(?:\/|$)/i.exec(pathname)?.[1];
+  if (circle && request.cookies.get("ahc_last_circle")?.value !== circle) {
+    supabaseResponse.cookies.set("ahc_last_circle", circle, {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      path: "/",
+      maxAge: 400 * 24 * 60 * 60,
+    });
+  }
   return supabaseResponse;
 }
 

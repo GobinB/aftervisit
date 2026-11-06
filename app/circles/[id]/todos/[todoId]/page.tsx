@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
+import { PageHead } from "@/components/circles/PageHead";
 import { notFound, redirect } from "next/navigation";
 import { TodoForm } from "@/components/todos/TodoForm";
 import { getActor } from "@/lib/auth";
 import { listPeople } from "@/services/members";
 import { getTodo } from "@/services/todos";
 
-export const metadata: Metadata = { title: "Edit to-do", robots: { index: false, follow: false } };
+export const metadata: Metadata = { title: "Edit reminder", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
 
 export default async function EditTodoPage({ params }: { params: Promise<{ id: string; todoId: string }> }) {
@@ -20,7 +21,7 @@ export default async function EditTodoPage({ params }: { params: Promise<{ id: s
     .map((person) => ({ value: person.id, label: `${person.name} (${person.roleLabel})` }));
   return (
     <>
-      <h1 className="font-display mb-5 text-[26px] leading-tight text-primary-900">Edit to-do</h1>
+      <PageHead back={{ href: `/circles/${id}/todos`, label: "Reminders" }} title="Edit reminder" help="Change what needs doing, when, or who does it, then save." />
       <div className="max-w-2xl">
         <TodoForm circleId={id} people={options} todo={todo} />
       </div>

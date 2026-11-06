@@ -79,7 +79,7 @@ export function RotateKey({ circle }: { circle: CircleKeyStatus }) {
         <h2 className="font-display text-section text-primary-900">New links</h2>
         <p>The key is new. Previous links no longer open the circle. Share each link below. The part after # is the new key.</p>
         {links.length ? (
-          links.map((link) => <ShareLink key={link.url} link={link} onDone={() => setLinks(links.filter((item) => item.url !== link.url))} />)
+          links.map((link) => <ShareLink key={link.url} link={link} fresh={false} onDone={() => setLinks(links.filter((item) => item.url !== link.url))} />)
         ) : (
           <p>No one else has a link yet. Links you create from now on include the new key.</p>
         )}

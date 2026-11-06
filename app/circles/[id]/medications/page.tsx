@@ -1,5 +1,6 @@
-import { FileText, Plus } from "lucide-react";
+import { ScanLine, Plus } from "lucide-react";
 import type { Metadata } from "next";
+import { PageHead } from "@/components/circles/PageHead";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card, SectionLabel } from "@/components/circles/Today";
@@ -36,33 +37,36 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
 
   return (
     <>
-      <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h1 className="font-display text-[26px] leading-tight tracking-[-0.01em] text-primary-900">Medications</h1>
-          <p className="mt-1 text-[13px] text-ink-500">
+      <PageHead
+        title="Medications"
+        subtitle={
+          <>
             {personName} · {scheduled.length + asNeeded.length} taking now · <TodayDate />
-          </p>
-        </div>
-        <div className="no-print flex flex-wrap items-center gap-2">
-          {medications.length ? <PrintButton /> : null}
-          {canEdit ? (
-            <Link
-              href={`/new?circle=${id}`}
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-border-200 bg-white px-3 text-[13px] font-medium text-ink-900 hover:bg-paper-100"
-            >
-              <FileText className="size-4" aria-hidden="true" /> From a visit summary
-            </Link>
-          ) : null}
-          {canEdit ? (
-            <Link
-              href={`/circles/${id}/medications/new`}
-              className="inline-flex h-9 items-center gap-2 rounded-md bg-primary-700 px-3 text-[13px] font-semibold text-white hover:bg-primary-900"
-            >
-              <Plus className="size-4" aria-hidden="true" /> Add a medication
-            </Link>
-          ) : null}
-        </div>
-      </div>
+          </>
+        }
+        help="What is being taken now. Tap a medicine to change it, or scan an after-visit summary to update the list for you."
+        actions={
+          <>
+            {medications.length ? <PrintButton /> : null}
+            {canEdit ? (
+              <Link
+                href={`/new?circle=${id}`}
+                className="inline-flex h-10 items-center gap-2 rounded-md border border-border-200 bg-white px-3.5 text-[14px] font-medium text-ink-900 hover:bg-paper-100"
+              >
+                <ScanLine className="size-4" aria-hidden="true" /> Scan after-visit summary
+              </Link>
+            ) : null}
+            {canEdit ? (
+              <Link
+                href={`/circles/${id}/medications/new`}
+                className="inline-flex h-10 items-center gap-2 rounded-md bg-primary-700 px-3.5 text-[14px] font-semibold text-white hover:bg-primary-900"
+              >
+                <Plus className="size-4" aria-hidden="true" /> Add a medication
+              </Link>
+            ) : null}
+          </>
+        }
+      />
 
       {allergies.length ? (
         <p className="mb-5 rounded-lg border border-attn-bg bg-attn-bg/50 px-4 py-2.5 text-[13px] text-attn-ink">

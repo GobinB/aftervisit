@@ -41,6 +41,7 @@ export const TaskSchema = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(), // ISO, set by caregiver on review
+  dueTime: z.string().regex(/^\d{2}:\d{2}$/).optional(), // 24-hour "14:30", only when the summary states a time
   assignee: z.string().trim().max(80).optional(), // free text, chosen by caregiver
   sourceQuote: itemText.optional(), // the clinic's original sentence; absent when the caregiver added the item
   origin: z.enum(["summary", "caregiver"]).optional(), // "caregiver" when added during review, not from the summary
