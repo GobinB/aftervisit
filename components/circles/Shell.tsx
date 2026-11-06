@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { BottomBar, CircleNavProvider, HeaderTitle, SidebarCircleNav, type NavTab } from "@/components/circles/CircleNav";
-import { Logo, LogoMark, Wordmark } from "@/components/Logo";
+import { Logo } from "@/components/Logo";
 import { SignOut } from "@/components/circles/SignOut";
 import { COPY } from "@/lib/copy";
 
@@ -33,22 +33,18 @@ export function CircleShell({
         <aside className="no-print sticky top-0 hidden h-dvh w-[220px] shrink-0 flex-col bg-sidebar text-sidebar-text lg:flex">
           <Link
             href={homeHref}
-            className="flex items-center gap-2.5 border-b border-white/[0.07] px-[18px] pt-5 pb-4"
+            className="block border-b border-white/[0.07] px-[18px] pt-5 pb-4"
             aria-label={signedIn ? "All Hands Care, your circles" : "All Hands Care home"}
           >
-            <LogoMark size={26} variant="onDark" />
-            <span>
-              <Wordmark tone="onDark" className="text-[19px]" />
-              <span className="mt-1 block text-[10px] font-medium tracking-[0.1em] text-sidebar-muted uppercase">Care circle</span>
-            </span>
+            <Logo size={32} variant="onDark" />
           </Link>
           <SidebarCircleNav signedIn={signedIn} personName={personName} tabs={tabs} />
         </aside>
 
         <div className="flex min-w-0 flex-1 flex-col">
-          <header className="no-print sticky top-0 z-30 flex min-h-14 items-center justify-between gap-3 border-b border-border-200 bg-white px-4 sm:px-6">
-            <Link href={homeHref} className="rounded-lg lg:hidden" aria-label={signedIn ? "All Hands Care, your circles" : "All Hands Care home"}>
-              <Logo size={30} />
+          <header className="no-print sticky top-0 z-30 flex min-h-16 items-center justify-between gap-3 border-b border-border-200 bg-white px-4 sm:px-6">
+            <Link href={homeHref} className="-ml-1 rounded-lg p-1 lg:hidden" aria-label={signedIn ? "All Hands Care, your circles" : "All Hands Care home"}>
+              <Logo size={34} />
             </Link>
             <HeaderTitle fallback={signedIn ? "Your circles" : "Care circle"} personName={personName} tabs={tabs} />
             <nav aria-label="Account" className="flex items-center gap-1 text-[13px]">

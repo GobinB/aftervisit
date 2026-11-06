@@ -8,7 +8,7 @@ export const metadata: Metadata = { title: "No connection", robots: { index: fal
 export default function OfflinePage() {
   return (
     <main id="main" className="flex min-h-dvh flex-col items-center justify-center gap-6 bg-surface-50 px-4 text-center">
-      <Logo />
+      <Logo size={44} />
       <WifiOff size={40} className="text-primary-700" aria-hidden="true" />
       <h1 className="font-display text-heading text-primary-900">No connection</h1>
       <p className="max-w-sm text-ink-500">Your circle opens again when the phone is back online.</p>

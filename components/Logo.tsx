@@ -46,12 +46,24 @@ export function Wordmark({ className = "text-[1.15rem] sm:text-[1.45rem]", tone 
   );
 }
 
-export function Logo({ size = 32, className = "" }: { size?: number; className?: string }) {
+/**
+ * The full logo as one lockup, `size` pixels tall. The name is drawn at about half the symbol's
+ * height, a fixed gap from it, and set a little low so it lines up with the hands, not the heart,
+ * the way the designer's artwork pairs them. On the smallest phones only the symbol shows.
+ */
+export function Logo({ size = 38, variant = "default", className = "" }: { size?: number; variant?: "default" | "onDark"; className?: string }) {
+  const word = Math.round(size * 0.5);
   return (
-    <span className={`inline-flex items-center gap-2.5 ${className}`}>
-      <LogoMark size={size} />
-      {/* The smallest phones show the mark alone; the link around it carries the name. */}
-      <Wordmark className="text-[1.15rem] max-[359px]:hidden sm:text-[1.45rem]" />
+    <span className={`inline-flex items-center ${className}`} style={{ gap: Math.round(size * 0.3) }}>
+      <LogoMark size={size} variant={variant} />
+      <img
+        src={BRAND.wordmark[variant]}
+        alt="All Hands Care"
+        width={Math.round(word * WORDMARK_RATIO)}
+        height={word}
+        className="block shrink-0 max-[359px]:hidden"
+        style={{ height: word, width: "auto", transform: `translateY(${Math.round(size * 0.07)}px)` }}
+      />
     </span>
   );
 }
