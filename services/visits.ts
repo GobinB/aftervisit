@@ -3,8 +3,9 @@ import type { Actor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import type { ApplyVisitInput } from "@/lib/schema/visit";
 import { clientFor } from "@/store/db";
+import { saveEvent } from "@/services/events";
 
-export type ApplyResult = { ok: true; added: number; changed: number; stopped: number; todos: number; failed: number } | { ok: false; error: string };
+export type ApplyResult = { ok: true; added: number; changed: number; stopped: number; todos: number; events: number; failed: number } | { ok: false; error: string };
 
 function assignee(value: ApplyVisitInput["todos"][number]["assignee"]) {
   if (value === "caregiver") return { assigned_to_caregiver: true, assignee_member_id: null };
@@ -13,18 +14,24 @@ function assignee(value: ApplyVisitInput["todos"][number]["assignee"]) {
 }
 
 /**
- * Writes a confirmed visit into the circle: adds, changes and stops medications, and adds to-dos.
+ * Writes a confirmed visit into the circle: adds, changes and stops medications, adds reminders,
+ * and puts follow-up appointments on the calendar with who is going.
  * Every row is marked as coming from a visit, so the medication history says so. Only the caregiver can.
  * Each write is limited to this circle; a write that fails is counted, and the rest still go through.
  */
 export async function applyVisit(actor: Actor, input: ApplyVisitInput): Promise<ApplyResult> {
   const circleId = input.circleId;
-  if (actor.kind !== "caregiver" || !can(actor, "medications:edit", { circleId }) || !can(actor, "tasks:manage", { circleId })) {
+  if (
+    actor.kind !== "caregiver" ||
+    !can(actor, "medications:edit", { circleId }) ||
+    !can(actor, "tasks:manage", { circleId }) ||
+    (input.events.length > 0 && !can(actor, "calendar:edit", { circleId }))
+  ) {
     return { ok: false, error: "Only the caregiver can update the circle from a visit." };
   }
   const db = clientFor(actor);
   const today = new Date().toISOString().slice(0, 10);
-  const counts = { added: 0, changed: 0, stopped: 0, todos: 0, failed: 0 };
+  const counts = { added: 0, changed: 0, stopped: 0, todos: 0, events: 0, failed: 0 };
 
   for (const med of input.meds) {
     if (med.action === "add") {
@@ -77,6 +84,21 @@ export async function applyVisit(actor: Actor, input: ApplyVisitInput): Promise<
     });
     if (error) counts.failed++;
     else counts.todos++;
+  }
+
+  for (const event of input.events) {
+    const saved = await saveEvent(actor, {
+      circleId,
+      title: event.title,
+      date: event.date,
+      startTime: event.startTime,
+      location: event.location,
+      notes: from,
+      repeat: "none",
+      going: event.going,
+    });
+    if (saved.ok) counts.events++;
+    else counts.failed++;
   }
 
   await db.from("activity").insert({ circle_id: circleId, actor: `caregiver:${actor.userId}`, action: "visit_applied", subject_type: "circle", subject_id: circleId });

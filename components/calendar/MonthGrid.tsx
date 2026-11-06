@@ -1,3 +1,4 @@
+import { Pill } from "lucide-react";
 import Link from "next/link";
 import type { CalendarItem } from "@/lib/calendar-rows";
 import { dayText, monthGrid } from "@/lib/schema/events";
@@ -5,7 +6,19 @@ import { dayText, monthGrid } from "@/lib/schema/events";
 const WEEKDAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
 
 /** A month on one screen. Each day lists up to three items; a day can be tapped to add an event when allowed. */
-export function MonthGrid({ month, items, circleId, canEdit }: { month: string; items: CalendarItem[]; circleId: string; canEdit: boolean }) {
+export function MonthGrid({
+  month,
+  items,
+  circleId,
+  canEdit,
+  medCounts = {},
+}: {
+  month: string;
+  items: CalendarItem[];
+  circleId: string;
+  canEdit: boolean;
+  medCounts?: Record<string, number>;
+}) {
   const weeks = monthGrid(month);
   return (
     <div className="overflow-hidden rounded-lg border border-border-200 bg-white">
@@ -24,7 +37,13 @@ export function MonthGrid({ month, items, circleId, canEdit }: { month: string; 
             return (
               <div key={date} className={`min-h-24 border-r border-border-200 p-1.5 last:border-r-0 ${inMonth ? "" : "bg-paper-100/40"}`}>
                 <div className="flex items-center justify-between">
-                  <span className={`text-[12px] tabular-nums ${inMonth ? "font-medium text-ink-900" : "text-ink-500/60"}`}>{Number(date.slice(8))}</span>
+                  <Link
+                    href={`/circles/${circleId}/calendar?view=day&date=${date}`}
+                    aria-label={`See ${dayText(date)}`}
+                    className={`rounded px-1 text-[12px] tabular-nums hover:bg-sky-100 ${inMonth ? "font-semibold text-ink-900" : "text-ink-500/60"}`}
+                  >
+                    {Number(date.slice(8))}
+                  </Link>
                   {canEdit && inMonth ? (
                     <Link
                       href={`/circles/${circleId}/calendar/new?date=${date}`}
@@ -49,6 +68,16 @@ export function MonthGrid({ month, items, circleId, canEdit }: { month: string; 
                     </li>
                   ))}
                   {dayItems.length > 3 ? <li className="px-1 text-[11px] text-ink-500">+{dayItems.length - 3} more</li> : null}
+                  {medCounts[date] && inMonth ? (
+                    <li>
+                      <Link
+                        href={`/circles/${circleId}/calendar?view=day&date=${date}`}
+                        className="flex items-center gap-1 rounded px-1 py-0.5 text-[11px] font-medium text-primary-700 hover:bg-sky-100"
+                      >
+                        <Pill className="size-3" aria-hidden="true" /> {medCounts[date]} medicine{medCounts[date] === 1 ? "" : "s"}
+                      </Link>
+                    </li>
+                  ) : null}
                 </ul>
               </div>
             );

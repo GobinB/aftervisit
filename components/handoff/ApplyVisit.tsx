@@ -8,10 +8,13 @@ import { StepHeader } from "@/components/StepHeader";
 import { doseText, scheduleText, MED_SCHEDULE_LABELS } from "@/lib/schema/medications";
 import type { HandoffDraft } from "@/lib/schema";
 import { planMedications, type MedPlan } from "@/lib/visit-apply";
+import { resolveDue } from "@/lib/parse/dates";
+import { WhoChips } from "@/components/todos/TodoForm";
 
-type Done = { added: number; changed: number; stopped: number; todos: number; failed: number };
+type Done = { added: number; changed: number; stopped: number; todos: number; events: number; failed: number };
 
-const select = "h-9 rounded-md border border-border-200 bg-white px-2 text-[13px] text-ink-900";
+type Appointment = { id: string; title: string; date: string; time: string; location?: string };
+
 
 function MedLine({ plan }: { plan: MedPlan }) {
   switch (plan.action) {
@@ -73,7 +76,24 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
   const [done, setDone] = useState<Done | null>(null);
   const [pending, start] = useTransition();
   const plans = useMemo(() => planMedications(draft.medications, context.medications), [draft, context]);
-  const tasks = useMemo(() => draft.tasks.filter((task) => task.title.trim()), [draft]);
+  // Follow-up appointments with a date (stated, or counted from the visit date) go on the calendar.
+  // Everything else, and an appointment without a date, becomes a reminder.
+  const { appointments, tasks } = useMemo(() => {
+    const appointments: Appointment[] = [];
+    const tasks: HandoffDraft["tasks"] = [];
+    for (const task of draft.tasks.filter((item) => item.title.trim())) {
+      const resolved = task.dueDate ? { date: task.dueDate, time: task.dueTime } : resolveDue(task.dueText ?? task.sourceQuote ?? "", draft.visit.date);
+      if (task.category === "appointment" && resolved?.date) {
+        appointments.push({ id: task.id, title: task.title.trim().slice(0, 200), date: resolved.date, time: task.dueTime ?? resolved.time ?? "" });
+      } else {
+        tasks.push(task);
+      }
+    }
+    return { appointments, tasks };
+  }, [draft]);
+  const [dates, setDates] = useState<Record<string, { date: string; time: string }>>({});
+  const [going, setGoing] = useState<Record<string, string>>({});
+  const when = (appt: Appointment) => dates[appt.id] ?? { date: appt.date, time: appt.time };
   const actionable = (plan: MedPlan) => plan.action === "add" || plan.action === "update" || plan.action === "stop" || plan.action === "missing";
   const on = (key: string, fallback: boolean) => include[key] ?? fallback;
 
@@ -96,6 +116,14 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         ...(task.dueText ? { note: `Due ${task.dueText}` } : {}),
         assignee: assignees[task.id] ?? "none",
       }));
+    const events = appointments
+      .filter((appt) => on(appt.id, true) && when(appt).date)
+      .map((appt) => ({
+        title: appt.title,
+        date: when(appt).date,
+        ...(when(appt).time ? { startTime: when(appt).time } : {}),
+        going: going[appt.id] ?? "none",
+      }));
     start(async () => {
       const result = await applyVisitAction({
         circleId,
@@ -103,6 +131,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         ...(draft.visit.clinic ? { clinic: draft.visit.clinic } : {}),
         meds,
         todos,
+        events,
       });
       if (!result.ok) setError(result.error);
       else setDone(result);
@@ -115,6 +144,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
       done.changed ? `${done.changed} medication${done.changed === 1 ? "" : "s"} changed` : null,
       done.stopped ? `${done.stopped} medication${done.stopped === 1 ? "" : "s"} stopped` : null,
       done.todos ? `${done.todos} reminder${done.todos === 1 ? "" : "s"} added` : null,
+      done.events ? `${done.events} appointment${done.events === 1 ? "" : "s"} on the calendar` : null,
     ].filter(Boolean);
     return (
       <div className="mx-auto max-w-[720px]">
@@ -193,6 +223,68 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         ) : null}
       </section>
 
+      {appointments.length ? (
+        <section aria-labelledby="appts-title" className="mt-6">
+          <h2 id="appts-title" className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-500 uppercase">
+            Appointments for the calendar
+          </h2>
+          <div className="rounded-lg border border-border-200 bg-white">
+            <ul className="divide-y divide-border-200">
+              {appointments.map((appt) => (
+                <li key={appt.id} className="space-y-3 px-4 py-3 text-[14px] text-ink-900">
+                  <label className="flex items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className="mt-1 size-5 accent-primary-700"
+                      checked={on(appt.id, true)}
+                      onChange={(event) => setInclude({ ...include, [appt.id]: event.target.checked })}
+                    />
+                    <span className="text-[15px] font-semibold">{appt.title}</span>
+                  </label>
+                  {on(appt.id, true) ? (
+                    <div className="space-y-3 pl-8">
+                      <div className="flex flex-wrap gap-2">
+                        <label className="text-[13px] font-medium text-ink-500">
+                          Day
+                          <input
+                            type="date"
+                            className="mt-1 block h-11 rounded-lg border border-border-200 bg-white px-2 text-[16px] text-ink-900"
+                            value={when(appt).date}
+                            onChange={(event) => setDates({ ...dates, [appt.id]: { ...when(appt), date: event.target.value } })}
+                          />
+                        </label>
+                        <label className="text-[13px] font-medium text-ink-500">
+                          Time
+                          <input
+                            type="time"
+                            className="mt-1 block h-11 rounded-lg border border-border-200 bg-white px-2 text-[16px] text-ink-900"
+                            value={when(appt).time}
+                            onChange={(event) => setDates({ ...dates, [appt.id]: { ...when(appt), time: event.target.value } })}
+                          />
+                        </label>
+                      </div>
+                      <div>
+                        <p className="text-[13px] font-medium text-ink-500">Who&apos;s going?</p>
+                        <WhoChips
+                          value={going[appt.id] ?? "none"}
+                          onPick={(value) => setGoing({ ...going, [appt.id]: value })}
+                          people={context.people}
+                          options={[
+                            { value: "none", label: "Decide later" },
+                            { value: "volunteer", label: "Needs someone" },
+                            { value: "caregiver", label: "Me" },
+                          ]}
+                        />
+                      </div>
+                    </div>
+                  ) : null}
+                </li>
+              ))}
+            </ul>
+          </div>
+        </section>
+      ) : null}
+
       <section aria-labelledby="todos-title" className="mt-6">
         <h2 id="todos-title" className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-500 uppercase">
           Reminders
@@ -213,28 +305,14 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
                     {task.title}
                     {task.dueDate || task.dueText ? <span className="block text-[12px] text-ink-500">Due {task.dueDate ?? task.dueText}</span> : null}
                   </span>
-                  <label className="sr-only" htmlFor={`who-${task.id}`}>
-                    Who
-                  </label>
-                  <select
-                    id={`who-${task.id}`}
-                    className={select}
-                    value={assignees[task.id] ?? "none"}
-                    onChange={(event) => setAssignees({ ...assignees, [task.id]: event.target.value })}
-                  >
-                    <option value="none">Needs a volunteer</option>
-                    <option value="caregiver">Me</option>
-                    {context.people.map((person) => (
-                      <option key={person.value} value={person.value}>
-                        {person.label}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="w-full pl-7">
+                    <WhoChips value={assignees[task.id] ?? "none"} onPick={(value) => setAssignees({ ...assignees, [task.id]: value })} people={context.people} />
+                  </div>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="px-4 py-3 text-[13px] text-ink-500">The visit has no next steps.</p>
+            <p className="px-4 py-3 text-[13px] text-ink-500">No other next steps in this visit.</p>
           )}
         </div>
       </section>

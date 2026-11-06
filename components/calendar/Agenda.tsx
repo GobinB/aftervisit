@@ -1,6 +1,6 @@
 "use client";
 
-import { ListChecks, MapPin, Pencil, Repeat } from "lucide-react";
+import { ListChecks, MapPin, Pencil, Pill, Repeat } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { GoButton } from "@/components/calendar/GoButton";
@@ -19,6 +19,8 @@ export function Agenda({
   limit,
   empty,
   fromToday = true,
+  dayBase,
+  medCounts,
 }: {
   items: CalendarItem[];
   circleId: string;
@@ -27,6 +29,10 @@ export function Agenda({
   empty: string;
   /** False shows every item given, for fictional previews with fixed dates. */
   fromToday?: boolean;
+  /** The calendar's address; each day's header then opens that day. */
+  dayBase?: string;
+  /** How many medicines are due each day, shown beside the day's name. */
+  medCounts?: Record<string, number>;
 }) {
   const [today, setToday] = useState<string | null>(null);
   useEffect(() => setToday(localToday()), []);
@@ -38,7 +44,20 @@ export function Agenda({
     <div className="divide-y divide-border-200">
       {days.map((date) => (
         <section key={date} aria-label={dayText(date)}>
-          <h3 className={`bg-paper-100/60 px-4 py-1.5 text-[12px] font-semibold ${date === today ? "text-primary-700" : "text-ink-500"}`}>{label(date)}</h3>
+          <h3 className={`flex items-center justify-between gap-2 bg-paper-100/60 px-4 py-1.5 text-[12px] font-semibold ${date === today ? "text-primary-700" : "text-ink-500"}`}>
+            {dayBase ? (
+              <Link href={`${dayBase}?view=day&date=${date}`} className="hover:underline">
+                {label(date)}
+              </Link>
+            ) : (
+              label(date)
+            )}
+            {dayBase && medCounts?.[date] ? (
+              <Link href={`${dayBase}?view=day&date=${date}`} className="inline-flex items-center gap-1 font-medium text-primary-700 hover:underline">
+                <Pill className="size-3.5" aria-hidden="true" /> {medCounts[date]} medicine{medCounts[date] === 1 ? "" : "s"}
+              </Link>
+            ) : null}
+          </h3>
           <ul className="divide-y divide-border-200">
             {shown
               .filter((item) => item.date === date)
