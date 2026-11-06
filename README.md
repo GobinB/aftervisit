@@ -36,7 +36,7 @@ Circles are the signed-in product. A caregiver signs in with Google. A helper op
 - Creating a handoff requires confirming the caregiver is the patient or is authorized to share.
 - Every handoff expires after 30 days; the creator can delete it any time from the manage link.
 - The privacy page reads the active extraction provider from the same code that selects it, so it always names any outside service in use.
-- All Hands Care is a prototype and has not completed a privacy, security or HIPAA compliance review. The public demo asks people not to upload real patient records (`NEXT_PUBLIC_DEMO_MODE`, on by default).
+- All Hands Care has not completed a formal privacy, security or HIPAA compliance review.
 
 ## Stack
 
@@ -81,7 +81,6 @@ cp .env.example .env.local
 | `CRON_SECRET` | Bearer token Vercel Cron sends to `/api/cron/purge` (`openssl rand -hex 24`) |
 | `IP_HASH_SALT` | Salt for IP, PIN, invite, and manage-key hashes (`openssl rand -hex 24`) |
 | `NEXT_PUBLIC_FEEDBACK_URL` | Optional two-question feedback form shown on the manage page |
-| `NEXT_PUBLIC_DEMO_MODE` | Defaults to on; shows "don't upload real patient records" notices. Set to `false` only after a privacy and security review |
 | `EXTRACTION_PROVIDER`, `ANTHROPIC_API_KEY`, `EXTRACTION_MODEL` | Optional; leave unset for the built-in parser |
 
 3. Start it:

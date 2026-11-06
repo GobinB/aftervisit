@@ -4,7 +4,6 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { Button } from "@/components/Button";
-import { DemoNotice } from "@/components/DemoNotice";
 import { FeedbackCard } from "@/components/Feedback";
 import { PinInput } from "@/components/PinInput";
 import { inputClass } from "@/components/review/parts";
@@ -154,7 +153,6 @@ export default function SharePage() {
       <StepHeader current="Share" />
       <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Who should see this?</h1>
       <p className="mt-2 text-ink-500">Add the people who help: family, a home aide, the day program, a care manager.</p>
-      <DemoNotice className="mt-4" />
 
       <ul className="mt-6 space-y-4">
         {rows.map((r, i) => (

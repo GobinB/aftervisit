@@ -1,7 +1,6 @@
 import { Eye, HeartHandshake, ShieldCheck, Trash2, type LucideIcon } from "lucide-react";
 import type { Metadata } from "next";
 import { SOURCE_URL } from "@/components/AppBar";
-import { DemoNotice } from "@/components/DemoNotice";
 import { PageShell } from "@/components/PageShell";
 import { providerDisclosure } from "@/lib/extract/provider";
 import { MEMBER_TTL_DAYS } from "@/lib/schema/circles";
@@ -64,7 +63,6 @@ export default function PrivacyPage() {
                 kept in private storage. All Hands Care has not yet completed a formal privacy and security review.
               </p>
             </div>
-            <DemoNotice className="mt-4" />
           </div>
         </section>
 

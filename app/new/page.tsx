@@ -1,10 +1,10 @@
 "use client";
-import { CheckCircle2, CloudUpload, FileText, ImageIcon, Loader2, X } from "lucide-react";
+import { ArrowLeft, ArrowRight, Camera, CheckCircle2, FileText, ImageIcon, Loader2, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { visitContextAction } from "@/app/actions/visits";
 import { Button } from "@/components/Button";
-import { DemoNotice } from "@/components/DemoNotice";
+import { BackLink } from "@/components/circles/PageHead";
 import { StepHeader } from "@/components/StepHeader";
 import { COPY } from "@/lib/copy";
 import type { HandoffDraft } from "@/lib/schema";
@@ -12,6 +12,7 @@ import { setOriginalFile, useFlow } from "@/lib/store";
 
 const MAX_MB = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB || 10);
 const MIN_TEXT = 50;
+const MAX_PAGES = 15;
 
 type Kind = "pdf" | "image";
 function kindOf(f: File): Kind | null {
@@ -46,6 +47,9 @@ export default function IntakePage() {
   const [stepsDone, setStepsDone] = useState(0);
   const [ocr, setOcr] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
+  const pdfRef = useRef<HTMLInputElement>(null);
+  const [ocrPage, setOcrPage] = useState<{ page: number; of: number } | null>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const ids = { file: useId(), patient: useId(), caregiver: useId(), text: useId() };
   // Started from a care circle (/new?circle=<id>): confirming updates that circle's medications and to-dos.
@@ -90,7 +94,7 @@ export default function IntakePage() {
       return;
     }
     // Photos: several pages are fine.
-    setFiles((cur) => (cur.length && kindOf(cur[0]) === "image" ? [...cur, ...arr].slice(0, 8) : arr.slice(0, 8)));
+    setFiles((cur) => (cur.length && kindOf(cur[0]) === "image" ? [...cur, ...arr].slice(0, MAX_PAGES) : arr.slice(0, MAX_PAGES)));
   }
 
   async function build() {
@@ -120,7 +124,10 @@ export default function IntakePage() {
         // Photos are read here in the browser; only the text is sent.
         const { ocrImages } = await import("@/lib/ocr");
         setOcr(0);
-        const ocrText = await ocrImages(files, (p) => setOcr(p.progress));
+        const ocrText = await ocrImages(files, (p) => {
+          setOcr(p.progress);
+          setOcrPage({ page: p.page, of: files.length });
+        });
         if (ocrText.replace(/\s+/g, "").length < 20) throw new UserError(COPY.nothingParsed);
         res = await fetch("/api/extract", {
           method: "POST",
@@ -159,7 +166,9 @@ export default function IntakePage() {
             </div>
           ) : (
             <div className="mb-6">
-              <p className="mb-2 text-sm text-ink-500">Reading the photo on your phone… {Math.round(ocr * 100)}%</p>
+              <p className="mb-2 text-[15px] text-ink-500">
+                {ocrPage && ocrPage.of > 1 ? `Reading page ${ocrPage.page} of ${ocrPage.of}` : "Reading the photo"} on this device… {Math.round(ocr * 100)}%
+              </p>
               <div
                 className="h-2.5 overflow-hidden rounded-full bg-sky-100"
                 role="progressbar"
@@ -199,91 +208,88 @@ export default function IntakePage() {
     );
   }
 
+  const pageCount = kind === "image" ? files.length : 0;
+  const move = (from: number, to: number) =>
+    setFiles((cur) => {
+      if (to < 0 || to >= cur.length) return cur;
+      const next = [...cur];
+      const [item] = next.splice(from, 1);
+      next.splice(to, 0, item);
+      return next;
+    });
+  const takePhoto = () => cameraRef.current?.click();
+  const choosePhotos = () => inputRef.current?.click();
+
   return (
     <div className="mx-auto max-w-[720px]">
+      <BackLink href={circle ? `/circles/${circle.id}` : "/"} label={circle ? "Today" : "Home"} />
       <StepHeader current="Upload" circle={Boolean(circle)} />
-      <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Add the after-visit summary</h1>
-      <p className="mt-2 text-ink-500">A PDF from the patient portal, a photo of the printed pages, or the text pasted in.</p>
+      <h1 className="font-display text-[2rem] leading-tight font-medium text-primary-900">Scan after-visit summary</h1>
+      <p className="mt-2 text-[16px] text-ink-500">
+        {pasteMode ? "Paste the text from the patient portal." : "Take a photo of each page. Add as many pages as there are, then tap Done."}
+      </p>
       {circle ? (
         <p className="mt-4 rounded-lg border border-sky-100 bg-sky-100/60 px-4 py-3 text-[14px] text-primary-900">
-          For <span className="font-semibold">{circle.personName}</span>. After you check it, you choose which medication changes and reminders go
-          into their circle.
+          For <span className="font-semibold">{circle.personName}</span>. You check everything before it goes into their circle: medicines,
+          reminders and appointments.
         </p>
-      ) : (
-        <DemoNotice className="mt-4" />
-      )}
+      ) : null}
 
-      <div className="mt-6">
-        {!pasteMode ? (
-          <>
-            <label
-              htmlFor={ids.file}
-              onDragOver={(e) => {
-                e.preventDefault();
-                setDragging(true);
-              }}
-              onDragLeave={() => setDragging(false)}
-              onDrop={(e) => {
-                e.preventDefault();
-                setDragging(false);
-                addFiles(e.dataTransfer.files);
-              }}
-              className={`flex min-h-40 cursor-pointer flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed px-4 py-6 text-center transition-colors ${
-                dragging ? "border-action-500 bg-sky-100" : "border-border-200 bg-white hover:bg-sky-100/50"
-              }`}
-            >
-              <CloudUpload size={34} className="text-primary-700" aria-hidden="true" />
-              <span className="font-medium text-ink-900">Drop a PDF or photo of the after-visit summary</span>
-              <span className="text-primary-700 underline underline-offset-4">or choose a file</span>
-              <span className="text-sm text-ink-500">PDF, JPG, PNG or HEIC, up to {MAX_MB} MB. Several photos are fine.</span>
-            </label>
-            <input
-              ref={inputRef}
-              id={ids.file}
-              type="file"
-              multiple
-              accept="application/pdf,.pdf,image/jpeg,image/png,image/heic,image/heif,.heic,.heif,image/webp"
-              className="sr-only"
-              onChange={(e) => {
-                if (e.target.files) addFiles(e.target.files);
-                e.target.value = "";
-              }}
-            />
-            {files.length ? (
-              <ul className="mt-3 space-y-2" aria-label="Selected files">
-                {files.map((f, i) => (
-                  <li key={`${f.name}-${i}`} className="flex items-center gap-3 rounded-xl border border-border-200 bg-white px-3 py-2">
-                    {kindOf(f) === "pdf" ? (
-                      <FileText size={20} className="text-primary-700" aria-hidden="true" />
-                    ) : (
-                      <ImageIcon size={20} className="text-primary-700" aria-hidden="true" />
-                    )}
-                    <span className="min-w-0 flex-1 truncate">{f.name}</span>
-                    <span className="text-sm text-ink-500">{(f.size / 1024 / 1024).toFixed(1)} MB</span>
-                    <button
-                      type="button"
-                      className="rounded-md p-2 text-ink-500 hover:bg-surface-50 hover:text-attn"
-                      aria-label={`Remove ${f.name}`}
-                      onClick={() => setFiles((cur) => cur.filter((_, j) => j !== i))}
-                    >
-                      <X size={18} aria-hidden="true" />
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-            <button
-              type="button"
-              className="mt-3 rounded-md text-primary-700 underline underline-offset-4"
-              onClick={() => {
-                setPasteMode(true);
-                setError(null);
-              }}
-            >
-              Paste the text instead
-            </button>
-          </>
-        ) : (
+      {/* Camera: one page per tap. Library: several at once. Both add to the same pages. */}
+      <input
+        ref={cameraRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => {
+          if (e.target.files) addFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={inputRef}
+        id={ids.file}
+        type="file"
+        multiple
+        accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif,image/webp"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => {
+          if (e.target.files) addFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+      <input
+        ref={pdfRef}
+        type="file"
+        accept="application/pdf,.pdf"
+        className="sr-only"
+        tabIndex={-1}
+        aria-hidden="true"
+        onChange={(e) => {
+          if (e.target.files) addFiles(e.target.files);
+          e.target.value = "";
+        }}
+      />
+
+      <div
+        className="mt-6"
+        onDragOver={(e) => {
+          e.preventDefault();
+          setDragging(true);
+        }}
+        onDragLeave={() => setDragging(false)}
+        onDrop={(e) => {
+          e.preventDefault();
+          setDragging(false);
+          addFiles(e.dataTransfer.files);
+        }}
+      >
+        {pasteMode ? (
           <>
             <label htmlFor={ids.text} className="font-medium">
               Paste the summary text
@@ -302,16 +308,122 @@ export default function IntakePage() {
             </p>
             <button
               type="button"
-              className="mt-2 rounded-md text-primary-700 underline underline-offset-4"
+              className="mt-2 min-h-11 rounded-md text-[15px] font-semibold text-primary-700 underline underline-offset-4"
               onClick={() => {
                 setPasteMode(false);
                 setError(null);
               }}
             >
-              Upload a file instead
+              Take photos instead
             </button>
           </>
+        ) : kind === "pdf" ? (
+          <div className="flex items-center gap-3 rounded-xl border border-border-200 bg-white px-4 py-3">
+            <FileText size={24} className="shrink-0 text-primary-700" aria-hidden="true" />
+            <span className="min-w-0 flex-1 truncate font-medium">{files[0].name}</span>
+            <button
+              type="button"
+              className="inline-flex size-11 items-center justify-center rounded-lg text-ink-500 hover:bg-attn-bg hover:text-attn-ink"
+              aria-label={`Remove ${files[0].name}`}
+              onClick={() => setFiles([])}
+            >
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
+        ) : pageCount ? (
+          <>
+            <ol className="grid grid-cols-2 gap-3 sm:grid-cols-3" aria-label="Pages">
+              {files.map((file, index) => (
+                <li key={`${file.name}-${file.lastModified}-${index}`} className="overflow-hidden rounded-xl border border-border-200 bg-white">
+                  <div className="relative aspect-[3/4] bg-paper-100">
+                    <Thumb file={file} />
+                    <span className="absolute top-2 left-2 rounded-full bg-sidebar px-2.5 py-1 text-[13px] font-bold text-white">Page {index + 1}</span>
+                    <button
+                      type="button"
+                      className="absolute top-1.5 right-1.5 inline-flex size-10 items-center justify-center rounded-full bg-white/95 text-attn-ink shadow"
+                      aria-label={`Remove page ${index + 1}`}
+                      onClick={() => setFiles((cur) => cur.filter((_, j) => j !== index))}
+                    >
+                      <X size={20} aria-hidden="true" />
+                    </button>
+                  </div>
+                  <div className="flex border-t border-border-200">
+                    <button
+                      type="button"
+                      disabled={index === 0}
+                      onClick={() => move(index, index - 1)}
+                      aria-label={`Move page ${index + 1} earlier`}
+                      className="inline-flex min-h-11 flex-1 items-center justify-center text-primary-700 hover:bg-sky-100 disabled:text-border-200"
+                    >
+                      <ArrowLeft size={20} aria-hidden="true" />
+                    </button>
+                    <button
+                      type="button"
+                      disabled={index === files.length - 1}
+                      onClick={() => move(index, index + 1)}
+                      aria-label={`Move page ${index + 1} later`}
+                      className="inline-flex min-h-11 flex-1 items-center justify-center border-l border-border-200 text-primary-700 hover:bg-sky-100 disabled:text-border-200"
+                    >
+                      <ArrowRight size={20} aria-hidden="true" />
+                    </button>
+                  </div>
+                </li>
+              ))}
+              {files.length < MAX_PAGES ? (
+                <li>
+                  <button
+                    type="button"
+                    onClick={takePhoto}
+                    className="flex aspect-[3/4] h-full w-full flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-primary-700/40 bg-white text-[15px] font-bold text-primary-700 hover:bg-sky-100/60"
+                  >
+                    <Camera size={30} aria-hidden="true" />
+                    Add a page
+                  </button>
+                </li>
+              ) : null}
+            </ol>
+            <button type="button" onClick={choosePhotos} className="mt-3 min-h-11 text-[15px] font-semibold text-primary-700 underline underline-offset-4">
+              Add pages from my photos
+            </button>
+          </>
+        ) : (
+          <div className={`rounded-2xl border-2 border-dashed p-4 transition-colors sm:p-6 ${dragging ? "border-action-500 bg-sky-100" : "border-border-200 bg-white"}`}>
+            <div className="grid gap-3 sm:grid-cols-2">
+              <button
+                type="button"
+                onClick={takePhoto}
+                className="flex min-h-20 items-center justify-center gap-3 rounded-xl bg-primary-700 px-4 text-[18px] font-bold text-white hover:bg-primary-900"
+              >
+                <Camera size={28} aria-hidden="true" /> Take a photo
+              </button>
+              <button
+                type="button"
+                onClick={choosePhotos}
+                className="flex min-h-20 items-center justify-center gap-3 rounded-xl border-2 border-primary-700 bg-white px-4 text-[18px] font-bold text-primary-700 hover:bg-sky-100"
+              >
+                <ImageIcon size={28} aria-hidden="true" /> Choose photos
+              </button>
+            </div>
+            <p className="mt-3 text-center text-[13px] text-ink-500">One photo per page. Lay the page flat, in good light. You can also drop files here.</p>
+          </div>
         )}
+        {!pasteMode && !pageCount && kind !== "pdf" ? (
+          <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
+            <button type="button" onClick={() => pdfRef.current?.click()} className="min-h-11 text-[15px] font-semibold text-primary-700 underline underline-offset-4">
+              Use a PDF instead
+            </button>
+            <button
+              type="button"
+              className="min-h-11 text-[15px] font-semibold text-primary-700 underline underline-offset-4"
+              onClick={() => {
+                setPasteMode(true);
+                setError(null);
+              }}
+            >
+              Paste the text instead
+            </button>
+          </p>
+        ) : null}
       </div>
 
       {/* A circle already knows who the visit was for, and nothing is shared from this flow, so the names are not asked. */}
@@ -326,7 +438,7 @@ export default function IntakePage() {
             onChange={(e) => setPatient(e.target.value)}
             autoComplete="off"
             maxLength={60}
-            className="mt-1.5 h-12 w-full rounded-xl border border-border-200 bg-white px-3 outline-none focus:border-action-500 focus:ring-2 focus:ring-action-500/30"
+            className="mt-1.5 h-12 w-full rounded-xl border border-border-200 bg-white px-3 text-[16px] outline-none focus:border-action-500 focus:ring-2 focus:ring-action-500/30"
           />
         </div>
         <div>
@@ -340,7 +452,7 @@ export default function IntakePage() {
             autoComplete="given-name"
             maxLength={60}
             aria-describedby={`${ids.caregiver}-help`}
-            className="mt-1.5 h-12 w-full rounded-xl border border-border-200 bg-white px-3 outline-none focus:border-action-500 focus:ring-2 focus:ring-action-500/30"
+            className="mt-1.5 h-12 w-full rounded-xl border border-border-200 bg-white px-3 text-[16px] outline-none focus:border-action-500 focus:ring-2 focus:ring-action-500/30"
           />
           <p id={`${ids.caregiver}-help`} className="mt-1 text-sm text-ink-500">
             Shown on the handoff so people know who prepared it.
@@ -354,16 +466,40 @@ export default function IntakePage() {
         </p>
       ) : null}
 
-      <Button className="mt-6 w-full sm:w-auto sm:min-w-64" disabled={!ready} onClick={build}>
-        {circle ? "Read the summary" : "Build the handoff"}
-      </Button>
+      {ready ? (
+        <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t border-border-200 bg-surface-50/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
+          <Button className="w-full sm:w-auto sm:min-w-64" onClick={build}>
+            {pageCount ? `Done: read ${pageCount} page${pageCount === 1 ? "" : "s"}` : circle ? "Done: read the summary" : "Build the handoff"}
+          </Button>
+        </div>
+      ) : null}
       <p className="mt-3 text-sm text-ink-500">
-        {kind === "image"
-          ? "Your photo is read on this device. Only the text is sent to All Hands Care's server to build the draft, and it is not saved."
+        {kind === "image" || !files.length
+          ? "Photos are read on this device. Only the text is sent to All Hands Care's server to build the draft, and it is not saved."
           : "Your file is sent to All Hands Care's server to build the draft and is not saved."}
       </p>
     </div>
   );
+}
+
+/** A small preview of one page. HEIC photos some browsers cannot show get a plain icon instead. */
+function Thumb({ file }: { file: File }) {
+  const [url, setUrl] = useState<string | null>(null);
+  const [failed, setFailed] = useState(false);
+  useEffect(() => {
+    const made = URL.createObjectURL(file);
+    setUrl(made);
+    return () => URL.revokeObjectURL(made);
+  }, [file]);
+  if (!url || failed) {
+    return (
+      <span className="flex h-full w-full items-center justify-center text-primary-700">
+        <ImageIcon size={36} aria-hidden="true" />
+      </span>
+    );
+  }
+  // eslint-disable-next-line @next/next/no-img-element
+  return <img src={url} alt="" className="h-full w-full object-cover" onError={() => setFailed(true)} />;
 }
 
 class UserError extends Error {}

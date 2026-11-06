@@ -4,7 +4,6 @@ import { ButtonLink } from "@/components/Button";
 import { PhonePreview } from "@/components/home/PhonePreview";
 import { PageShell } from "@/components/PageShell";
 import { StartSample } from "@/components/StartSample";
-import { DEMO_MODE } from "@/lib/demo";
 
 /** Where a caregiver starts. /circles/new sends a signed-out visitor to Google sign-in first. */
 const START_HREF = "/circles/new";
@@ -64,7 +63,6 @@ export default function HomePage() {
                 </ButtonLink>
                 <StartSample variant="navy" label="Try a sample visit" className="min-h-13 px-6" />
               </div>
-              {DEMO_MODE ? <p className="mt-4 text-[13px] text-white/60">This is an early version. Please use made-up details for now.</p> : null}
             </div>
             <PhonePreview className="lg:mr-0 lg:ml-auto" />
           </div>
