@@ -67,7 +67,7 @@ export function TodoForm({ circleId, people, todo }: { circleId: string; people:
         </label>
         <input
           id={`${id}-title`}
-          className={`${field} flex-1`}
+          className={`${field} sm:flex-1`}
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           onFocus={() => setExpanded(true)}

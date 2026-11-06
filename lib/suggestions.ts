@@ -30,9 +30,7 @@ export const COMMON_REMINDERS = [
   "Book a follow-up appointment",
   "Call the doctor's office",
   "Refill the pill organizer",
-  "Get blood work done",
   "Drive to the appointment",
-  "Grocery shopping",
   "Check in by phone",
 ];
 
