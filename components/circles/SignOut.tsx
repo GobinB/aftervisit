@@ -3,8 +3,9 @@
 import { useTransition } from "react";
 import { signOut } from "@/app/(auth)/login/actions";
 import { clearCircleKeys } from "@/lib/crypto";
+import { forgetAllLinks } from "@/lib/local-links";
 
-/** Removes this device's circle keys, then ends the session. Signing in again here asks for the recovery words. */
+/** Removes this device's circle keys and saved helper links, then ends the session. Signing in again here asks for the recovery words. */
 export function SignOut() {
   const [pending, start] = useTransition();
   return (
@@ -15,6 +16,7 @@ export function SignOut() {
       onClick={() =>
         start(async () => {
           await clearCircleKeys().catch(() => undefined);
+          forgetAllLinks();
           await signOut();
         })
       }

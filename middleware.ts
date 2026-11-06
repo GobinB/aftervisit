@@ -1,6 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { dataEnv } from "@/lib/data-env";
+import { SESSION_COOKIE_OPTIONS } from "@/lib/session-cookie";
 
 /**
  * Refreshes the caregiver session cookie on every page request, so a caregiver who opens the app
@@ -24,6 +25,7 @@ export async function middleware(request: NextRequest) {
 
   let supabaseResponse = NextResponse.next({ request });
   const supabase = createServerClient(url, key, {
+    cookieOptions: SESSION_COOKIE_OPTIONS,
     cookies: {
       getAll() {
         return request.cookies.getAll();

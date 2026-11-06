@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { cache } from "react";
 import { caregiverDisplayName } from "@/lib/caregiver-name";
 import { env } from "@/lib/env";
-import { HELPER_COOKIE, readHelperCookie, signHelperCookie, type HelperClaim } from "@/lib/helper-cookie";
+import { HELPER_COOKIE, readHelperCookie, sameLink, signHelperCookie, type HelperClaim } from "@/lib/helper-cookie";
 import { HELPER_ROLES, MEMBER_TTL_DAYS, VisibilitySchema, type HelperRole, type Visibility } from "@/lib/schema/circles";
 import { serviceClient, userClient } from "@/store/db";
 import { createSupabaseServerClient } from "@/store/supabase-server";
@@ -113,12 +113,14 @@ async function loadHelper(circleId: string): Promise<Actor | null> {
     const db = serviceClient();
     const { data, error } = await db
       .from("members")
-      .select("id, role, visibility, revoked_at, expires_at, last_seen_at")
+      .select("id, role, visibility, revoked_at, expires_at, last_seen_at, token_hash")
       .eq("id", claim.memberId)
       .eq("circle_id", circleId)
       .maybeSingle();
     if (error || !data) return null;
     if (data.revoked_at) return null;
+    // Made from an older link: "New link" and a new key for files sign those devices out.
+    if (!sameLink(claim.link, data.token_hash as string | null)) return null;
     if (new Date(data.expires_at as string).getTime() <= Date.now()) return null;
     const role = data.role as string;
     if (!HELPER_ROLES.includes(role as HelperRole)) return null;
@@ -134,10 +136,8 @@ async function loadHelper(circleId: string): Promise<Actor | null> {
         })
         .eq("id", data.id as string);
     }
+    // The role always comes from the member row; the cookie's copy is never trusted or rewritten here.
     const helperRole = role as HelperRole;
-    if (helperRole !== claim.role) {
-      await setHelperSession({ memberId: data.id as string, circleId, role: helperRole });
-    }
     return { kind: "helper", memberId: data.id as string, circleId, role: helperRole, visibility };
   } catch {
     return null;

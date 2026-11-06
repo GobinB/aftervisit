@@ -54,9 +54,8 @@ export function MembersPanel({
       if (!built.ok) {
         setError(built.error);
       } else {
-        saveLink(circleId, result.memberId, built.url, pin);
-        const saved = loadLink(circleId, result.memberId);
-        setShare({ link: { url: built.url, name: result.name, email: result.email ?? null, pin: saved?.pin ?? pin, personName }, fresh });
+        saveLink(circleId, result.memberId, built.url);
+        setShare({ link: { url: built.url, name: result.name, email: result.email ?? null, pin, personName }, fresh });
         setAdding(false);
       }
     }
@@ -132,7 +131,7 @@ export function MembersPanel({
                   circleId={circleId}
                   person={person}
                   onShare={(saved) =>
-                    setShare({ link: { url: saved.url, name: person.name, email: person.email ?? null, pin: saved.pin ?? null, personName }, fresh: false })
+                    setShare({ link: { url: saved.url, name: person.name, email: person.email ?? null, pin: null, personName }, fresh: false })
                   }
                   onNewLink={(result) => linkReady(result, null, false)}
                   onChanged={(result) => {
@@ -337,7 +336,7 @@ function Profile({
 }: {
   circleId: string;
   person: PersonView;
-  onShare: (saved: { url: string; pin?: string }) => void;
+  onShare: (saved: { url: string }) => void;
   onNewLink: (result: Saved) => Promise<void>;
   onChanged: (result: Saved) => void;
 }) {
@@ -359,7 +358,7 @@ function Profile({
   return (
     <div className="space-y-4 border-t border-border-200 bg-surface-50 px-4 py-4">
       {removed ? (
-        <p className="text-[14px] text-ink-500">{first}&apos;s link was turned off. Make a new link to let them back in.</p>
+        <p className="text-[14px] text-ink-500">{first}&apos;s link was turned off. Make a new link to let them back in; the old one stays off.</p>
       ) : !saved ? (
         <p className="text-[14px] text-ink-500">This device does not have {first}&apos;s link. Make a new link to share it; the old one then stops working.</p>
       ) : null}
@@ -384,7 +383,7 @@ function Profile({
 
       {confirm === "link" ? (
         <div role="group" aria-label={`Confirm a new link for ${first}`} className="space-y-2 rounded-xl border border-border-200 bg-white p-3">
-          <p className="text-[15px] text-ink-900">The link {first} has now will stop working. Make a new one?</p>
+          <p className="text-[15px] text-ink-900">The link {first} has now will stop working, on every phone that opened it. Make a new one?</p>
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={pending} onClick={() => run(() => newLinkAction({ circleId, memberId: person.id }), onNewLink)} className={`${action} bg-primary-700 text-white hover:bg-primary-900`}>
               Yes, new link

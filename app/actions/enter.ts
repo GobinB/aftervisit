@@ -19,7 +19,7 @@ export async function openMemberLink(input: unknown) {
   if (!parsed.success) return { ok: false as const, error: "This link is not valid." };
   const result = await openMemberToken(parsed.data.token, parsed.data.pin);
   if (!result.ok) return result;
-  const saved = await setHelperSession({ memberId: result.memberId, circleId: result.circleId, role: result.role });
+  const saved = await setHelperSession({ memberId: result.memberId, circleId: result.circleId, role: result.role, link: result.link });
   if (!saved) return { ok: false as const, error: "Helper sign-in is not set up yet." };
   redirect(`/circles/${result.circleId}`);
 }
