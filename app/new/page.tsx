@@ -484,22 +484,42 @@ export default function IntakePage() {
 
 /** A small preview of one page. HEIC photos some browsers cannot show get a plain icon instead. */
 function Thumb({ file }: { file: File }) {
-  const [url, setUrl] = useState<string | null>(null);
+  // Drawn onto a canvas from the file's pixels, so no URL made from the file is ever put into the page.
+  const canvas = useRef<HTMLCanvasElement>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
-    const made = URL.createObjectURL(file);
-    setUrl(made);
-    return () => URL.revokeObjectURL(made);
+    let cancelled = false;
+    createImageBitmap(file)
+      .then((bitmap) => {
+        const el = canvas.current;
+        const ctx = el?.getContext("2d");
+        if (cancelled || !el || !ctx) return bitmap.close();
+        const width = 300;
+        const height = 400;
+        el.width = width;
+        el.height = height;
+        // Cover the box like object-fit: cover.
+        const scale = Math.max(width / bitmap.width, height / bitmap.height);
+        const w = bitmap.width * scale;
+        const h = bitmap.height * scale;
+        ctx.drawImage(bitmap, (width - w) / 2, (height - h) / 2, w, h);
+        bitmap.close();
+      })
+      .catch(() => {
+        if (!cancelled) setFailed(true);
+      });
+    return () => {
+      cancelled = true;
+    };
   }, [file]);
-  if (!url || failed) {
+  if (failed) {
     return (
       <span className="flex h-full w-full items-center justify-center text-primary-700">
         <ImageIcon size={36} aria-hidden="true" />
       </span>
     );
   }
-  // eslint-disable-next-line @next/next/no-img-element
-  return <img src={url} alt="" className="h-full w-full object-cover" onError={() => setFailed(true)} />;
+  return <canvas ref={canvas} aria-hidden="true" className="h-full w-full" />;
 }
 
 class UserError extends Error {}
