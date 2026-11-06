@@ -1,4 +1,4 @@
-import { ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { CalendarPlus, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import type { Metadata } from "next";
 import { PageHead } from "@/components/circles/PageHead";
 import Link from "next/link";
@@ -115,6 +115,14 @@ export default async function CalendarPage({ params, searchParams }: { params: P
         actions={
           <>
             <PrintButton />
+            {actor.kind === "caregiver" ? (
+              <Link
+                href={`${base}/subscribe`}
+                className="inline-flex h-10 items-center gap-2 rounded-md border border-border-200 bg-white px-3.5 text-[14px] font-medium text-ink-900 hover:bg-paper-100"
+              >
+                <CalendarPlus className="size-4" aria-hidden="true" /> Add to my calendar
+              </Link>
+            ) : null}
             {canEdit ? (
               <Link href={`${base}/new`} className="inline-flex h-10 items-center gap-2 rounded-md bg-primary-700 px-3.5 text-[14px] font-semibold text-white hover:bg-primary-900">
                 <Plus className="size-4" aria-hidden="true" /> Add an event

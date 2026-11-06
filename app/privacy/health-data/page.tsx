@@ -59,6 +59,10 @@ export default function HealthDataPage() {
               Companies that run the service for us, and only for that: Vercel (hosting), Supabase (database and private file storage) and
               Google (sign-in, which sees your account, not your circle).
             </li>
+            <li>
+              If you choose to add the calendar link to Google Calendar, Apple Calendar or Outlook: that company, which receives
+              appointments and reminders (not medicines).
+            </li>
             <li>No one else, unless the law requires it. We do not sell health information.</li>
           </ul>
 

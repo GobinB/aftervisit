@@ -162,6 +162,10 @@ export default function PrivacyPage() {
                       is shared by mistake, make a new link or remove the person: every phone that opened the old link is signed out.
                     </li>
                     <li>The people you add see your name as it appears on your Google account.</li>
+                    <li>
+                      If you turn on the calendar link, anyone who has that link can see the circle&apos;s appointments and reminders (not
+                      medicines). Make a new link or turn it off any time from Calendar, Add to my calendar.
+                    </li>
                     <li>Pages opened from a link ask search engines not to index them.</li>
                   </ul>
                 </section>
@@ -192,6 +196,10 @@ export default function PrivacyPage() {
                       To read photos in your browser, it downloads the reading engine from jsDelivr and Project Naptha. They see that a browser
                       asked for the engine (its IP address), never your photos or their text.
                     </li>
+                    <li>
+                      If you add the calendar link to Google Calendar, Apple Calendar or Outlook, that company receives the appointments and
+                      reminders (titles, times, places and notes) and keeps its own copy under its own privacy terms.
+                    </li>
                     <li>Vercel Web Analytics counts page visits without cookies.</li>
                     <li>These companies handle information only to provide their service to us. We do not sell or share it with anyone else.</li>
                   </ul>
@@ -221,6 +229,7 @@ export default function PrivacyPage() {
                     <li>Change what each person sees, or turn off their link, from People.</li>
                     <li>Delete a circle from its Settings. Nobody can open it again, every link stops working, and it is erased after 30 days.</li>
                     <li>Delete saved photos of a visit summary from Care summary, Saved visit summaries.</li>
+                    <li>Turn the calendar link on or off, or replace it, from Calendar, Add to my calendar.</li>
                     <li>Only share information you are allowed to share: you confirm this when you start a circle.</li>
                   </ul>
                 </section>
