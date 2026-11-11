@@ -7,13 +7,21 @@ import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import type { Medication } from "@/lib/schema/medications";
 import { ApplyVisitSchema } from "@/lib/schema/visit";
-import { getCircle } from "@/services/circles";
+import { getCircle, listOwnCircleKeys } from "@/services/circles";
 import { listMedications } from "@/services/medications";
 import { listPeople } from "@/services/members";
 import { applyVisit } from "@/services/visits";
 
 export type VisitContext =
-  | { ok: true; personName: string; medications: Medication[]; people: { value: string; label: string }[] }
+  | {
+      ok: true;
+      personName: string;
+      medications: Medication[];
+      people: { value: string; label: string }[];
+      /** The people who can be sent a new link after the visit, and the key version their links are built with. */
+      helpers: { id: string; name: string; roleLabel: string; email: string | null }[];
+      keyVersion: number | null;
+    }
   | { ok: false; error: string };
 
 /** The circle's person, current list and people, so the visit can be lined up before anything is saved. */
@@ -29,10 +37,11 @@ export async function visitContextAction(circleId: unknown): Promise<VisitContex
   if (!content) return { ok: false, error: "That circle was not found." };
   const medications = (await listMedications(actor, parsed.data)) ?? [];
   const listed = await listPeople(actor, parsed.data);
-  const people = (listed.ok ? listed.people : [])
-    .filter((person) => person.kind === "member" && !person.revokedAt)
-    .map((person) => ({ value: person.id, label: `${person.name} (${person.roleLabel})` }));
-  return { ok: true, personName: content.person_name, medications, people };
+  const active = (listed.ok ? listed.people : []).filter((person) => person.kind === "member" && !person.revokedAt);
+  const people = active.map((person) => ({ value: person.id, label: `${person.name} (${person.roleLabel})` }));
+  const helpers = active.map((person) => ({ id: person.id, name: person.name, roleLabel: person.roleLabel, email: person.email ?? null }));
+  const keyVersion = (await listOwnCircleKeys(actor)).find((item) => item.circleId === parsed.data)?.circleKeyVersion ?? null;
+  return { ok: true, personName: content.person_name, medications, people, helpers, keyVersion };
 }
 
 export async function applyVisitAction(input: unknown) {

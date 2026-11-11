@@ -4,7 +4,7 @@ import { Check, Copy, Mail, MessageSquare } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { mailtoHref, smsHref } from "@/lib/share-message";
 
-export type ShareableLink = { url: string; name: string; email: string | null; pin?: string | null; personName?: string };
+export type ShareableLink = { url: string; name: string; email: string | null; pin?: string | null; personName?: string; afterVisit?: boolean };
 
 const choice =
   "flex min-h-16 w-full items-center gap-3 rounded-xl border-2 px-4 text-left text-[17px] font-bold transition-colors focus-visible:outline-offset-2";
@@ -17,7 +17,7 @@ export function ShareLink({ link, onDone, fresh = true }: { link: ShareableLink;
   const [copied, setCopied] = useState(false);
   const heading = useRef<HTMLHeadingElement>(null);
   const first = link.name.trim().split(/\s+/)[0] || link.name;
-  const details = { name: link.name, personName: link.personName, url: link.url, pin: link.pin };
+  const details = { name: link.name, personName: link.personName, url: link.url, pin: link.pin, afterVisit: link.afterVisit };
 
   useEffect(() => {
     heading.current?.focus();
@@ -41,7 +41,7 @@ export function ShareLink({ link, onDone, fresh = true }: { link: ShareableLink;
         </p>
       ) : null}
       <h2 id="share-title" ref={heading} tabIndex={-1} className="font-display text-[24px] leading-tight text-primary-900 outline-none">
-        Send {first} their link
+        Send {first} their {link.afterVisit ? "new " : ""}link
       </h2>
       <p className="mt-1 text-[15px] text-ink-500">
         Pick one. A message is written for you{link.pin ? ", with the PIN in it" : ""}.

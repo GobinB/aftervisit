@@ -16,6 +16,15 @@ describe("share message", () => {
     expect(shareMessage({ ...details, pin: "4821" }).body).toContain("Your PIN is 4821.");
   });
 
+  it("says the link is new after a visit, with no health details", () => {
+    const { subject, body } = shareMessage({ ...details, pin: "4821", afterVisit: true });
+    expect(subject).toBe("Margaret's care circle: new after a visit");
+    expect(body).toContain("after a visit");
+    expect(body).toContain("Your old link no longer works.");
+    expect(body).toContain(details.url);
+    expect(body).toContain("Your PIN is 4821.");
+  });
+
   it("builds mailto and sms links with the message filled in", () => {
     const mail = mailtoHref("sam@example.com", { ...details, pin: "4821" });
     expect(mail.startsWith("mailto:sam%40example.com?subject=")).toBe(true);
