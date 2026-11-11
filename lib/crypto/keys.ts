@@ -107,8 +107,8 @@ export async function decryptFile(ciphertext: Uint8Array, iv: Uint8Array, fileKe
 }
 
 /**
- * Rewrap each file key from the previous circle key to the next one.
- * TODO: write the results onto file rows once that table exists. The app does not call this yet.
+ * Rewrap each file key from the previous circle key to the next one, in the same order.
+ * Called when the circle key changes, so saved summaries stay readable under the new key.
  */
 export async function rewrapFileKeys(
   files: readonly StoredFileKey[],

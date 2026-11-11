@@ -10,11 +10,25 @@ export type VisitDocument = {
   pageCount: number;
   saved: number;
   createdAt: string;
+  /**
+   * The summary's file key, wrapped by the circle key in the caregiver's browser. The server stores it
+   * and cannot open it. Null only for a summary saved before pages were encrypted.
+   */
+  fileKey: StoredDocumentKey | null;
 };
+
+export type StoredDocumentKey = { fileKeyWrapped: string; fileKeyIv: string; keyVersion: number };
 
 export const MAX_DOCUMENT_PAGES = 15;
 /** Each page or PDF sent to the server stays under Vercel's 4.5 MB request limit. */
 export const MAX_PAGE_BYTES = 4 * 1024 * 1024;
+/** An encrypted page is its 12-byte IV, the ciphertext, and AES-GCM's 16-byte tag. */
+export const SEALED_PAGE_OVERHEAD = 28;
+export const MAX_SEALED_PAGE_BYTES = MAX_PAGE_BYTES + SEALED_PAGE_OVERHEAD;
+
+/** A wrapped file key is 32 key bytes plus a 16-byte tag; its IV is 12 bytes. Both base64url. */
+const WRAPPED_FILE_KEY = /^[A-Za-z0-9_-]{64}$/;
+const FILE_KEY_IV = /^[A-Za-z0-9_-]{16}$/;
 
 export const CreateDocumentSchema = z
   .object({
@@ -26,9 +40,19 @@ export const CreateDocumentSchema = z
     clinic: z.string().trim().max(300).optional(),
     kind: z.enum(["photos", "pdf"]),
     pageCount: z.number().int().min(1).max(MAX_DOCUMENT_PAGES),
+    // Required: a summary is only kept encrypted. The raw file key and the circle key are not fields.
+    keyVersion: z.number().int().min(1).max(1000),
+    fileKeyWrapped: z.string().regex(WRAPPED_FILE_KEY),
+    fileKeyIv: z.string().regex(FILE_KEY_IV),
   })
   .strict();
 export type CreateDocumentInput = z.infer<typeof CreateDocumentSchema>;
+
+/** One summary's file key, rewrapped by a new circle key. Sent when the circle key changes. */
+export const FileKeyRewrapSchema = z
+  .object({ id: z.string().uuid(), fileKeyWrapped: z.string().regex(WRAPPED_FILE_KEY), fileKeyIv: z.string().regex(FILE_KEY_IV) })
+  .strict();
+export type FileKeyRewrap = z.infer<typeof FileKeyRewrapSchema>;
 
 export const DocumentChangeSchema = z.object({ circleId: z.string().uuid(), id: z.string().uuid() }).strict();
 

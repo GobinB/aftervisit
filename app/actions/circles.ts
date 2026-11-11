@@ -35,7 +35,7 @@ export async function rotateCircleKey(input: unknown) {
   if (!parsed.success) return { ok: false as const, error: "The key could not be changed. Try again." };
   const actor = await getActor(parsed.data.circleId);
   if (!actor) return { ok: false as const, error: "Sign in to continue." };
-  return rotate(actor, parsed.data.circleId, parsed.data.circleKeyWrapped, parsed.data.keyVersion);
+  return rotate(actor, parsed.data.circleId, parsed.data.circleKeyWrapped, parsed.data.keyVersion, parsed.data.fileKeys);
 }
 
 export async function deleteCircle(circleId: string) {

@@ -11,7 +11,7 @@ const field =
   "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500";
 
 /** After sign-in, ask for the recovery words when this browser has no matching circle key. */
-export function RestoreKeys({ circles }: { circles: CircleKeyStatus[] }) {
+export function RestoreKeys({ circles, onReady }: { circles: CircleKeyStatus[]; onReady?: (circleId: string) => void }) {
   const [needed, setNeeded] = useState<CircleKeyStatus[] | null>(null);
   const stamp = circles.map((circle) => `${circle.circleId}:${circle.circleKeyVersion}:${circle.wrappedKeyVersion}:${circle.wrapped ? "1" : "0"}`).join("|");
 
@@ -45,7 +45,14 @@ export function RestoreKeys({ circles }: { circles: CircleKeyStatus[] }) {
   return (
     <div className="mt-6 space-y-4">
       {needed.map((circle) => (
-        <RestoreOne key={circle.circleId} circle={circle} onDone={() => setNeeded(needed.filter((item) => item.circleId !== circle.circleId))} />
+        <RestoreOne
+          key={circle.circleId}
+          circle={circle}
+          onDone={() => {
+            setNeeded(needed.filter((item) => item.circleId !== circle.circleId));
+            onReady?.(circle.circleId);
+          }}
+        />
       ))}
     </div>
   );

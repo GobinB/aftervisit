@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FileKeyRewrapSchema } from "@/lib/schema/documents";
 
 /** What a caregiver may store about one person. Medical text stays inside this object. */
 const line = z.string().trim().min(1).max(200);
@@ -146,6 +147,8 @@ export const RotateCircleKeySchema = z
     circleId: z.string().uuid(),
     circleKeyWrapped: CircleKeyWrappedSchema,
     keyVersion: z.number().int().min(2).max(1000),
+    /** Every encrypted summary's file key, rewrapped in the browser by the new circle key. */
+    fileKeys: z.array(FileKeyRewrapSchema).max(2000).default([]),
   })
   .strict();
 

@@ -3,9 +3,10 @@
 import { useEffect, useId, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { rotateCircleKey } from "@/app/actions/circles";
+import { listFileKeysAction } from "@/app/actions/documents";
 import { ShareLink } from "@/components/circles/ShareLink";
 import { Button } from "@/components/ui/Button";
-import { buildHelperLink, exportKeyBytes, generateCircleKey, loadCircleKey, saveCircleKey, unwrapCircleKey, wrapCircleKey } from "@/lib/crypto";
+import { buildHelperLink, exportKeyBytes, generateCircleKey, loadCircleKey, rewrapFileKeys, saveCircleKey, unwrapCircleKey, wrapCircleKey } from "@/lib/crypto";
 import { nextCircleKeyVersion, type CircleKeyStatus } from "@/lib/schema/circles";
 
 const field =
@@ -46,12 +47,21 @@ export function RotateKey({ circle }: { circle: CircleKeyStatus }) {
     if (!wrapped) return;
     start(async () => {
       try {
-        await unwrapCircleKey(wrapped, phrase);
+        const previousKey = await unwrapCircleKey(wrapped, phrase);
         const nextKey = await generateCircleKey();
         const circleKeyWrapped = await wrapCircleKey(nextKey, phrase);
         const keyVersion = nextCircleKeyVersion(circle.circleKeyVersion);
+        // Saved summaries stay readable: each one's file key is opened with the old circle key and
+        // wrapped again with the new one, here, and stored in the same step as the key change.
+        const saved = await listFileKeysAction(circle.circleId);
+        if (!saved.ok) {
+          setError(saved.error);
+          return;
+        }
+        const rewrapped = await rewrapFileKeys(saved.files, previousKey, nextKey, keyVersion);
+        const fileKeys = saved.files.map((file, index) => ({ id: file.id, fileKeyWrapped: rewrapped[index].fileKeyWrapped, fileKeyIv: rewrapped[index].fileKeyIv }));
         setPhrase("");
-        const result = await rotateCircleKey({ circleId: circle.circleId, circleKeyWrapped, keyVersion });
+        const result = await rotateCircleKey({ circleId: circle.circleId, circleKeyWrapped, keyVersion, fileKeys });
         if (!result.ok) {
           setError(result.error);
           return;
@@ -98,7 +108,7 @@ export function RotateKey({ circle }: { circle: CircleKeyStatus }) {
   return (
     <form onSubmit={submit} className="space-y-3 rounded-2xl border border-border-200 bg-white p-4">
       <h2 className="font-display text-section text-primary-900">New key for files</h2>
-      <p>This creates a new key for files in this circle. Everyone who helps needs a new link. Old links stop opening the circle.</p>
+      <p>This creates a new key for files in this circle. Saved visit summaries stay readable. Everyone who helps needs a new link. Old links stop opening the circle.</p>
       <div>
         <label htmlFor={`${baseId}-phrase`} className="font-medium text-ink-900">
           Recovery words
