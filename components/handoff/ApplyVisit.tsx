@@ -16,6 +16,7 @@ import { keepPages } from "@/lib/page-image";
 import { MAX_PAGE_BYTES } from "@/lib/schema/documents";
 import { getOriginalPages } from "@/lib/store";
 import { WhoChips } from "@/components/todos/TodoForm";
+import { TellPeople } from "@/components/handoff/TellPeople";
 
 type Done = { added: number; changed: number; stopped: number; todos: number; events: number; failed: number };
 
@@ -186,7 +187,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         <div className="rounded-lg border border-border-200 bg-white p-6">
           <CheckCircle2 className="size-8 text-ok" aria-hidden="true" />
           <h1 className="font-display mt-3 text-[26px] text-primary-900">{context.personName}&apos;s circle is up to date</h1>
-          <p className="mt-2 text-ink-500">{parts.length ? `${parts.join(", ")}.` : "Nothing was changed."} Everyone you allow sees it on their link.</p>
+          <p className="mt-2 text-ink-500">{parts.length ? `${parts.join(", ")}.` : "Nothing was changed."}</p>
           {kept ? (
             <p role="status" className={`mt-3 rounded-md px-3 py-2 text-[14px] ${kept.status === "failed" ? "bg-attn-bg text-attn-ink" : "bg-sky-100 text-primary-900"}`}>
               {kept.status === "saving" ? (
@@ -211,6 +212,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
               {done.failed} change{done.failed === 1 ? "" : "s"} could not be saved. Check the Medications and Reminders pages.
             </p>
           ) : null}
+          <TellPeople circleId={circleId} personName={context.personName} helpers={context.helpers} keyVersion={context.keyVersion} />
           <div className="mt-5 flex flex-wrap gap-2">
             <Link href={`/circles/${circleId}`} className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary-700 px-4 text-[14px] font-semibold text-white hover:bg-primary-900">
               Go to Today <ArrowRight className="size-4" aria-hidden="true" />

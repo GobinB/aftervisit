@@ -1,20 +1,25 @@
 import type { HelperRole, VisibilityArea } from "@/lib/schema/circles";
 
-export type ShareDetails = { name: string; personName?: string; url: string; pin?: string | null };
+/** `afterVisit` is for the message sent after a visit summary: it says the circle changed and that this link replaces the old one. */
+export type ShareDetails = { name: string; personName?: string; url: string; pin?: string | null; afterVisit?: boolean };
 
 /** The ready-written message for a person's link. The PIN goes in it when there is one. */
-export function shareMessage({ name, personName, url, pin }: ShareDetails): { subject: string; body: string } {
+export function shareMessage({ name, personName, url, pin, afterVisit }: ShareDetails): { subject: string; body: string } {
   const first = name.trim().split(/\s+/)[0] || name.trim();
+  const circle = personName ? `${personName}'s care circle` : "our care circle";
   const lines = [
     `Hi ${first},`,
     "",
-    `This is your own link to ${personName ? `${personName}'s care circle` : "our care circle"} on All Hands Care. It shows the calendar, reminders and other things I have shared with you.`,
+    afterVisit
+      ? `I updated ${circle} on All Hands Care after a visit. This is your new link to see what changed. Your old link no longer works.`
+      : `This is your own link to ${circle} on All Hands Care. It shows the calendar, reminders and other things I have shared with you.`,
     "",
     url,
   ];
   if (pin) lines.push("", `Your PIN is ${pin}.`);
   lines.push("", "Tip: open it on your phone and add it to your Home Screen to find it again.");
-  return { subject: personName ? `${personName}'s care circle` : "Your care circle link", body: lines.join("\n") };
+  const subject = personName ? `${personName}'s care circle` : "Your care circle link";
+  return { subject: afterVisit ? `${subject}: new after a visit` : subject, body: lines.join("\n") };
 }
 
 export function mailtoHref(email: string | null | undefined, details: ShareDetails): string {

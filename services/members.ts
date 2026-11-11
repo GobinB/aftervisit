@@ -1,5 +1,5 @@
 import "server-only";
-import { randomUUID } from "node:crypto";
+import { randomInt, randomUUID } from "node:crypto";
 import { activeLock, HARD_LOCK_AFTER, LOCK_MINUTES, MAX_PIN_ATTEMPTS, toPinCheck, type TryPinRow } from "@/lib/access";
 import type { Actor } from "@/lib/auth";
 import { COPY } from "@/lib/copy";
@@ -229,6 +229,40 @@ export async function newMemberLink(actor: Actor, circleId: string, memberId: st
   if (error || !data) return { ok: false as const, error: generic };
   await log(actor, circleId, "member_link", memberId);
   return { ok: true as const, token, memberId, name: data.name as string, email: (data.email as string | null) ?? null };
+}
+
+/** A 4-digit PIN chosen by the server, so a person never reuses an old one. */
+export function newPin(): string {
+  return String(randomInt(0, 10_000)).padStart(4, "0");
+}
+
+/**
+ * A new link and a new PIN for one person, made when the caregiver sends them a visit update.
+ * The old link and the old PIN stop working at once. Only for a person who is still in the circle.
+ * The PIN is returned once and kept only as a hash.
+ */
+export async function shareMemberLink(actor: Actor, circleId: string, memberId: string) {
+  if (!can(actor, "members:manage", { circleId })) return { ok: false as const, error: denied };
+  const token = newInviteToken();
+  const pin = newPin();
+  const { data, error } = await clientFor(actor)
+    .from("members")
+    .update({
+      token_hash: hashInvite(token),
+      pin_hash: hashPin(memberId, pin),
+      pin_failures: 0,
+      locked_until: null,
+      lock_count: 0,
+      expires_at: expiresAt(),
+    })
+    .eq("id", memberId)
+    .eq("circle_id", circleId)
+    .is("revoked_at", null)
+    .select("name, email")
+    .maybeSingle();
+  if (error || !data) return { ok: false as const, error: "That person is not an active member of this circle." };
+  await log(actor, circleId, "member_link", memberId);
+  return { ok: true as const, token, pin, memberId, name: data.name as string, email: (data.email as string | null) ?? null };
 }
 
 export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: true; people: PersonView[]; canManage: boolean } | { ok: false; error: string }> {
