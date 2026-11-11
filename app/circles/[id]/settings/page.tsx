@@ -34,8 +34,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               {key.wrapped ? (
                 <>
                   <p className="mt-4 text-ink-500">
-                    If your recovery words may have been seen by someone else, make a new key. Every helper link is replaced, so send each person
-                    their new link.
+                    If your recovery words may have been seen by someone else, make a new key. Saved visit summaries stay readable. Every helper link is replaced, so send
+                    each person their new link.
                   </p>
                   <div className="mt-4 space-y-4">
                     <RestoreKeys circles={[key]} />
@@ -45,7 +45,8 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               ) : (
                 <>
                   <p className="mt-4 text-ink-500">
-                    Only needed once you keep files in this circle. People, medications, reminders and the calendar work without it.
+                    Needed to keep photos of visit summaries: they are locked with this key on your device, so only you can open them. People,
+                    medications, reminders and the calendar work without it.
                   </p>
                   <div className="mt-4">
                     <RestoreKeys circles={[key]} />

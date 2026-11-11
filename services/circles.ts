@@ -5,6 +5,7 @@ import type { Actor } from "@/lib/auth";
 import { hashInvite, newInviteToken } from "@/lib/invites";
 import { can } from "@/lib/permissions";
 import { CONSENT_TEXT, CONSENT_TYPES, CONSENT_VERSION, CircleContentSchema, nextCircleKeyVersion, type CircleContent, type CircleKeyStatus, type CreateCircleInput } from "@/lib/schema/circles";
+import type { FileKeyRewrap } from "@/lib/schema/documents";
 import { clientFor, createCircleRecord } from "@/store/db";
 
 const generic = "That could not be saved. Try again.";
@@ -112,14 +113,16 @@ export async function storeOwnCircleKey(
 export type PreparedLink = { token: string; name: string; email: string | null };
 
 /**
- * New circle key for the owner. The database moves key_version forward by one and
- * replaces every active helper token in that same transaction. Only token hashes are sent.
+ * New circle key for the owner. The database moves key_version forward by one, replaces every
+ * active helper token, and stores each saved summary's file key as rewrapped by the browser, all in
+ * one transaction. Only token hashes and wrapped keys are sent.
  */
 export async function rotateCircleKey(
   actor: Actor,
   circleId: string,
   circleKeyWrapped: string,
   keyVersion: number,
+  fileKeys: FileKeyRewrap[] = [],
 ): Promise<{ ok: true; keyVersion: number; links: PreparedLink[] } | { ok: false; error: string }> {
   if (!can(actor, "circle:rotate_key", { circleId })) return { ok: false, error: "Only the owner can change the key for this circle." };
   if (actor.kind !== "caregiver") return { ok: false, error: "Sign in with Google to change a key." };
@@ -150,9 +153,11 @@ export async function rotateCircleKey(
     p_wrapped: circleKeyWrapped,
     p_version: keyVersion,
     p_member_tokens: links.map((link) => ({ id: link.id, token_hash: link.tokenHash })),
+    p_file_keys: fileKeys.map((file) => ({ id: file.id, wrapped: file.fileKeyWrapped, iv: file.fileKeyIv })),
   });
   if (error) {
     if (/key version/i.test(error.message ?? "")) return { ok: false, error: "The key was already changed. Reload this page and try again." };
+    if (/file keys/i.test(error.message ?? "")) return { ok: false, error: "A saved summary changed while the key was being changed. Nothing was changed. Try again." };
     if (/only the owner/i.test(error.message ?? "")) return { ok: false, error: "Only the owner can change the key for this circle." };
     return { ok: false, error: generic };
   }

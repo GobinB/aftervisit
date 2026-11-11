@@ -2,7 +2,7 @@
 
 ## Decision
 
-The circle key that will encrypt files is made and kept in the browser (decision 0015). Other medical content is not encrypted, but it is stored so that encrypting it later needs no redesign.
+The circle key that encrypts saved visit summaries is made and kept in the browser (decision 0015). Other medical content is not encrypted, but it is stored so that encrypting it later needs no redesign.
 
 - Each medical record keeps its contents in one `content jsonb` column. Plain columns hold only what the server needs to route and permit: ids, `circle_id`, kind, status, dates and owner.
 - Today that is `circles.content`: the person's name, allergies, doctors, pharmacy and emergency contacts. New medical tables follow the same rule.

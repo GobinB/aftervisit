@@ -3,8 +3,10 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { PageHead } from "@/components/circles/PageHead";
 import { DeleteDocument } from "@/components/documents/DeleteDocument";
+import { SealedPages } from "@/components/documents/SealedPages";
 import { getActor } from "@/lib/auth";
 import { documentTitle } from "@/lib/schema/documents";
+import { listOwnCircleKeys } from "@/services/circles";
 import { getDocument } from "@/services/documents";
 
 export const metadata: Metadata = { title: "Saved visit summary", robots: { index: false, follow: false } };
@@ -16,16 +18,19 @@ export default async function VisitDocumentPage({ params }: { params: Promise<{ 
   if (!actor) redirect(`/login?next=/circles/${id}/visits/${docId}`);
   const doc = /^[0-9a-f-]{36}$/i.test(docId) ? await getDocument(actor, id, docId) : null;
   if (!doc) notFound();
+  const circleKey = doc.fileKey ? ((await listOwnCircleKeys(actor)).find((item) => item.circleId === id) ?? null) : null;
   const page = (n: number) => `/api/circles/${id}/documents/${doc.id}/pages/${n}`;
   return (
     <>
       <PageHead
         back={{ href: `/circles/${id}/visits`, label: "Saved summaries" }}
         title={documentTitle(doc)}
-        subtitle="Only you can see this."
+        subtitle={doc.fileKey ? "Locked with your key. Only you can open this." : "Only you can see this."}
         help="The pages as you photographed them. Tap a page to open it full size, where you can zoom in."
       />
-      {doc.kind === "pdf" ? (
+      {doc.fileKey ? (
+        <SealedPages circleId={id} documentId={doc.id} kind={doc.kind} saved={doc.saved} fileKey={doc.fileKey} circleKey={circleKey} />
+      ) : doc.kind === "pdf" ? (
         <a
           href={page(1)}
           target="_blank"

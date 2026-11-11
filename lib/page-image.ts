@@ -25,24 +25,30 @@ export async function pageForKeeping(file: File): Promise<Blob> {
   return blob;
 }
 
-/** Sends the pages one by one, in order. Calls onPage after each, so the screen can count. */
+/**
+ * Encrypts each page on this device with `seal` (the summary's file key), then sends it. One by one,
+ * in order. Only the encrypted bytes leave the device. Calls onPage after each, so the screen can count.
+ */
 export async function keepPages(
   circleId: string,
   documentId: string,
   files: File[],
   kind: "photos" | "pdf",
+  seal: (plain: Uint8Array, page: number) => Promise<Uint8Array>,
   onPage: (done: number) => void,
 ): Promise<{ ok: true } | { ok: false; error: string }> {
   for (let i = 0; i < files.length; i++) {
     let body: Blob;
     try {
-      body = kind === "pdf" ? files[i] : await pageForKeeping(files[i]);
+      const plain = kind === "pdf" ? files[i] : await pageForKeeping(files[i]);
+      const sealed = await seal(new Uint8Array(await plain.arrayBuffer()), i + 1);
+      body = new Blob([sealed.buffer as ArrayBuffer], { type: "application/octet-stream" });
     } catch {
       return { ok: false, error: "A photo could not be prepared on this phone." };
     }
     const response = await fetch(`/api/circles/${circleId}/documents/${documentId}/pages?page=${i + 1}`, {
       method: "POST",
-      headers: { "Content-Type": kind === "pdf" ? "application/pdf" : "image/jpeg" },
+      headers: { "Content-Type": "application/octet-stream" },
       body,
     }).catch(() => null);
     if (!response?.ok) {

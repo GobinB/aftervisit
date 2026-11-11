@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** One saved page, for the circle's caregiver only. Never cached, never indexed. */
+/** One saved page, for the circle's caregiver only: still encrypted, for the browser to open. Never cached, never indexed. */
 export async function GET(_request: Request, { params }: { params: Promise<{ id: string; docId: string; page: string }> }) {
   const { id, docId, page } = await params;
   const n = Number(page);
@@ -19,7 +19,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
   return new NextResponse(file.bytes, {
     headers: {
       "Content-Type": file.type,
-      "Content-Disposition": `inline; filename="visit-summary-page-${n}.${file.type === "application/pdf" ? "pdf" : "jpg"}"`,
+      "Content-Disposition": file.sealed ? "attachment" : `inline; filename="visit-summary-page-${n}.${file.type === "application/pdf" ? "pdf" : "jpg"}"`,
       "Cache-Control": "private, no-store",
       "X-Robots-Tag": "noindex, nofollow, noarchive",
       "Referrer-Policy": "no-referrer",

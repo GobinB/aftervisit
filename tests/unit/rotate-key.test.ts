@@ -82,9 +82,17 @@ describe("rotate circle key", () => {
       p_wrapped: wrapped,
       p_version: 2,
       p_member_tokens: [{ id: "member-1", token_hash: "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa" }],
+      p_file_keys: [],
     });
     expect(JSON.stringify(rpc.mock.calls)).not.toContain("abcdefghijklmnopqrstuvwx");
     expect(JSON.stringify(rpc.mock.calls)).not.toContain("#k=");
+  });
+
+  test("each saved summary's rewrapped file key goes in the same step", async () => {
+    const file = { id: "55555555-5555-4555-8555-555555555555", fileKeyWrapped: "B".repeat(64), fileKeyIv: "D".repeat(16) };
+    const result = await rotateCircleKey(owner, circleId, wrapped, 2, [file]);
+    expect(result.ok).toBe(true);
+    expect(rpc).toHaveBeenCalledWith("rotate_own_circle_key", expect.objectContaining({ p_file_keys: [{ id: file.id, wrapped: file.fileKeyWrapped, iv: file.fileKeyIv }] }));
   });
 
   test("a skipped version is refused before the database changes the key", async () => {
