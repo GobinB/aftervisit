@@ -2,11 +2,9 @@ import { ChevronRight, FileText, Images } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { CircleKeyCheck } from "@/components/circles/CircleKeyCheck";
 import { PageHead } from "@/components/circles/PageHead";
 import { getActor } from "@/lib/auth";
 import { documentTitle } from "@/lib/schema/documents";
-import { getCircleKeyState } from "@/services/circle-keys";
 import { listDocuments } from "@/services/documents";
 
 export const metadata: Metadata = { title: "Saved visit summaries", robots: { index: false, follow: false } };
@@ -17,7 +15,7 @@ export default async function VisitsPage({ params }: { params: Promise<{ id: str
   const { id } = await params;
   const actor = await getActor(id);
   if (!actor) redirect(`/login?next=/circles/${id}/visits`);
-  const [documents, key] = await Promise.all([listDocuments(actor, id), getCircleKeyState(actor, id)]);
+  const documents = await listDocuments(actor, id);
   if (!documents) notFound();
   return (
     <>
@@ -27,8 +25,6 @@ export default async function VisitsPage({ params }: { params: Promise<{ id: str
         subtitle="Only you can see these."
         help="The photos of after-visit summaries you chose to keep when you scanned them. Tap one to look at it, or to delete it."
       />
-      {/* Only for summaries locked with recovery words that no device has handed over: type the words, or start fresh. */}
-      {key?.state === "words" ? <CircleKeyCheck circleId={id} /> : null}
       {documents.length ? (
         <ul className="divide-y divide-border-200 overflow-hidden rounded-lg border border-border-200 bg-white">
           {documents.map((doc) => (

@@ -1,36 +1,18 @@
 import { describe, expect, test } from "vitest";
 import { buildHelperLink, helperLinkForServer, parseLinkKey } from "@/lib/crypto/link";
-import { decryptFile, encryptFile, exportKeyBytes, generateFileKey, importCircleKey, normalizeWords, openWithWords, unwrapFileKey, wrapFileKey } from "@/lib/crypto/keys";
-import { AddMemberSchema, CreateCircleSchema, HandOverCircleKeySchema, HELD_CIRCLE_KEY, OpenMemberLinkSchema, WORDS_WRAPPED_KEY } from "@/lib/schema/circles";
+import { decryptFile, encryptFile, exportKeyBytes, generateFileKey, importCircleKey, unwrapFileKey, wrapFileKey } from "@/lib/crypto/keys";
+import { AddMemberSchema, CreateCircleSchema, HELD_CIRCLE_KEY, OpenMemberLinkSchema } from "@/lib/schema/circles";
 
 const WORDS = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-const OTHER = "legal winner thank year wave sausage worth useful legal winner thank yellow";
-/** The key bytes 1..32, wrapped by WORDS the way circles made before migration 0017 stored it. */
 const WORDS_WRAPPED = "av1.600000.BwcHBwcHBwcHBwcHBwcHBw.CQkJCQkJCQkJCQkJ.HjJDlfueDE80z1civaCUlcv2-xAJhJ3UwUMvgeL9stWx0Brhvb0uniVV013hsgWZ";
-const OLD_KEY = new Uint8Array(32).map((_, index) => index + 1);
 const TOKEN = "abcdefghijklmnopqrstuvwx";
 
 const randomCircleKey = () => importCircleKey(crypto.getRandomValues(new Uint8Array(32)));
 
-describe("a circle key made with recovery words", () => {
-  test("still opens with its words, however they are typed", async () => {
-    expect(WORDS_WRAPPED_KEY.test(WORDS_WRAPPED)).toBe(true);
-    expect(await exportKeyBytes(await openWithWords(WORDS_WRAPPED, WORDS))).toEqual(OLD_KEY);
-    expect(await exportKeyBytes(await openWithWords(WORDS_WRAPPED, `  ${WORDS.toUpperCase().replaceAll(" ", "\n")}  `))).toEqual(OLD_KEY);
-    expect(normalizeWords("  Abandon   ABOUT\n")).toBe("abandon about");
-  });
-
-  test("the wrong words, too few words, or a key in the new form do not open", async () => {
-    await expect(openWithWords(WORDS_WRAPPED, OTHER)).rejects.toThrow(/did not open/);
-    await expect(openWithWords(WORDS_WRAPPED, "abandon abandon about")).rejects.toThrow(/all 12 words/);
-    await expect(openWithWords(`av2.${"a".repeat(16)}.${"b".repeat(64)}`, WORDS)).rejects.toThrow(/not valid/);
-  });
-
-  test("the two stored forms cannot be mistaken for each other", () => {
-    const held = `av2.${"a".repeat(16)}.${"b".repeat(64)}`;
-    expect(HELD_CIRCLE_KEY.test(held)).toBe(true);
+describe("the stored form of a circle key", () => {
+  test("only the held form is accepted", () => {
+    expect(HELD_CIRCLE_KEY.test(`av2.${"a".repeat(16)}.${"b".repeat(64)}`)).toBe(true);
     expect(HELD_CIRCLE_KEY.test(WORDS_WRAPPED)).toBe(false);
-    expect(WORDS_WRAPPED_KEY.test(held)).toBe(false);
     expect(HELD_CIRCLE_KEY.test(WORDS)).toBe(false);
   });
 });
@@ -79,10 +61,5 @@ describe("helper links", () => {
     expect(CreateCircleSchema.safeParse({ content, consents }).success).toBe(true);
     expect(CreateCircleSchema.safeParse({ content, consents, circleKeyWrapped: WORDS_WRAPPED }).success).toBe(false);
     expect(CreateCircleSchema.safeParse({ content, consents, phrase: WORDS }).success).toBe(false);
-    const key = "A".repeat(43);
-    expect(HandOverCircleKeySchema.safeParse({ circleId, key, keyVersion: 1 }).success).toBe(true);
-    expect(HandOverCircleKeySchema.safeParse({ circleId, key, keyVersion: 1, words: WORDS }).success).toBe(false);
-    expect(HandOverCircleKeySchema.safeParse({ circleId, key: WORDS, keyVersion: 1 }).success).toBe(false);
-    expect(HandOverCircleKeySchema.safeParse({ circleId, key: "short", keyVersion: 1 }).success).toBe(false);
   });
 });

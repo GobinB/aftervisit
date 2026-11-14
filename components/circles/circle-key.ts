@@ -1,31 +1,20 @@
 "use client";
 
-import { handOverCircleKeyAction, openCircleKeyAction, startFreshCircleKeyAction } from "@/app/actions/circle-keys";
-import { base64UrlToBytes, bytesToBase64Url } from "@/lib/crypto/bytes";
-import { exportKeyBytes } from "@/lib/crypto/export";
-import { listCircleKeys, loadCircleKey, removeCircleKey, saveCircleKey } from "@/lib/crypto/idb";
-import { importCircleKey, openWithWords } from "@/lib/crypto/keys";
+import { openCircleKeyAction } from "@/app/actions/circle-keys";
+import { base64UrlToBytes } from "@/lib/crypto/bytes";
+import { loadCircleKey, saveCircleKey } from "@/lib/crypto/idb";
+import { importCircleKey } from "@/lib/crypto/keys";
 import type { CircleKeyState } from "@/lib/schema/circles";
 
-/** A key made with recovery words that this device does not have. `wrapped` is what the words open, when they still can. */
-export type OldKey = { wrapped: string | null; keyVersion: number; savedFiles: number };
+export type CircleKeyResult = { ok: true; key: CryptoKey; keyVersion: number } | { ok: false; error: string };
 
-export type CircleKeyResult =
-  | { ok: true; key: CryptoKey; keyVersion: number }
-  | { ok: false; reason: "words"; old: OldKey }
-  | { ok: false; reason: "failed"; error: string };
-
-const offline = "Check the connection and try again.";
 const running = new Map<string, Promise<CircleKeyResult>>();
 
 /**
  * The circle's key for files, ready to use on this device, with nothing for the caregiver to do.
- * A copy kept on this device is used when it is the one All Hands Care holds. Otherwise the
- * server hands the key over (making one for a circle that has none), and it is kept here for
- * next time. Signing out clears the copy (releaseDeviceKeys); signing in again brings it back the same way.
- *
- * One case is not silent: a key made with recovery words, on a device that does not have it.
- * A device that does have it gives it to the server here, so no other device ever has to ask.
+ * A copy kept on this device is used while it matches the key All Hands Care holds. Otherwise the
+ * server hands the key over (making one for a circle that has none), and it is kept here for next
+ * time. Signing out clears the copy; signing in again brings it back the same way.
  */
 export function ensureCircleKey(circleId: string, known?: CircleKeyState | null): Promise<CircleKeyResult> {
   const current = running.get(circleId);
@@ -42,75 +31,15 @@ async function find(circleId: string, known: CircleKeyState | null): Promise<Cir
   try {
     opened = await openCircleKeyAction(circleId);
   } catch {
-    return { ok: false, reason: "failed", error: offline };
+    return { ok: false, error: "Check the connection and try again." };
   }
-  if (!opened.ok) return { ok: false, reason: "failed", error: opened.error };
-  if (opened.state === "ready") return keep(circleId, opened.key, opened.keyVersion);
-  if (local && local.keyVersion === opened.keyVersion && (await handOver(circleId, local.key, local.keyVersion))) {
-    return { ok: true, key: local.key, keyVersion: local.keyVersion };
-  }
-  return { ok: false, reason: "words", old: { wrapped: opened.wrapped, keyVersion: opened.keyVersion, savedFiles: opened.savedFiles } };
-}
-
-async function keep(circleId: string, encoded: string, keyVersion: number): Promise<CircleKeyResult> {
+  if (!opened.ok) return opened;
   try {
-    const key = await importCircleKey(base64UrlToBytes(encoded));
+    const key = await importCircleKey(base64UrlToBytes(opened.key));
     // A browser that cannot store it (private browsing) still works: the key is asked for again next time.
-    await saveCircleKey(circleId, key, keyVersion).catch(() => undefined);
-    return { ok: true, key, keyVersion };
+    await saveCircleKey(circleId, key, opened.keyVersion).catch(() => undefined);
+    return { ok: true, key, keyVersion: opened.keyVersion };
   } catch {
-    return { ok: false, reason: "failed", error: "Saved summaries cannot be opened in this browser." };
-  }
-}
-
-async function handOver(circleId: string, key: CryptoKey, keyVersion: number): Promise<boolean> {
-  try {
-    const raw = await exportKeyBytes(key);
-    const result = await handOverCircleKeyAction({ circleId, key: bytesToBase64Url(raw), keyVersion });
-    return result.ok;
-  } catch {
-    return false;
-  }
-}
-
-/** "I still have my words": opens the old key with them on this device, then hands the key over. The words are not sent. */
-export async function openOldKeyWithWords(circleId: string, old: OldKey, words: string): Promise<CircleKeyResult> {
-  if (!old.wrapped) return { ok: false, reason: "failed", error: "Those words cannot open this circle's saved summaries any more." };
-  let key: CryptoKey;
-  try {
-    key = await openWithWords(old.wrapped, words);
-  } catch (caught) {
-    const message = caught instanceof Error && /12 words|did not open/.test(caught.message) ? caught.message : "Those words did not open the saved summaries.";
-    return { ok: false, reason: "failed", error: message };
-  }
-  if (!(await handOver(circleId, key, old.keyVersion))) return { ok: false, reason: "failed", error: "The words are right, but the summaries could not be opened just now. Try again." };
-  await saveCircleKey(circleId, key, old.keyVersion).catch(() => undefined);
-  return { ok: true, key, keyVersion: old.keyVersion };
-}
-
-/** "Start fresh": the saved summaries that need the lost words are removed, and the circle gets a new key. */
-export async function startFresh(circleId: string): Promise<CircleKeyResult> {
-  let result: Awaited<ReturnType<typeof startFreshCircleKeyAction>>;
-  try {
-    result = await startFreshCircleKeyAction(circleId);
-  } catch {
-    return { ok: false, reason: "failed", error: offline };
-  }
-  if (!result.ok) return { ok: false, reason: "failed", error: result.error };
-  return keep(circleId, result.key, result.keyVersion);
-}
-
-/**
- * For signing out: takes each circle key off this device, but only once All Hands Care holds it.
- * A key made with recovery words that has not been handed over yet is handed over first, here.
- * If that cannot be confirmed (no connection, or the server cannot keep keys just now), the key
- * stays on the device, because it may be the only copy that still opens that circle's saved
- * summaries. A key alone opens nothing: the files are only ever served to the signed-in caregiver.
- */
-export async function releaseDeviceKeys(): Promise<void> {
-  const kept = await listCircleKeys().catch(() => []);
-  for (const local of kept) {
-    const held = await ensureCircleKey(local.circleId).catch(() => null);
-    if (held?.ok) await removeCircleKey(local.circleId).catch(() => undefined);
+    return { ok: false, error: "Saved summaries cannot be opened in this browser." };
   }
 }

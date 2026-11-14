@@ -1,4 +1,4 @@
-// The database after migrations 0001-0017, as the Supabase CLI writes it. Regenerate with:
+// The database after migrations 0001-0018, as the Supabase CLI writes it. Regenerate with:
 // supabase gen types typescript --local > store/types.gen.ts
 export type Json =
   | string
@@ -893,40 +893,14 @@ export type Database = {
         Returns: boolean
       }
       circle_owner_id: { Args: { p_circle: string }; Returns: string }
-      create_circle:
-        | { Args: { p_consents: Json; p_content: Json }; Returns: string }
-        | {
-            Args: { p_consents: Json; p_content: Json; p_wrapped: string }
-            Returns: string
-          }
+      create_circle: {
+        Args: { p_consents: Json; p_content: Json }
+        Returns: string
+      }
       delete_circle: { Args: { p_circle: string }; Returns: undefined }
       is_circle_caregiver: { Args: { p_circle: string }; Returns: boolean }
       is_circle_owner: { Args: { p_circle: string }; Returns: boolean }
       purge_deleted_circles: { Args: { p_days?: number }; Returns: number }
-      reset_own_circle_key: {
-        Args: { p_circle: string; p_version: number; p_wrapped: string }
-        Returns: string[]
-      }
-      rotate_own_circle_key:
-        | {
-            Args: {
-              p_circle: string
-              p_member_tokens: Json
-              p_version: number
-              p_wrapped: string
-            }
-            Returns: number
-          }
-        | {
-            Args: {
-              p_circle: string
-              p_file_keys: Json
-              p_member_tokens: Json
-              p_version: number
-              p_wrapped: string
-            }
-            Returns: number
-          }
       try_pin: {
         Args: {
           p_candidate: string

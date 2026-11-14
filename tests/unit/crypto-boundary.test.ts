@@ -50,13 +50,13 @@ describe("crypto stays in the browser", () => {
     }
   });
 
-  test("the recovery-word screens are gone: words are typed in one place only", () => {
+  test("recovery words are gone from every screen", () => {
     const mentions: string[] = [];
     for (const path of files(".")) {
       if (!/\.tsx$/.test(path)) continue;
       if (/recovery|12 words/i.test(readFileSync(path, "utf8").replace(/\/\*[\s\S]*?\*\/|\/\/.*$/gm, ""))) mentions.push(path);
     }
-    // The message for a circle whose photos were locked with words, and the privacy page's note on what changed.
-    expect(mentions.sort()).toEqual(["app/privacy/page.tsx", "components/circles/OldPhotos.tsx"]);
+    // Only the privacy page's note on what changed mentions them.
+    expect(mentions).toEqual(["app/privacy/page.tsx"]);
   });
 });

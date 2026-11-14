@@ -2,7 +2,7 @@
 
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { applyVisitAction, type VisitContext } from "@/app/actions/visits";
 import { BackLink } from "@/components/circles/PageHead";
 import { StepHeader } from "@/components/StepHeader";
@@ -17,8 +17,7 @@ import { MAX_PAGE_BYTES } from "@/lib/schema/documents";
 import { getOriginalPages } from "@/lib/store";
 import { WhoChips } from "@/components/todos/TodoForm";
 import { TellPeople } from "@/components/handoff/TellPeople";
-import { ensureCircleKey, type OldKey } from "@/components/circles/circle-key";
-import { OldPhotos } from "@/components/circles/OldPhotos";
+import { ensureCircleKey } from "@/components/circles/circle-key";
 import { generateFileKey, sealPage, wrapFileKey } from "@/lib/crypto";
 
 type Done = { added: number; changed: number; stopped: number; todos: number; events: number; failed: number };
@@ -90,19 +89,6 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
   const pdf = pages.length === 1 && (pages[0].type === "application/pdf" || /\.pdf$/i.test(pages[0].name));
   const canKeep = !pdf || pages[0].size <= MAX_PAGE_BYTES;
   const [keep, setKeep] = useState(true);
-  // Photos are encrypted on this device with the circle's key for files. It is fetched here, with nothing to
-  // type. Only a key made with recovery words, on a device that does not have it, needs a choice first.
-  const [oldKey, setOldKey] = useState<OldKey | null>(null);
-  useEffect(() => {
-    if (!pages.length) return;
-    let cancel = false;
-    ensureCircleKey(circleId, context.key).then((found) => {
-      if (!cancel) setOldKey(!found.ok && found.reason === "words" ? found.old : null);
-    });
-    return () => {
-      cancel = true;
-    };
-  }, [circleId, context.key, pages.length]);
   const [kept, setKept] = useState<{ status: "saving"; done: number } | { status: "kept"; id: string } | { status: "failed"; error: string } | null>(null);
   const plans = useMemo(() => planMedications(draft.medications, context.medications), [draft, context]);
   // Follow-up appointments with a date (stated, or counted from the visit date) go on the calendar.
@@ -167,7 +153,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         return;
       }
       setDone(result);
-      if (keep && pages.length && canKeep && !oldKey) await keepTheSummary();
+      if (keep && pages.length && canKeep) await keepTheSummary();
     });
   };
 
@@ -181,9 +167,10 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
     let fileKey: CryptoKey;
     let stored: Awaited<ReturnType<typeof wrapFileKey>>;
     try {
+      // The circle's key for files, handed over by the server with nothing to type (made now if the circle has none).
       const found = await ensureCircleKey(circleId, context.key);
       if (!found.ok) {
-        setKept({ status: "failed", error: found.reason === "failed" ? found.error : "Summaries saved before need a choice from you first. Open Saved visit summaries, then scan this one again." });
+        setKept({ status: "failed", error: found.error });
         return;
       }
       fileKey = await generateFileKey();
@@ -410,27 +397,17 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
 
       {pages.length ? (
         <section className="mt-6 rounded-lg border border-border-200 bg-white p-4">
-          {oldKey && canKeep ? (
-            <div>
-              <h2 className="text-[15px] font-semibold text-ink-900">{pdf ? "Keep the PDF with this visit" : `Keep the ${pages.length === 1 ? "photo" : `${pages.length} photos`} with this visit`}</h2>
-              <p className="mt-1 mb-3 text-[14px] text-ink-500">
-                One thing to settle first. You can also skip this: the circle is still updated, and {pdf ? "the PDF is" : "the photos are"} not kept.
-              </p>
-              <OldPhotos circleId={circleId} old={oldKey} onReady={() => setOldKey(null)} />
-            </div>
-          ) : (
-            <Switch
-              id="keep-original"
-              checked={keep && canKeep}
-              onChange={setKeep}
-              label={pdf ? "Keep the PDF with this visit" : `Keep the ${pages.length === 1 ? "photo" : `${pages.length} photos`} with this visit`}
-              helper={
-                canKeep
-                  ? `Locked on this device before ${pdf ? "it is" : "they are"} saved. In the app, only you can see ${pdf ? "it" : "them"}, and you can delete ${pdf ? "it" : "them"} any time.`
-                  : "This PDF is too large to keep. The circle is still updated."
-              }
-            />
-          )}
+          <Switch
+            id="keep-original"
+            checked={keep && canKeep}
+            onChange={setKeep}
+            label={pdf ? "Keep the PDF with this visit" : `Keep the ${pages.length === 1 ? "photo" : `${pages.length} photos`} with this visit`}
+            helper={
+              canKeep
+                ? `Locked on this device before ${pdf ? "it is" : "they are"} saved. In the app, only you can see ${pdf ? "it" : "them"}, and you can delete ${pdf ? "it" : "them"} any time.`
+                : "This PDF is too large to keep. The circle is still updated."
+            }
+          />
         </section>
       ) : null}
 

@@ -49,27 +49,14 @@ export async function loadCircleKey(circleId: string): Promise<LocalCircleKey | 
   return row;
 }
 
-/** Every circle key kept on this device. */
-export async function listCircleKeys(): Promise<LocalCircleKey[]> {
-  const db = await openDb();
-  const rows = await new Promise<LocalCircleKey[]>((resolve, reject) => {
-    const tx = db.transaction(STORE, "readonly");
-    const request = tx.objectStore(STORE).getAll();
-    request.onsuccess = () => resolve((request.result as LocalCircleKey[]) ?? []);
-    request.onerror = () => reject(request.error ?? new Error("This browser could not read the keys."));
-  });
-  db.close();
-  return rows.filter((row) => row?.key && typeof row.circleId === "string");
-}
-
-/** Removes one circle's key from this device. */
-export async function removeCircleKey(circleId: string): Promise<void> {
+/** Removes every circle key on this device. Used when a caregiver signs out; the next sign-in is handed the keys again. */
+export async function clearCircleKeys(): Promise<void> {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE, "readwrite");
     tx.oncomplete = () => resolve();
-    tx.onerror = () => reject(tx.error ?? new Error("This browser could not remove the key."));
-    tx.objectStore(STORE).delete(circleId);
+    tx.onerror = () => reject(tx.error ?? new Error("This browser could not remove the keys."));
+    tx.objectStore(STORE).clear();
   });
   db.close();
 }

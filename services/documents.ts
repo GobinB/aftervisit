@@ -139,14 +139,6 @@ export async function readPage(actor: Actor, circleId: string, id: string, page:
   return { bytes: await data.arrayBuffer(), type: sealed ? "application/octet-stream" : row.kind === "pdf" ? "application/pdf" : "image/jpeg", sealed };
 }
 
-/** Every encrypted summary's wrapped file key, so a circle key handed over by a device can be checked against them. */
-export async function listFileKeys(actor: Actor, circleId: string): Promise<({ id: string } & StoredDocumentKey)[] | null> {
-  if (!isCaregiver(actor, circleId)) return null;
-  const { data, error } = await clientFor(actor).from("visit_documents").select("id, key_version, file_key_wrapped, file_key_iv").eq("circle_id", circleId).not("file_key_wrapped", "is", null);
-  if (error || !data) return null;
-  return data.map((row) => ({ id: row.id as string, fileKeyWrapped: row.file_key_wrapped as string, fileKeyIv: row.file_key_iv as string, keyVersion: row.key_version as number }));
-}
-
 /** Deletes the files first, then the row, so nothing is left behind that the app cannot reach. */
 export async function deleteDocument(actor: Actor, circleId: string, id: string): Promise<{ ok: true } | { ok: false; error: string }> {
   const row = await ownRow(actor, circleId, id);
@@ -158,44 +150,6 @@ export async function deleteDocument(actor: Actor, circleId: string, id: string)
   const { error } = await clientFor(actor).from("visit_documents").delete().eq("circle_id", circleId).eq("id", id);
   if (error) return { ok: false, error: "The photos could not be deleted. Try again." };
   return { ok: true };
-}
-
-/**
- * How many encrypted summaries a circle has with at least one page kept, which is what the
- * caregiver sees listed. Null when the count could not be read.
- */
-export async function countEncryptedDocuments(actor: Actor, circleId: string): Promise<number | null> {
-  if (!isCaregiver(actor, circleId)) return null;
-  const { count, error } = await clientFor(actor)
-    .from("visit_documents")
-    .select("id", { count: "exact", head: true })
-    .eq("circle_id", circleId)
-    .not("file_key_wrapped", "is", null)
-    .neq("paths", "{}");
-  if (error || count == null) return null;
-  return count;
-}
-
-/** The storage paths of every encrypted summary in a circle. Null when they could not be read. */
-export async function listEncryptedPaths(actor: Actor, circleId: string): Promise<string[] | null> {
-  if (!isCaregiver(actor, circleId)) return null;
-  const { data, error } = await clientFor(actor).from("visit_documents").select("paths").eq("circle_id", circleId).not("file_key_wrapped", "is", null);
-  if (error || !data) return null;
-  return data.flatMap((row) => (row.paths as string[]) ?? []);
-}
-
-/**
- * Removes stored pages by path. Only for paths that belong to this caregiver's circle: every
- * path starts with the circle's id, and anything else is refused.
- */
-export async function removeStoredPages(actor: Actor, circleId: string, paths: string[]): Promise<boolean> {
-  if (!isCaregiver(actor, circleId)) return false;
-  if (paths.some((path) => !path.startsWith(`${circleId}/`))) return false;
-  for (let i = 0; i < paths.length; i += 100) {
-    const { error } = await serviceClient().storage.from(DOCUMENTS_BUCKET).remove(paths.slice(i, i + 100));
-    if (error) return false;
-  }
-  return true;
 }
 
 /** Removes every saved file of the circles about to be erased. Used by the daily cleanup. */

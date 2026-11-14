@@ -1,8 +1,8 @@
 /**
  * A small in-memory stand-in for the database and file storage, for tests of the circle key.
  * It follows the rules that matter here: a signed-in caregiver sees only their own circle's rows
- * (as row security does), the version checks the triggers make, and reset_own_circle_key as
- * migration 0017 defines it. supabase/tests/held_keys.test.sql checks the real database.
+ * (as row security does), and the key checks the triggers make. supabase/tests/key_rls.test.sql
+ * checks the real database.
  */
 type Row = Record<string, unknown>;
 
@@ -32,7 +32,6 @@ export function emptyState(): FakeState {
   return { circles: [], circle_caregivers: [], visit_documents: [], activity: [], storage: new Map(), touched: [] };
 }
 
-const AV1 = /^av1\.600000\.[A-Za-z0-9_-]{22}\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{64}$/;
 const AV2 = /^av2\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{64}$/;
 
 type Table = "circles" | "circle_caregivers" | "visit_documents";
@@ -70,12 +69,6 @@ class Query {
   }
   eq(column: string, value: unknown) {
     this.filters.push((row) => row[column] === value);
-    return this;
-  }
-  /** Only `.neq("paths", "{}")` is used by the code under test: rows with at least one path. */
-  neq(column: string, value: string) {
-    if (value !== "{}") throw new Error("unsupported filter");
-    this.filters.push((row) => Array.isArray(row[column]) && (row[column] as unknown[]).length > 0);
     return this;
   }
   is(column: string, value: null) {
@@ -125,7 +118,7 @@ class Query {
         const next = { ...row, ...this.patch };
         if (this.table === "circle_caregivers") {
           const wrapped = next.circle_key_wrapped;
-          if (wrapped != null && !(typeof wrapped === "string" && (AV1.test(wrapped) || AV2.test(wrapped)))) return fail("wrapped key is not valid");
+          if (wrapped != null && !(typeof wrapped === "string" && AV2.test(wrapped))) return fail("wrapped key is not valid");
           if (next.key_version !== circleVersion(next.circle_id)) return fail("the wrapped key version must match the circle");
         }
         Object.assign(row, this.patch);
@@ -154,33 +147,13 @@ class Query {
   }
 }
 
-/** reset_own_circle_key, as in migration 0017. */
-function resetOwnCircleKey(state: FakeState, userId: string | null, args: { p_circle: string; p_wrapped: string; p_version: number }) {
-  const fail = (message: string) => ({ data: null, error: { message } });
-  if (!AV2.test(args.p_wrapped ?? "")) return fail("stored key is not valid");
-  const own = state.circle_caregivers.find((row) => row.circle_id === args.p_circle && row.user_id === userId);
-  if (!own || own.role !== "owner") return fail("only the owner can change the circle key");
-  const circle = state.circles.find((row) => row.id === args.p_circle && row.deleted_at === null);
-  if (!circle) return fail("that circle was not found");
-  if (args.p_version !== circle.key_version + 1) return fail("key version moves forward one step");
-  if (own.circle_key_wrapped?.startsWith("av2.") && own.key_version === circle.key_version) return fail("the key for this circle is held");
-  const gone = state.visit_documents.filter((row) => row.circle_id === args.p_circle && row.file_key_wrapped !== null);
-  state.visit_documents = state.visit_documents.filter((row) => !gone.includes(row));
-  circle.key_version = args.p_version;
-  own.circle_key_wrapped = args.p_wrapped;
-  own.key_version = args.p_version;
-  if (gone.some((row) => row.paths.length)) state.activity.push({ circle_id: args.p_circle, action: "circle_key_reset" });
-  return { data: gone.flatMap((row) => row.paths), error: null };
-}
-
 export function fakeClient(state: FakeState, userId: string | null) {
   return {
     from(table: Table) {
       return new Query(state, table, userId);
     },
-    async rpc(name: string, args: Row) {
+    async rpc(name: string) {
       state.touched.push(name);
-      if (name === "reset_own_circle_key") return resetOwnCircleKey(state, userId, args as { p_circle: string; p_wrapped: string; p_version: number });
       return { data: null, error: { message: `unknown function ${name}` } };
     },
     storage: {

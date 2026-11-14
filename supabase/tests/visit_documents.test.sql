@@ -4,7 +4,7 @@
 
 begin;
 
-select plan(15);
+select plan(12);
 
 -- Same column split as supabase/seed.sql: GoTrue renames confirmed_at.
 create function pg_temp.seed_user(p_id uuid, p_email text, p_name text, p_token text)
@@ -70,7 +70,7 @@ select throws_ok(
 with gone as (delete from public.visit_documents where id = 'efefefef-efef-4fef-8fef-efefefefef22' returning id)
 select is((select count(*)::int from gone), 0, 'cannot delete another circle''s summary');
 
--- Encrypted summaries: the row holds the wrapped file key, and it follows the circle key.
+-- Encrypted summaries: the row holds the wrapped file key, at the circle's key version.
 select lives_ok(
   $$insert into public.visit_documents (id, circle_id, kind, page_count, key_version, file_key_wrapped, file_key_iv)
     values ('efefefef-efef-4fef-8fef-efefefefef13', 'efefefef-efef-4fef-8fef-efefefefef10', 'photos', 1, 1, 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', 'CCCCCCCCCCCCCCCC')$$,
@@ -91,27 +91,6 @@ select throws_ok(
     values ('efefefef-efef-4fef-8fef-efefefefef10', 'photos', 1, 2, 'AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA', 'CCCCCCCCCCCCCCCC')$$,
   null, 'the file key version must match the circle', 'a file key cannot name a circle key that does not exist'
 );
-select throws_ok(
-  $$select public.rotate_own_circle_key(
-      'efefefef-efef-4fef-8fef-efefefefef10',
-      'av1.600000.' || repeat('a', 22) || '.' || repeat('b', 16) || '.' || repeat('c', 64),
-      2, '[]'::jsonb)$$,
-  null, 'file keys could not be rewrapped', 'the circle key cannot change and leave an encrypted summary behind'
-);
-select lives_ok(
-  $$select public.rotate_own_circle_key(
-      'efefefef-efef-4fef-8fef-efefefefef10',
-      'av1.600000.' || repeat('a', 22) || '.' || repeat('b', 16) || '.' || repeat('c', 64),
-      2, '[]'::jsonb,
-      '[{"id":"efefefef-efef-4fef-8fef-efefefefef13","wrapped":"BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB","iv":"DDDDDDDDDDDDDDDD"}]'::jsonb)$$,
-  'changing the circle key takes each rewrapped file key with it'
-);
-select is(
-  (select key_version::text || ' ' || file_key_wrapped || ' ' || file_key_iv from public.visit_documents where id = 'efefefef-efef-4fef-8fef-efefefefef13'),
-  '2 BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB DDDDDDDDDDDDDDDD',
-  'and the summary now carries the new wrap and version'
-);
-
 reset role;
 set local role anon;
 select set_config('request.jwt.claims', '{"role":"anon"}', true);

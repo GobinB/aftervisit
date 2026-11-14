@@ -101,35 +101,11 @@ export const CONSENT_LABELS: Record<ConsentType, string> = {
 export const HELD_CIRCLE_KEY = /^av2\.([A-Za-z0-9_-]{16})\.([A-Za-z0-9_-]{64})$/;
 
 /**
- * av1 is the earlier form: the key wrapped in the browser by 12 recovery words (PBKDF2-SHA256,
- * 600,000 iterations, a 16-byte salt, a 12-byte IV, AES-GCM). Nothing writes it any more. A circle
- * that still has one keeps it until a device or the words hand the key over.
- */
-export const WORDS_WRAPPED_KEY = /^av1\.600000\.([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{16})\.([A-Za-z0-9_-]{64})$/;
-
-export function nextCircleKeyVersion(current: number): number {
-  if (!Number.isInteger(current) || current < 1 || current >= 1000) throw new Error("Key version is not valid.");
-  return current + 1;
-}
-
-/**
  * Where a circle's key for files stands, for the pages that need it.
  * - none: no key yet. One is made the first time it is needed.
  * - held: All Hands Care holds it, so it is handed to the caregiver after sign-in.
- * - words: it was made with recovery words and has not been handed over yet.
  */
-export type CircleKeyState = { keyVersion: number; state: "none" | "held" | "words" };
-
-/** A raw 32-byte circle key, base64url. Only ever sent by the circle's caregiver, to be kept. */
-export const RawCircleKeySchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
-
-export const HandOverCircleKeySchema = z
-  .object({
-    circleId: z.string().uuid(),
-    key: RawCircleKeySchema,
-    keyVersion: z.number().int().min(1).max(1000),
-  })
-  .strict();
+export type CircleKeyState = { keyVersion: number; state: "none" | "held" };
 
 export const CreateCircleSchema = z
   .object({

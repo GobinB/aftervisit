@@ -1,11 +1,10 @@
-import { randomBytes } from "node:crypto";
 import { beforeEach, describe, expect, test, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
 const env = { circleKeySecret: "" };
 vi.mock("@/lib/env", () => ({ env }));
 
-const { canHoldKeys, decodeKey, encodeKey, newCircleKey, openCircleKey, opensFileKey, sameKey, sealCircleKey } = await import("@/lib/key-custody");
+const { canHoldKeys, decodeKey, encodeKey, newCircleKey, openCircleKey, sealCircleKey } = await import("@/lib/key-custody");
 const { generateFileKey, importCircleKey, unwrapFileKey, wrapFileKey } = await import("@/lib/crypto/keys");
 const { exportKeyBytes } = await import("@/lib/crypto/export");
 const { HELD_CIRCLE_KEY } = await import("@/lib/schema/circles");
@@ -81,8 +80,6 @@ describe("the key All Hands Care keeps for a circle", () => {
     expect(() => decodeKey("abc")).toThrow(/not valid/);
     const raw = newCircleKey();
     expect(decodeKey(encodeKey(raw))).toEqual(raw);
-    expect(sameKey(raw, decodeKey(encodeKey(raw)))).toBe(true);
-    expect(sameKey(raw, newCircleKey())).toBe(false);
   });
 });
 
@@ -96,14 +93,5 @@ describe("the key the server hands over is the one the browser uses", () => {
     // Another device, later: handed the key again after sign-in.
     const again = await importCircleKey(openCircleKey(stored, CIRCLE, 1));
     expect(await exportKeyBytes(await unwrapFileKey(wrapped, again, true))).toEqual(await exportKeyBytes(fileKey));
-  });
-
-  test("the server can tell a right circle key from a wrong one by a saved summary's file key", async () => {
-    const raw = newCircleKey();
-    const wrapped = await wrapFileKey(await generateFileKey(), await importCircleKey(raw), 1);
-    expect(opensFileKey(raw, wrapped)).toBe(true);
-    expect(opensFileKey(new Uint8Array(randomBytes(32)), wrapped)).toBe(false);
-    expect(opensFileKey(raw, { fileKeyWrapped: "A".repeat(64), fileKeyIv: wrapped.fileKeyIv })).toBe(false);
-    expect(opensFileKey(raw, { fileKeyWrapped: "short", fileKeyIv: "short" })).toBe(false);
   });
 });

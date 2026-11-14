@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { AddMemberSchema, ChangeRoleSchema, CircleContentSchema, CreateCircleSchema, SetVisibilitySchema, nextCircleKeyVersion } from "@/lib/schema/circles";
+import { AddMemberSchema, ChangeRoleSchema, CircleContentSchema, CreateCircleSchema, SetVisibilitySchema } from "@/lib/schema/circles";
 
 const WRAPPED = `av1.600000.${"a".repeat(22)}.${"b".repeat(16)}.${"c".repeat(64)}`;
 
@@ -29,12 +29,6 @@ describe("circle content", () => {
     expect(CreateCircleSchema.safeParse({ content, consents, keyVersion: 1 }).success).toBe(false);
     expect(CreateCircleSchema.safeParse({ content, consents, phrase: "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about" }).success).toBe(false);
     expect(CreateCircleSchema.safeParse({ content, consents: { authorized_to_share: true, terms: true, privacy: false } }).success).toBe(false);
-  });
-
-  test("the key version moves forward one step, within limits", () => {
-    expect(nextCircleKeyVersion(1)).toBe(2);
-    expect(() => nextCircleKeyVersion(0)).toThrow();
-    expect(() => nextCircleKeyVersion(1000)).toThrow();
   });
 
   test("member actions accept their own fields only", () => {

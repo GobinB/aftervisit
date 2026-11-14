@@ -1,7 +1,6 @@
 import "client-only";
 import { asBuffer, base64UrlToBytes, bytesToBase64Url } from "@/lib/crypto/bytes";
 import { exportKeyBytes } from "@/lib/crypto/export";
-import { WORDS_WRAPPED_KEY } from "@/lib/schema/circles";
 
 const AES = { name: "AES-GCM", length: 256 } as const;
 const CIRCLE_USES: KeyUsage[] = ["encrypt", "decrypt", "wrapKey", "unwrapKey"];
@@ -29,35 +28,6 @@ export { exportKeyBytes };
 export async function importCircleKey(raw: Uint8Array): Promise<CryptoKey> {
   if (raw.length !== 32) throw new Error("Circle key is not valid.");
   return crypto.subtle.importKey("raw", asBuffer(raw), AES, true, CIRCLE_USES);
-}
-
-/**
- * Circle keys used to be wrapped in the browser by 12 recovery words (PBKDF2-SHA256, 600,000
- * iterations, then AES-GCM). Nothing wraps a key that way any more. This opens one that still is,
- * for a caregiver who kept their words, so the key can be handed over and the words retired.
- */
-export const WORDS_ITERATIONS = 600_000;
-export const WORDS_COUNT = 12;
-
-export function normalizeWords(words: string): string {
-  return words.normalize("NFKD").trim().toLowerCase().split(/\s+/).filter(Boolean).join(" ");
-}
-
-export async function openWithWords(packed: string, words: string): Promise<CryptoKey> {
-  const match = WORDS_WRAPPED_KEY.exec(packed);
-  if (!match) throw new Error("Wrapped key is not valid.");
-  const normal = normalizeWords(words);
-  if (normal.split(" ").length !== WORDS_COUNT) throw new Error("Enter all 12 words.");
-  const salt = base64UrlToBytes(match[1] ?? "");
-  const iv = base64UrlToBytes(match[2] ?? "");
-  const wrapped = base64UrlToBytes(match[3] ?? "");
-  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(normal), "PBKDF2", false, ["deriveKey"]);
-  const wrapping = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: asBuffer(salt), iterations: WORDS_ITERATIONS, hash: "SHA-256" }, base, AES, false, ["unwrapKey"]);
-  try {
-    return await crypto.subtle.unwrapKey("raw", asBuffer(wrapped), wrapping, { name: "AES-GCM", iv: asBuffer(iv) }, AES, true, CIRCLE_USES);
-  } catch {
-    throw new Error("Those words did not open the saved summaries.");
-  }
 }
 
 export async function wrapFileKey(fileKey: CryptoKey, circleKey: CryptoKey, keyVersion: number): Promise<StoredFileKey> {

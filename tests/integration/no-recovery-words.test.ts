@@ -31,13 +31,13 @@ let device = new Map<string, LocalCircleKey>();
 vi.mock("@/lib/crypto/idb", () => ({
   loadCircleKey: async (circleId: string) => device.get(circleId) ?? null,
   saveCircleKey: async (circleId: string, key: CryptoKey, keyVersion: number) => void device.set(circleId, { circleId, key, keyVersion }),
-  listCircleKeys: async () => [...device.values()],
-  removeCircleKey: async (circleId: string) => void device.delete(circleId),
+  clearCircleKeys: async () => device.clear(),
 }));
 
-const { ensureCircleKey, openOldKeyWithWords, releaseDeviceKeys, startFresh } = await import("@/components/circles/circle-key");
+const { ensureCircleKey } = await import("@/components/circles/circle-key");
 const { urlForMemberToken } = await import("@/components/circles/member-link");
-const { handOverCircleKeyAction, openCircleKeyAction, startFreshCircleKeyAction } = await import("@/app/actions/circle-keys");
+const { openCircleKeyAction } = await import("@/app/actions/circle-keys");
+const { clearCircleKeys } = await import("@/lib/crypto/idb");
 const { createDocumentAction } = await import("@/app/actions/documents");
 const { addPage, readPage } = await import("@/services/documents");
 const { getCircleKeyState } = await import("@/services/circle-keys");
@@ -60,9 +60,7 @@ const family: Actor = { kind: "helper", memberId: "33333333-3333-4333-8333-33333
 const MARKER = "Maplewood Family Clinic metformin 500 mg";
 const PHOTO = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, ...new TextEncoder().encode(MARKER.repeat(20))]);
 
-/** The key bytes 1..32 wrapped the old way by these words: a fixed sample of what circles made before this change hold. */
-const WORDS = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-const WORDS_WRAPPED = "av1.600000.BwcHBwcHBwcHBwcHBwcHBw.CQkJCQkJCQkJCQkJ.HjJDlfueDE80z1civaCUlcv2-xAJhJ3UwUMvgeL9stWx0Brhvb0uniVV013hsgWZ";
+/** A fixed 32-byte key, for rows set up by hand in these tests. */
 const OLD_KEY = new Uint8Array(32).map((_, index) => index + 1);
 
 function newCircle(wrapped: string | null = null) {
@@ -96,13 +94,6 @@ async function openPhoto(documentId: string, circleKey: CryptoKey): Promise<Uint
   return openPage(new Uint8Array(page.bytes), fileKey, documentId, 1);
 }
 
-/** A circle from before this change: a key made with words, and one summary saved with it. */
-async function circleWithWords(): Promise<string> {
-  newCircle(WORDS_WRAPPED);
-  signedIn = owner;
-  return keepPhoto(await importCircleKey(OLD_KEY), 1);
-}
-
 beforeEach(() => {
   state = emptyState();
   device = new Map();
@@ -131,8 +122,8 @@ describe("no recovery words", () => {
     expect(stored().circle_key_wrapped).toMatch(/^av2\./);
     expect(JSON.stringify([state.circle_caregivers, state.visit_documents])).not.toContain(bytesToBase64Url(await exportKeyBytes(first.key)));
 
-    // Sign out: this device's keys are cleared, because the server holds them.
-    await releaseDeviceKeys();
+    // Sign out: this device's keys are cleared.
+    await clearCircleKeys();
     expect(device.size).toBe(0);
     signedIn = null;
     expect((await openCircleKeyAction(CIRCLE)).ok).toBe(false);
@@ -165,7 +156,7 @@ describe("no recovery words", () => {
     newCircle();
     signedIn = owner;
     const [a, b] = await Promise.all([openCircleKeyAction(CIRCLE), openCircleKeyAction(CIRCLE)]);
-    expect(a.ok && b.ok && a.state === "ready" && b.state === "ready" && a.key === b.key).toBe(true);
+    expect(a.ok && b.ok && a.key === b.key).toBe(true);
   });
 
   test("making a person's link gives the circle its key, and the link carries it after #", async () => {
@@ -193,8 +184,6 @@ describe("who is handed a circle's key", () => {
     newCircle(sealCircleKey(OLD_KEY, CIRCLE, 1));
     signedIn = family;
     expect(await openCircleKeyAction(CIRCLE)).toEqual({ ok: false, error: "Sign in to continue." });
-    expect(await handOverCircleKeyAction({ circleId: CIRCLE, key: bytesToBase64Url(OLD_KEY), keyVersion: 1 })).toMatchObject({ ok: false });
-    expect(await startFreshCircleKeyAction(CIRCLE)).toMatchObject({ ok: false });
     expect(await getCircleKeyState(family, CIRCLE)).toBeNull();
     expect(clientFor).not.toHaveBeenCalled();
     expect(state.touched).toEqual([]);
@@ -246,147 +235,7 @@ describe("who is handed a circle's key", () => {
     const before = stored().circle_key_wrapped;
     env.circleKeySecret = "a-different-secret-0123456789-abcdefghijklmnopqrstuvwxyz";
     expect((await openCircleKeyAction(CIRCLE)).ok).toBe(false);
-    expect((await startFreshCircleKeyAction(CIRCLE)).ok).toBe(false);
     env.circleKeySecret = "test-secret-for-circle-keys-0123456789-abcdefghijklmnop";
     expect(stored().circle_key_wrapped).toBe(before);
-  });
-});
-
-describe("a circle that had recovery words", () => {
-  test("a device that still has the key hands it over silently, and every device opens the photos after that", async () => {
-    const documentId = await circleWithWords();
-    device.set(CIRCLE, { circleId: CIRCLE, key: await importCircleKey(OLD_KEY), keyVersion: 1 });
-    expect(await known()).toEqual({ keyVersion: 1, state: "words" });
-
-    const here = await ensureCircleKey(CIRCLE);
-    expect(here.ok).toBe(true);
-    expect(stored().circle_key_wrapped).toMatch(/^av2\./);
-    expect(openStored(stored().circle_key_wrapped!, CIRCLE, 1)).toEqual(OLD_KEY);
-
-    device = new Map();
-    const elsewhere = await ensureCircleKey(CIRCLE);
-    expect(elsewhere.ok).toBe(true);
-    if (!elsewhere.ok) return;
-    expect(await openPhoto(documentId, elsewhere.key)).toEqual(PHOTO);
-  });
-
-  test("signing out on the only device that has the key hands it over first, so it is not lost", async () => {
-    const documentId = await circleWithWords();
-    device.set(CIRCLE, { circleId: CIRCLE, key: await importCircleKey(OLD_KEY), keyVersion: 1 });
-
-    // Straight to Sign out, before any page of the circle had the chance to hand the key over.
-    await releaseDeviceKeys();
-    expect(device.size).toBe(0);
-    expect(openStored(stored().circle_key_wrapped!, CIRCLE, 1)).toEqual(OLD_KEY);
-
-    device = new Map();
-    const later = await ensureCircleKey(CIRCLE, await known());
-    expect(later.ok && (await openPhoto(documentId, later.key))).toEqual(PHOTO);
-  });
-
-  test("signing out keeps a key on the device when the server could not take it", async () => {
-    await circleWithWords();
-    device.set(CIRCLE, { circleId: CIRCLE, key: await importCircleKey(OLD_KEY), keyVersion: 1 });
-
-    // The server cannot keep keys just now (its secret is missing): the only copy must not be thrown away.
-    env.circleKeySecret = "";
-    await releaseDeviceKeys();
-    env.circleKeySecret = "test-secret-for-circle-keys-0123456789-abcdefghijklmnop";
-    expect(device.has(CIRCLE)).toBe(true);
-    expect(stored().circle_key_wrapped).toBe(WORDS_WRAPPED);
-
-    // Nor when the request is refused for being one too many in the hour.
-    underLimit.mockResolvedValue(false);
-    await releaseDeviceKeys();
-    expect(device.has(CIRCLE)).toBe(true);
-
-    // Next time it works, and the key is handed over and cleared.
-    underLimit.mockResolvedValue(true);
-    await releaseDeviceKeys();
-    expect(device.size).toBe(0);
-    expect(stored().circle_key_wrapped).toMatch(/^av2\./);
-  });
-
-  test("a wrong key on a device is refused, and the words still work afterwards", async () => {
-    await circleWithWords();
-    device.set(CIRCLE, { circleId: CIRCLE, key: await importCircleKey(new Uint8Array(32).fill(9)), keyVersion: 1 });
-    const result = await ensureCircleKey(CIRCLE);
-    expect(result).toMatchObject({ ok: false, reason: "words" });
-    expect(stored().circle_key_wrapped).toBe(WORDS_WRAPPED);
-  });
-
-  test("with no device holding it, the caregiver is told, with the count, and no key is sent", async () => {
-    await circleWithWords();
-    const result = await ensureCircleKey(CIRCLE);
-    expect(result).toEqual({ ok: false, reason: "words", old: { wrapped: WORDS_WRAPPED, keyVersion: 1, savedFiles: 1 } });
-  });
-
-  test("I still have my words: typed once, the photos open here and on every device after", async () => {
-    const documentId = await circleWithWords();
-    const asked = await ensureCircleKey(CIRCLE);
-    if (asked.ok || asked.reason !== "words") throw new Error("expected the words to be asked for");
-
-    expect(await openOldKeyWithWords(CIRCLE, asked.old, "legal winner thank year wave sausage worth useful legal winner thank yellow")).toMatchObject({ ok: false, reason: "failed", error: "Those words did not open the saved summaries." });
-    expect(await openOldKeyWithWords(CIRCLE, asked.old, "abandon about")).toMatchObject({ ok: false, error: "Enter all 12 words." });
-    expect(stored().circle_key_wrapped).toBe(WORDS_WRAPPED);
-
-    const opened = await openOldKeyWithWords(CIRCLE, asked.old, `  ${WORDS.toUpperCase()} `);
-    expect(opened.ok).toBe(true);
-    if (!opened.ok) return;
-    expect(await openPhoto(documentId, opened.key)).toEqual(PHOTO);
-
-    device = new Map();
-    const elsewhere = await ensureCircleKey(CIRCLE, await known());
-    expect(elsewhere.ok && (await openPhoto(documentId, elsewhere.key))).toEqual(PHOTO);
-  });
-
-  test("Start fresh removes only the photos nobody can open, and the circle works from then on", async () => {
-    const documentId = await circleWithWords();
-    // A summary from before files were encrypted: plain, and still readable.
-    state.visit_documents.push({ id: "plain-doc", circle_id: CIRCLE, visit_date: null, clinic: null, kind: "photos", page_count: 1, paths: [`${CIRCLE}/plain-doc/1.jpg`], created_at: "2026-11-01T00:00:00Z", key_version: null, file_key_wrapped: null, file_key_iv: null });
-    state.storage.set(`${CIRCLE}/plain-doc/1.jpg`, PHOTO);
-    // A device left signed out elsewhere with a copy of the old key.
-    const stale = new Map([[CIRCLE, { circleId: CIRCLE, key: await importCircleKey(OLD_KEY), keyVersion: 1 }]]);
-
-    const fresh = await startFresh(CIRCLE);
-    expect(fresh).toMatchObject({ ok: true, keyVersion: 2 });
-    expect(state.visit_documents.map((row) => row.id)).toEqual(["plain-doc"]);
-    expect(state.storage.has(`${CIRCLE}/${documentId}/1.enc`)).toBe(false);
-    expect(state.storage.has(`${CIRCLE}/plain-doc/1.jpg`)).toBe(true);
-    expect(state.circles.find((row) => row.id === CIRCLE)!.key_version).toBe(2);
-    expect(state.activity).toEqual([{ circle_id: CIRCLE, action: "circle_key_reset" }]);
-    expect(await known()).toEqual({ keyVersion: 2, state: "held" });
-
-    // New photos are kept and open with the new key, on this device and any other.
-    if (!fresh.ok) return;
-    const next = await keepPhoto(fresh.key, fresh.keyVersion);
-    device = stale;
-    const later = await ensureCircleKey(CIRCLE, await known());
-    expect(later).toMatchObject({ ok: true, keyVersion: 2 });
-    expect(later.ok && (await openPhoto(next, later.key))).toEqual(PHOTO);
-  });
-
-  test("Start fresh is refused when the key is held, and nothing is removed", async () => {
-    newCircle();
-    signedIn = owner;
-    const first = await ensureCircleKey(CIRCLE);
-    if (!first.ok) throw new Error("expected a key");
-    const documentId = await keepPhoto(first.key, first.keyVersion);
-    const refused = await startFreshCircleKeyAction(CIRCLE);
-    expect(refused).toEqual({ ok: false, error: "Saved summaries in this circle can be opened, so nothing was removed." });
-    expect(state.visit_documents.map((row) => row.id)).toEqual([documentId]);
-    expect(state.storage.size).toBe(1);
-  });
-
-  test("when nothing was ever saved with the old key, a new one replaces it and nothing is asked", async () => {
-    newCircle(WORDS_WRAPPED);
-    signedIn = owner;
-    // A summary that was started but never got a page (the upload failed) is not something to ask about.
-    state.visit_documents.push({ id: "empty-doc", circle_id: CIRCLE, visit_date: null, clinic: null, kind: "photos", page_count: 2, paths: [], created_at: "2026-11-10T00:00:00Z", key_version: 1, file_key_wrapped: "A".repeat(64), file_key_iv: "C".repeat(16) });
-    const result = await ensureCircleKey(CIRCLE);
-    expect(result).toMatchObject({ ok: true, keyVersion: 2 });
-    expect(stored().circle_key_wrapped).toMatch(/^av2\./);
-    expect(state.visit_documents).toEqual([]);
-    expect(state.activity).toEqual([]);
   });
 });

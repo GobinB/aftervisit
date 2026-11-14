@@ -1,5 +1,5 @@
 import "server-only";
-import { createCipheriv, createDecipheriv, hkdfSync, randomBytes, timingSafeEqual } from "node:crypto";
+import { createCipheriv, createDecipheriv, hkdfSync, randomBytes } from "node:crypto";
 import { env } from "@/lib/env";
 import { HELD_CIRCLE_KEY } from "@/lib/schema/circles";
 
@@ -67,30 +67,6 @@ export function openCircleKey(stored: string, circleId: string, keyVersion: numb
   } catch {
     throw new Error("Stored key could not be opened.");
   }
-}
-
-/**
- * Whether a circle key is the one a saved summary's file key was wrapped with in the browser
- * (AES-GCM, lib/crypto/keys.ts). Used before a key handed over by a device is kept, so a wrong
- * key never replaces the right one. The file key itself is thrown away.
- */
-export function opensFileKey(circleKey: Uint8Array, file: { fileKeyWrapped: string; fileKeyIv: string }): boolean {
-  try {
-    const iv = Buffer.from(file.fileKeyIv, "base64url");
-    const wrapped = Buffer.from(file.fileKeyWrapped, "base64url");
-    if (circleKey.length !== KEY_BYTES || iv.length !== IV_BYTES || wrapped.length !== KEY_BYTES + TAG_BYTES) return false;
-    const decipher = createDecipheriv("aes-256-gcm", circleKey, iv);
-    decipher.setAuthTag(wrapped.subarray(KEY_BYTES));
-    decipher.update(wrapped.subarray(0, KEY_BYTES));
-    decipher.final();
-    return true;
-  } catch {
-    return false;
-  }
-}
-
-export function sameKey(a: Uint8Array, b: Uint8Array): boolean {
-  return a.length === b.length && timingSafeEqual(a, b);
 }
 
 export function encodeKey(raw: Uint8Array): string {
