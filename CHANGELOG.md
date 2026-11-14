@@ -4,6 +4,7 @@ Notable changes to All Hands Care (formerly AfterVisit). The newest entries are 
 
 ## Unreleased
 
+- Nothing in the database can be run without signing in. Every database function is closed to signed-out requests, including one added with encrypted summaries that had been left open, and a test now fails if a new one is left open. Needs migration `0016`.
 - Saved photos and PDFs of visit summaries are now end-to-end encrypted. Each page is encrypted on the caregiver's device before it is sent, with a key made on that device and protected by the 12 recovery words, so the server stores only bytes it cannot read. Keeping photos asks for the key for files if this device does not have it yet; opening them on a new device asks for the recovery words. Changing the key keeps every saved summary readable. Summaries saved earlier are unchanged. Needs migration `0015`.
 - After a visit summary updates a circle, the last screen offers "Tell the people who help": tap a name to make that person a new link and a new 4-digit PIN, then send it by email, text or copy with the message already written. The old link and PIN stop working, and nobody's link changes unless their name is tapped.
 - A shorter home page, about a sixth of the words: a navy opening with the app itself on a phone, how to add it to an iPhone or Android home screen, four short cards, three steps, a privacy band and one call to action. It no longer scrolls sideways on phones; nothing on the site can.
