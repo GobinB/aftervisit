@@ -26,4 +26,4 @@ Opening a member link (`app/actions/enter.ts`) has no actor yet. It checks the m
 
 ## Sharing a link
 
-The app does not send email or text. The members screen copies the link, opens the device share sheet, or builds a `mailto:` link for the person's own mail app. The link is shown once. A new link replaces the hash.
+The app does not send email or text. The members screen copies the link, opens the device share sheet, or builds a `mailto:` link for the person's own mail app. The caregiver can share the same link again at any time (decision 0003). A new link replaces the hash and signs out every device that opened the old one.

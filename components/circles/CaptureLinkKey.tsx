@@ -1,12 +1,12 @@
 "use client";
 
 import { useLayoutEffect } from "react";
-import { captureHelperKeyFromLocation } from "@/lib/crypto/session";
+import { stripLinkHash } from "@/lib/crypto/session";
 
-/** Removes #k= before paint on every invite page, including a link that is already closed. */
-export function CaptureLinkKey({ token }: { token: string }) {
+/** Takes anything after # out of the address bar before paint on every invite page, including a link that is already closed. */
+export function CaptureLinkKey() {
   useLayoutEffect(() => {
-    captureHelperKeyFromLocation(token);
-  }, [token]);
+    stripLinkHash();
+  }, []);
   return null;
 }

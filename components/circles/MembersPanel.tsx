@@ -3,37 +3,34 @@
 import { ChevronDown, Link2, Share2, Trash2, UserPlus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addMemberAction, changeRoleAction, newLinkAction, renewMemberAction, revokeMemberAction, setVisibilityAction } from "@/app/actions/members";
-import { urlForMemberToken } from "@/components/circles/member-link";
+import { addMemberAction, changeRoleAction, memberLinkAction, newLinkAction, revokeMemberAction, setVisibilityAction } from "@/app/actions/members";
+import { memberUrl } from "@/components/circles/member-link";
 import { PeopleList } from "@/components/circles/PeopleList";
 import { ShareLink, type ShareableLink } from "@/components/circles/ShareLink";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Switch } from "@/components/ui/Switch";
 import { dateTime } from "@/lib/format";
-import { forgetLink, loadLink, saveLink } from "@/lib/local-links";
+import { LINK_IDLE_DAYS, LINK_MAX_DAYS } from "@/lib/link-life";
 import { AREA_DETAILS, ROLE_DETAILS, SEE_PRESETS, presetFor } from "@/lib/share-message";
-import { AREA_LABELS, HELPER_ROLES, HELPER_ROLE_LABELS, READY_AREAS, type CircleKeyState, type HelperRole, type PersonView, type VisibilityArea } from "@/lib/schema/circles";
+import { AREA_LABELS, HELPER_ROLES, HELPER_ROLE_LABELS, READY_AREAS, type HelperRole, type PersonView, type VisibilityArea } from "@/lib/schema/circles";
 
 const field = "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-[16px] text-ink-900 outline-none focus:border-action-500";
 const option = "flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border border-border-200 bg-white px-3 py-2.5 has-[:checked]:border-primary-700 has-[:checked]:bg-sky-100/60";
 const action = "inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-4 text-[15px] font-semibold disabled:opacity-50";
 
-type Saved = { ok: boolean; error?: string; token?: string; memberId?: string; name?: string; email?: string | null };
+type Saved = { ok: boolean; error?: string; token?: string; memberId?: string; name?: string; email?: string | null; hasPin?: boolean };
 
 export function MembersPanel({
   circleId,
   personName,
   people,
   canManage,
-  circleKey,
 }: {
   circleId: string;
   personName: string;
   people: PersonView[];
   canManage: boolean;
-  /** Where the circle's key for files stands, so a new link can carry it. Null for anyone but the caregiver. */
-  circleKey: CircleKeyState | null;
 }) {
   const router = useRouter();
   const helpers = people.filter((person) => person.kind === "member");
@@ -43,7 +40,7 @@ export function MembersPanel({
   const [note, setNote] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  /** After a new link (a new person, or a replaced link): remember it on this device and offer the three ways to send it. */
+  /** After a new link (a new person, or a replaced link): offer the three ways to send it. */
   async function linkReady(result: Saved, pin: string | null, fresh: boolean) {
     if (!result.ok) {
       setError(result.error ?? "That could not be saved. Try again.");
@@ -51,30 +48,16 @@ export function MembersPanel({
     }
     setError(null);
     if (result.token && result.name && result.memberId) {
-      const built = await urlForMemberToken(circleId, result.token, circleKey);
-      saveLink(circleId, result.memberId, built.url);
-      setShare({ link: { url: built.url, name: result.name, email: result.email ?? null, pin, personName }, fresh });
+      setShare({ link: { url: memberUrl(result.token), name: result.name, email: result.email ?? null, pin, hasPin: result.hasPin, personName }, fresh });
       setAdding(false);
     }
     router.refresh();
   }
 
-  /** Tapping a name opens their profile and copies their link, when this device has it. */
-  async function tap(person: PersonView) {
-    if (open === person.id) {
-      setOpen(null);
-      return;
-    }
-    setOpen(person.id);
+  /** Tapping a name opens their profile. */
+  function tap(person: PersonView) {
     setNote(null);
-    const saved = person.revokedAt ? null : loadLink(circleId, person.id);
-    if (!saved) return;
-    try {
-      await navigator.clipboard.writeText(saved.url);
-      setNote(`${person.name}'s link is copied. Paste it into a message, or tap Share.`);
-    } catch {
-      setNote(null);
-    }
+    setOpen(open === person.id ? null : person.id);
   }
 
   if (!canManage) return <PeopleList people={people} showSeen={false} />;
@@ -127,8 +110,8 @@ export function MembersPanel({
                 <Profile
                   circleId={circleId}
                   person={person}
-                  onShare={(saved) =>
-                    setShare({ link: { url: saved.url, name: person.name, email: person.email ?? null, pin: null, personName }, fresh: false })
+                  onShare={(result) =>
+                    setShare({ link: { url: memberUrl(result.token), name: person.name, email: person.email ?? null, hasPin: result.hasPin, personName }, fresh: false })
                   }
                   onNewLink={(result) => linkReady(result, null, false)}
                   onChanged={(result) => {
@@ -323,7 +306,7 @@ function AddPerson({ circleId, onDone, onCancel }: { circleId: string; onDone: (
   );
 }
 
-/** A person's small profile: share, new link, remove. What they see, their role and renewing sit under More. */
+/** A person's small profile: share their link, new link, remove. What they see and their role sit under More. */
 function Profile({
   circleId,
   person,
@@ -333,7 +316,7 @@ function Profile({
 }: {
   circleId: string;
   person: PersonView;
-  onShare: (saved: { url: string }) => void;
+  onShare: (link: { token: string; hasPin: boolean }) => void;
   onNewLink: (result: Saved) => Promise<void>;
   onChanged: (result: Saved) => void;
 }) {
@@ -341,7 +324,8 @@ function Profile({
   const [hidden, setHidden] = useState<VisibilityArea[]>((person.hidden ?? []) as VisibilityArea[]);
   const [confirm, setConfirm] = useState<"link" | "remove" | null>(null);
   const [pending, start] = useTransition();
-  const saved = loadLink(circleId, person.id);
+  const [problem, setProblem] = useState<string | null>(null);
+  const ended = Boolean(person.expiresAt && new Date(person.expiresAt).getTime() <= Date.now());
   const first = person.name.trim().split(/\s+/)[0] || person.name;
   const removed = Boolean(person.revokedAt);
 
@@ -356,18 +340,35 @@ function Profile({
     <div className="space-y-4 border-t border-border-200 bg-surface-50 px-4 py-4">
       {removed ? (
         <p className="text-[14px] text-ink-500">{first}&apos;s link was turned off. Make a new link to let them back in; the old one stays off.</p>
-      ) : !saved ? (
-        <p className="text-[14px] text-ink-500">This device does not have {first}&apos;s link. Make a new link to share it; the old one then stops working.</p>
+      ) : ended ? (
+        <p className="text-[14px] text-ink-500">{first}&apos;s link has ended. Make a new link and send it to them.</p>
+      ) : null}
+      {problem ? (
+        <p role="alert" className="rounded-xl bg-attn-bg px-3 py-2 text-[14px] text-attn-ink">
+          {problem}
+        </p>
       ) : null}
 
       <div className="grid gap-2 sm:grid-cols-3">
-        {saved && !removed ? (
-          <button type="button" onClick={() => onShare(saved)} className={`${action} bg-primary-700 text-white hover:bg-primary-900`}>
+        {!removed && !ended ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              start(async () => {
+                setProblem(null);
+                const result = await memberLinkAction({ circleId, memberId: person.id });
+                if (result.ok) onShare({ token: result.token, hasPin: result.hasPin });
+                else setProblem(result.error);
+              })
+            }
+            className={`${action} bg-primary-700 text-white hover:bg-primary-900`}
+          >
             <Share2 className="size-5" aria-hidden="true" /> Share
           </button>
         ) : null}
         {confirm === "link" ? null : (
-          <button type="button" disabled={pending} onClick={() => (saved && !removed ? setConfirm("link") : run(() => newLinkAction({ circleId, memberId: person.id }), onNewLink))} className={`${action} border border-border-200 bg-white text-primary-700 hover:bg-sky-100`}>
+          <button type="button" disabled={pending} onClick={() => (!removed && !ended ? setConfirm("link") : run(() => newLinkAction({ circleId, memberId: person.id }), onNewLink))} className={`${action} border border-border-200 bg-white text-primary-700 hover:bg-sky-100`}>
             <Link2 className="size-5" aria-hidden="true" /> New link
           </button>
         )}
@@ -401,10 +402,7 @@ function Profile({
               onClick={() =>
                 run(
                   () => revokeMemberAction({ circleId, memberId: person.id }),
-                  (result) => {
-                    if (result.ok) forgetLink(circleId, person.id);
-                    onChanged(result);
-                  },
+                  (result) => onChanged(result),
                 )
               }
               className={`${action} border-2 border-attn bg-white text-attn-ink hover:bg-attn-bg`}
@@ -420,7 +418,7 @@ function Profile({
 
       {!removed ? (
         <details className="rounded-xl border border-border-200 bg-white p-3">
-          <summary className="min-h-8 cursor-pointer text-[15px] font-semibold text-ink-900">More: what {first} sees, role, 90 more days</summary>
+          <summary className="min-h-8 cursor-pointer text-[15px] font-semibold text-ink-900">More: what {first} sees, role, when the link ends</summary>
           <div className="mt-4 space-y-5">
             <WhatCanSee name={person.name} hidden={hidden} setHidden={setHidden} />
             <button
@@ -448,10 +446,12 @@ function Profile({
                 </button>
               </div>
             </div>
-            <button type="button" disabled={pending} onClick={() => run(() => renewMemberAction({ circleId, memberId: person.id }))} className={`${action} w-full border border-border-200 bg-white text-ink-900 hover:bg-paper-100`}>
-              Keep the link working 90 more days
-            </button>
-            {person.expiresAt ? <p className="text-[13px] text-ink-500">The link works until {dateTime(person.expiresAt)}, and each visit extends it.</p> : null}
+            {person.expiresAt ? (
+              <p className="text-[13px] text-ink-500">
+                The link works until {dateTime(person.expiresAt)}. A link stops after {LINK_IDLE_DAYS} days without being opened, and always {LINK_MAX_DAYS} days after it was made. Then
+                tap New link and send it.
+              </p>
+            ) : null}
           </div>
         </details>
       ) : null}

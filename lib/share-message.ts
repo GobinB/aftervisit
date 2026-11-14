@@ -1,25 +1,30 @@
 import type { HelperRole, VisibilityArea } from "@/lib/schema/circles";
 
-/** `afterVisit` is for the message sent after a visit summary: it says the circle changed and that this link replaces the old one. */
-export type ShareDetails = { name: string; personName?: string; url: string; pin?: string | null; afterVisit?: boolean };
+/**
+ * `changed` is for the message sent after the caregiver changes something: it says what changed
+ * ("medicines and the calendar"). The link is the same one the person already has.
+ * `hasPin`: the person has a PIN, which is never shown again, so the message only reminds them of it.
+ */
+export type ShareDetails = { name: string; personName?: string; url: string; pin?: string | null; hasPin?: boolean; changed?: string };
 
-/** The ready-written message for a person's link. The PIN goes in it when there is one. */
-export function shareMessage({ name, personName, url, pin, afterVisit }: ShareDetails): { subject: string; body: string } {
+/** The ready-written message for a person's link. A new PIN goes in it; an existing one is only mentioned. */
+export function shareMessage({ name, personName, url, pin, hasPin, changed }: ShareDetails): { subject: string; body: string } {
   const first = name.trim().split(/\s+/)[0] || name.trim();
   const circle = personName ? `${personName}'s care circle` : "our care circle";
   const lines = [
     `Hi ${first},`,
     "",
-    afterVisit
-      ? `I updated ${circle} on All Hands Care after a visit. This is your new link to see what changed. Your old link no longer works.`
+    changed
+      ? `I updated ${circle} on All Hands Care: ${changed} changed. Have a look here (it is the same link as before):`
       : `This is your own link to ${circle} on All Hands Care. It shows the calendar, reminders and other things I have shared with you.`,
     "",
     url,
   ];
   if (pin) lines.push("", `Your PIN is ${pin}.`);
-  lines.push("", "Tip: open it on your phone and add it to your Home Screen to find it again.");
+  else if (hasPin) lines.push("", "Use the same PIN as before.");
+  if (!changed) lines.push("", "Tip: open it on your phone and add it to your Home Screen to find it again.");
   const subject = personName ? `${personName}'s care circle` : "Your care circle link";
-  return { subject: afterVisit ? `${subject}: new after a visit` : subject, body: lines.join("\n") };
+  return { subject: changed ? `${subject}: ${changed} changed` : subject, body: lines.join("\n") };
 }
 
 export function mailtoHref(email: string | null | undefined, details: ShareDetails): string {

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { openMemberLink } from "@/app/actions/enter";
 import { Button } from "@/components/ui/Button";
 import { PinInput } from "@/components/ui/PinInput";
-import { captureHelperKeyFromLocation } from "@/lib/crypto/session";
+import { stripLinkHash } from "@/lib/crypto/session";
 
 /** PIN gate for a member link. The app never sends the PIN. */
 export function OpenMemberLink({ token, mode, lockedMessage }: { token: string; mode: "pin" | "ready"; lockedMessage?: string }) {
@@ -14,7 +14,7 @@ export function OpenMemberLink({ token, mode, lockedMessage }: { token: string; 
   const [pending, start] = useTransition();
 
   useEffect(() => {
-    captureHelperKeyFromLocation(token);
+    stripLinkHash();
     if (mode === "ready" && !lockedMessage) form.current?.requestSubmit();
   }, [mode, lockedMessage, token]);
 

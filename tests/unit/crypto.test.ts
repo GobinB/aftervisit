@@ -1,5 +1,4 @@
 import { describe, expect, test } from "vitest";
-import { buildHelperLink, helperLinkForServer, parseLinkKey } from "@/lib/crypto/link";
 import { decryptFile, encryptFile, exportKeyBytes, generateFileKey, importCircleKey, unwrapFileKey, wrapFileKey } from "@/lib/crypto/keys";
 import { AddMemberSchema, CreateCircleSchema, HELD_CIRCLE_KEY, OpenMemberLinkSchema } from "@/lib/schema/circles";
 
@@ -35,22 +34,7 @@ describe("file keys", () => {
   });
 });
 
-describe("helper links", () => {
-  test("the key is only in the hash", async () => {
-    const raw = await exportKeyBytes(await randomCircleKey());
-    const link = buildHelperLink("https://aftervisit.example", TOKEN, raw);
-    const url = new URL(link);
-    expect(url.origin).toBe("https://aftervisit.example");
-    expect(url.pathname).toBe(`/i/${TOKEN}`);
-    expect(url.search).toBe("");
-    expect(url.hash.startsWith("#k=")).toBe(true);
-    expect(helperLinkForServer(link)).toBe(`https://aftervisit.example/i/${TOKEN}`);
-    expect(helperLinkForServer(link).includes(url.hash.slice(3))).toBe(false);
-    expect(parseLinkKey(url.hash)).toEqual(raw);
-    expect(parseLinkKey("")).toBeNull();
-    expect(parseLinkKey("#k=aaaa")).toBeNull();
-  });
-
+describe("what server actions accept", () => {
   test("server actions accept only their own fields: no key on a link, no words anywhere", () => {
     const circleId = "22222222-2222-4222-8222-222222222222";
     const content = { person_name: "Margaret Ward" };

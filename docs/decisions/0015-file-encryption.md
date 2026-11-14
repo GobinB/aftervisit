@@ -25,7 +25,7 @@ A summary saved before `0015` has no key columns. Its files are plain and are se
 
 Only the held form (`av2`) can be stored (migration `0018`). Nothing can move `key_version` or replace a circle's key: the earlier functions for that (`rotate_own_circle_key`, `reset_own_circle_key`, and a `create_circle` that took a key from the browser) were removed.
 
-**Helper links** are `/i/{token}#k=...`. The server only creates and stores the token hash. The fragment is not sent to the server. The link page reads `#k=` in the browser, keeps it in the tab, and removes it from the address bar. A link without `#k=` still opens the circle, and making a link never fails because the key could not be had. Saved visit summaries are for the caregiver only, so a helper link has no file to open with the key. The PIN protects server access. It does not wrap or hide the key. Anyone who has a helper link therefore has the circle key. Through the app that opens nothing, but together with a copy of both the database and file storage it would open that circle's saved files.
+**Helper links** do not carry the circle key: a link is `/i/{token}` alone (decision 0003). Saved visit summaries are for the caregiver only, so helpers have no file to open.
 
 What this does not cover: the text read from a summary passes through the server to build the draft (it is not saved), and the confirmed medications, reminders and events are stored unencrypted (decision 0007).
 

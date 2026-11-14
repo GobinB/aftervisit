@@ -35,7 +35,7 @@ vi.mock("@/lib/crypto/idb", () => ({
 }));
 
 const { ensureCircleKey } = await import("@/components/circles/circle-key");
-const { urlForMemberToken } = await import("@/components/circles/member-link");
+const { memberUrl } = await import("@/components/circles/member-link");
 const { openCircleKeyAction } = await import("@/app/actions/circle-keys");
 const { clearCircleKeys } = await import("@/lib/crypto/idb");
 const { createDocumentAction } = await import("@/app/actions/documents");
@@ -45,7 +45,6 @@ const { generateFileKey, importCircleKey, unwrapFileKey, wrapFileKey } = await i
 const { exportKeyBytes } = await import("@/lib/crypto/export");
 const { bytesToBase64Url } = await import("@/lib/crypto/bytes");
 const { openPage, sealPage } = await import("@/lib/crypto/pages");
-const { parseLinkKey } = await import("@/lib/crypto/link");
 const { openCircleKey: openStored, sealCircleKey } = await import("@/lib/key-custody");
 const { fileKind } = await import("@/lib/schema/documents");
 
@@ -159,23 +158,13 @@ describe("no recovery words", () => {
     expect(a.ok && b.ok && a.key === b.key).toBe(true);
   });
 
-  test("making a person's link gives the circle its key, and the link carries it after #", async () => {
+  test("a person's link never carries the circle key", async () => {
     newCircle();
     signedIn = owner;
-    const built = await urlForMemberToken(CIRCLE, "abcdefghijklmnopqrstuvwx", await known());
-    expect(built.withKey).toBe(true);
-    const url = new URL(built.url);
-    expect(url.pathname).toBe("/i/abcdefghijklmnopqrstuvwx");
-    expect(parseLinkKey(url.hash)).toEqual(openStored(stored().circle_key_wrapped!, CIRCLE, 1));
-  });
-
-  test("when the key cannot be had, a person's link is still made, without it", async () => {
-    newCircle();
-    signedIn = owner;
-    env.circleKeySecret = "";
-    const built = await urlForMemberToken(CIRCLE, "abcdefghijklmnopqrstuvwx", await known());
-    expect(built).toEqual({ ok: true, url: "https://allhandscare.example/i/abcdefghijklmnopqrstuvwx", withKey: false });
-    env.circleKeySecret = "test-secret-for-circle-keys-0123456789-abcdefghijklmnop";
+    await ensureCircleKey(CIRCLE, await known());
+    const url = new URL(memberUrl("abcdefghijklmnopqrstuvwx"));
+    expect(url.href).toBe("https://allhandscare.example/i/abcdefghijklmnopqrstuvwx");
+    expect(url.hash).toBe("");
   });
 });
 
