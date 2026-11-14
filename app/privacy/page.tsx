@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Privacy" };
 export const dynamic = "force-dynamic";
 
 const TTL_DAYS = Number(process.env.HANDOFF_TTL_DAYS || 30);
-const EFFECTIVE = "November 11, 2026";
+const EFFECTIVE = "November 13, 2026";
 
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
@@ -23,10 +23,14 @@ const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
 const SECTIONS = [
   { id: "who", title: "Who we are" },
   { id: "collect", title: "Information we collect" },
+  { id: "read", title: "What we can and cannot read" },
   { id: "use", title: "How we use it" },
   { id: "see", title: "Who can see it" },
+  { id: "share", title: "When we share information" },
   { id: "services", title: "Services we use" },
+  { id: "where", title: "Where information is kept" },
   { id: "keep", title: "How long we keep it" },
+  { id: "cookies", title: "Cookies" },
   { id: "choices", title: "Your choices" },
   { id: "rights", title: "Your rights" },
   { id: "others", title: "Information about other people" },
@@ -145,6 +149,26 @@ export default function PrivacyPage() {
                   </ul>
                 </section>
 
+                <section id="read">
+                  <h3>What we can and cannot read</h3>
+                  <ul>
+                    <li>
+                      <strong>We cannot read</strong> saved photos and PDFs of visit summaries. They are end-to-end encrypted: your device
+                      encrypts them before they are sent, with a key made on your device and protected by your 12 recovery words. We never
+                      receive the key or the words, so we cannot open those files, and if the words are lost we cannot recover them.
+                    </li>
+                    <li>
+                      <strong>We can read</strong> the rest of a circle: the care summary, medications, reminders, calendar, and the names and
+                      roles of the people you add. Our server has to read these to show each person their part. They are protected by the
+                      access rules described under Security.
+                    </li>
+                    <li>
+                      <strong>Passing through.</strong> The text of a visit summary reaches our server while the draft is built. It is not
+                      saved.
+                    </li>
+                  </ul>
+                </section>
+
                 <section id="use">
                   <h3>How we use it</h3>
                   <p>Only to run All Hands Care for you and the people you choose. We do not sell it, rent it, or use it for advertising.</p>
@@ -174,11 +198,53 @@ export default function PrivacyPage() {
                   </ul>
                 </section>
 
+                <section id="share">
+                  <h3>When we share information</h3>
+                  <p>We share information outside All Hands Care only in these cases:</p>
+                  <ul>
+                    <li>
+                      <strong>With the services listed below,</strong> so they can host the site, store the information and sign you in.
+                    </li>
+                    <li>
+                      <strong>When the law requires it,</strong> such as a court order or another valid legal demand. We give only what the
+                      demand covers and, where the law allows, we tell the caregiver first. We cannot hand over what we cannot read: saved
+                      photos and PDFs stay encrypted with your key.
+                    </li>
+                    <li>
+                      <strong>To protect someone&apos;s safety,</strong> if we believe in good faith that it is needed to prevent serious
+                      harm.
+                    </li>
+                    <li>
+                      <strong>If someone else takes over running All Hands Care.</strong> This policy would still apply to your information,
+                      and we would tell caregivers before that happens.
+                    </li>
+                  </ul>
+                </section>
+
                 <section id="services">
                   <h3>Services we use</h3>
                   <ul>
-                    <li>Vercel hosts the site. Supabase stores the information and saved photos, in the United States, encrypted at rest.</li>
-                    <li>Google provides sign-in for caregivers.</li>
+                    <li>
+                      <strong>Vercel</strong> hosts the site (
+                      <a className="text-primary-700 underline" href="https://vercel.com/legal/privacy-policy" target="_blank" rel="noreferrer">
+                        privacy policy
+                      </a>
+                      ).
+                    </li>
+                    <li>
+                      <strong>Supabase</strong> stores the information and saved photos, encrypted at rest, and runs sign-in (
+                      <a className="text-primary-700 underline" href="https://supabase.com/privacy" target="_blank" rel="noreferrer">
+                        privacy policy
+                      </a>
+                      ).
+                    </li>
+                    <li>
+                      <strong>Google</strong> provides sign-in for caregivers (
+                      <a className="text-primary-700 underline" href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">
+                        privacy policy
+                      </a>
+                      ).
+                    </li>
                     <li>
                       Visit summary drafts are built by <strong>{provider.label}</strong>.
                       {provider.thirdParty ? (
@@ -206,7 +272,16 @@ export default function PrivacyPage() {
                     </li>
                     <li>Vercel Web Analytics counts page visits without cookies.</li>
                     <li>These companies handle information only to provide their service to us. We do not sell or share it with anyone else.</li>
+                    <li>All Hands Care links to a few other sites. What happens there follows their privacy terms, not this policy.</li>
                   </ul>
+                </section>
+
+                <section id="where">
+                  <h3>Where information is kept</h3>
+                  <p>
+                    All Hands Care is run from the United States, and the information is stored there. If you use it from another country,
+                    your information is sent to and kept in the United States, where privacy laws may differ from those where you live.
+                  </p>
                 </section>
 
                 <section id="keep">
@@ -220,11 +295,16 @@ export default function PrivacyPage() {
                     <li>Our database provider keeps backup copies for up to 7 days, so erased information leaves the backups within a week.</li>
                     <li>A shared visit summary (handoff) is deleted {TTL_DAYS} days after it is made, with any attached original.</li>
                     <li>A helper&apos;s browser stays signed in to a circle for up to {MEMBER_TTL_DAYS} days after they last open it.</li>
-                    <li>
-                      Cookies are used only to run the site: to keep you signed in, to keep a helper&apos;s link open on their phone, to remember
-                      which circle you opened last, and for a few minutes while Google sign-in finishes. None are used for ads or tracking.
-                    </li>
                   </ul>
+                </section>
+
+                <section id="cookies">
+                  <h3>Cookies</h3>
+                  <p>
+                    Cookies are used only to run the site: to keep you signed in, to keep a helper&apos;s link open on their phone, to remember
+                    which circle you opened last, and for a few minutes while Google sign-in finishes. None are used for ads or tracking,
+                    and page visits are counted without cookies.
+                  </p>
                 </section>
 
                 <section id="choices">
@@ -276,11 +356,13 @@ export default function PrivacyPage() {
                   <p>
                     Information is encrypted between your device and the site, and stored encrypted by our database provider. For
                     caregivers, the database itself walls each circle off from every other. People with a link reach a circle only through our
-                    server, which checks on every request what their role and your choices let them see. Saved photos and PDFs of visit summaries are end-to-end encrypted: your device encrypts them before they are sent, with a key
-                    made on your device and protected by your 12 recovery words. We never receive the key or the words, so we cannot open
-                    those files, and if the words are lost we cannot recover them. The rest of a circle (the care summary, medications,
-                    reminders and calendar) is not encrypted this way, because our server has to read it to show each person their part. No system is
-                    perfectly secure, and All Hands Care has not yet completed a formal review. The code is open source, so anyone can{" "}
+                    server, which checks on every request what their role and your choices let them see. Saved photos and PDFs of visit
+                    summaries are end-to-end encrypted, as described under{" "}
+                    <a className="text-primary-700 underline" href="#read">
+                      What we can and cannot read
+                    </a>
+                    ; the rest of a circle is not encrypted that way. No system is perfectly secure, and All Hands Care has not yet completed a
+                    formal review. The code is open source, so anyone can{" "}
                     <a className="text-primary-700 underline" href={SOURCE_URL} target="_blank" rel="noreferrer">
                       read how it works
                     </a>
@@ -310,6 +392,11 @@ export default function PrivacyPage() {
                   <p>
                     If this policy changes, we will update the date above and say what changed. Before a big change, we will show a notice in
                     the app. All Hands Care organizes what you and the clinician wrote; it does not give medical advice.
+                  </p>
+                  <p>
+                    <strong>Latest change, {EFFECTIVE}:</strong> new sections on what we can and cannot read, when we share information,
+                    where information is kept, and cookies; links to the privacy policies of the services we use. How we handle
+                    information did not change.
                   </p>
                 </section>
 
