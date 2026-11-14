@@ -160,14 +160,18 @@ export async function deleteDocument(actor: Actor, circleId: string, id: string)
   return { ok: true };
 }
 
-/** How many encrypted summaries a circle has. Null when the count could not be read. */
+/**
+ * How many encrypted summaries a circle has with at least one page kept, which is what the
+ * caregiver sees listed. Null when the count could not be read.
+ */
 export async function countEncryptedDocuments(actor: Actor, circleId: string): Promise<number | null> {
   if (!isCaregiver(actor, circleId)) return null;
   const { count, error } = await clientFor(actor)
     .from("visit_documents")
     .select("id", { count: "exact", head: true })
     .eq("circle_id", circleId)
-    .not("file_key_wrapped", "is", null);
+    .not("file_key_wrapped", "is", null)
+    .neq("paths", "{}");
   if (error || count == null) return null;
   return count;
 }

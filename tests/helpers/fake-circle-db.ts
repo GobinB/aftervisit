@@ -72,6 +72,12 @@ class Query {
     this.filters.push((row) => row[column] === value);
     return this;
   }
+  /** Only `.neq("paths", "{}")` is used by the code under test: rows with at least one path. */
+  neq(column: string, value: string) {
+    if (value !== "{}") throw new Error("unsupported filter");
+    this.filters.push((row) => Array.isArray(row[column]) && (row[column] as unknown[]).length > 0);
+    return this;
+  }
   is(column: string, value: null) {
     this.filters.push((row) => (row[column] ?? null) === value);
     return this;
@@ -163,7 +169,7 @@ function resetOwnCircleKey(state: FakeState, userId: string | null, args: { p_ci
   circle.key_version = args.p_version;
   own.circle_key_wrapped = args.p_wrapped;
   own.key_version = args.p_version;
-  if (gone.length) state.activity.push({ circle_id: args.p_circle, action: "circle_key_reset" });
+  if (gone.some((row) => row.paths.length)) state.activity.push({ circle_id: args.p_circle, action: "circle_key_reset" });
   return { data: gone.flatMap((row) => row.paths), error: null };
 }
 

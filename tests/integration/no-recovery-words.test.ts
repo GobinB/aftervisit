@@ -288,7 +288,7 @@ describe("a circle that had recovery words", () => {
     const asked = await ensureCircleKey(CIRCLE);
     if (asked.ok || asked.reason !== "words") throw new Error("expected the words to be asked for");
 
-    expect(await openOldKeyWithWords(CIRCLE, asked.old, "legal winner thank year wave sausage worth useful legal winner thank yellow")).toMatchObject({ ok: false, reason: "failed", error: "Those words did not open the saved photos." });
+    expect(await openOldKeyWithWords(CIRCLE, asked.old, "legal winner thank year wave sausage worth useful legal winner thank yellow")).toMatchObject({ ok: false, reason: "failed", error: "Those words did not open the saved summaries." });
     expect(await openOldKeyWithWords(CIRCLE, asked.old, "abandon about")).toMatchObject({ ok: false, error: "Enter all 12 words." });
     expect(stored().circle_key_wrapped).toBe(WORDS_WRAPPED);
 
@@ -335,7 +335,7 @@ describe("a circle that had recovery words", () => {
     if (!first.ok) throw new Error("expected a key");
     const documentId = await keepPhoto(first.key, first.keyVersion);
     const refused = await startFreshCircleKeyAction(CIRCLE);
-    expect(refused).toEqual({ ok: false, error: "Saved photos in this circle can be opened, so nothing was removed." });
+    expect(refused).toEqual({ ok: false, error: "Saved summaries in this circle can be opened, so nothing was removed." });
     expect(state.visit_documents.map((row) => row.id)).toEqual([documentId]);
     expect(state.storage.size).toBe(1);
   });
@@ -343,9 +343,12 @@ describe("a circle that had recovery words", () => {
   test("when nothing was ever saved with the old key, a new one replaces it and nothing is asked", async () => {
     newCircle(WORDS_WRAPPED);
     signedIn = owner;
+    // A summary that was started but never got a page (the upload failed) is not something to ask about.
+    state.visit_documents.push({ id: "empty-doc", circle_id: CIRCLE, visit_date: null, clinic: null, kind: "photos", page_count: 2, paths: [], created_at: "2026-11-10T00:00:00Z", key_version: 1, file_key_wrapped: "A".repeat(64), file_key_iv: "C".repeat(16) });
     const result = await ensureCircleKey(CIRCLE);
     expect(result).toMatchObject({ ok: true, keyVersion: 2 });
     expect(stored().circle_key_wrapped).toMatch(/^av2\./);
+    expect(state.visit_documents).toEqual([]);
     expect(state.activity).toEqual([]);
   });
 });

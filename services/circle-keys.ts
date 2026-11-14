@@ -16,8 +16,8 @@ import { clientFor } from "@/store/db";
  * Keys are returned to the caller and never logged.
  */
 
-const unavailable = "Saved photos cannot be opened right now. Try again in a little while.";
-const notYours = "Only the caregiver can open saved photos.";
+const unavailable = "Saved summaries cannot be opened right now. Try again in a little while.";
+const notYours = "Only the caregiver can open saved summaries.";
 const notFound = "That circle was not found.";
 
 type Caregiver = Extract<Actor, { kind: "caregiver" }>;
@@ -178,12 +178,12 @@ export async function startFreshCircleKey(
   actor: Actor,
   circleId: string,
 ): Promise<{ ok: true; key: string; keyVersion: number } | { ok: false; error: string }> {
-  const failed = "The saved photos could not be removed. Nothing was changed. Try again.";
+  const failed = "The saved summaries could not be removed. Nothing was changed. Try again.";
   if (!isKeyHolder(actor, circleId)) return { ok: false, error: notYours };
   if (!canHoldKeys()) return { ok: false, error: unavailable };
   const stored = await readStored(actor, circleId);
   if (!stored) return { ok: false, error: notFound };
-  if (stateOf(stored) !== "words") return { ok: false, error: "Saved photos in this circle can be opened, so nothing was removed." };
+  if (stateOf(stored) !== "words") return { ok: false, error: "Saved summaries in this circle can be opened, so nothing was removed." };
   // Files first, then the rows and the key in one transaction, so nothing is left that the app cannot reach.
   const paths = await listEncryptedPaths(actor, circleId);
   if (!paths || !(await removeStoredPages(actor, circleId, paths))) return { ok: false, error: failed };

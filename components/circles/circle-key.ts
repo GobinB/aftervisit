@@ -59,7 +59,7 @@ async function keep(circleId: string, encoded: string, keyVersion: number): Prom
     await saveCircleKey(circleId, key, keyVersion).catch(() => undefined);
     return { ok: true, key, keyVersion };
   } catch {
-    return { ok: false, reason: "failed", error: "Saved photos cannot be opened in this browser." };
+    return { ok: false, reason: "failed", error: "Saved summaries cannot be opened in this browser." };
   }
 }
 
@@ -75,20 +75,20 @@ async function handOver(circleId: string, key: CryptoKey, keyVersion: number): P
 
 /** "I still have my words": opens the old key with them on this device, then hands the key over. The words are not sent. */
 export async function openOldKeyWithWords(circleId: string, old: OldKey, words: string): Promise<CircleKeyResult> {
-  if (!old.wrapped) return { ok: false, reason: "failed", error: "Those words cannot open this circle's saved photos any more." };
+  if (!old.wrapped) return { ok: false, reason: "failed", error: "Those words cannot open this circle's saved summaries any more." };
   let key: CryptoKey;
   try {
     key = await openWithWords(old.wrapped, words);
   } catch (caught) {
-    const message = caught instanceof Error && /12 words|did not open/.test(caught.message) ? caught.message : "Those words did not open the saved photos.";
+    const message = caught instanceof Error && /12 words|did not open/.test(caught.message) ? caught.message : "Those words did not open the saved summaries.";
     return { ok: false, reason: "failed", error: message };
   }
-  if (!(await handOver(circleId, key, old.keyVersion))) return { ok: false, reason: "failed", error: "The words are right, but the photos could not be opened just now. Try again." };
+  if (!(await handOver(circleId, key, old.keyVersion))) return { ok: false, reason: "failed", error: "The words are right, but the summaries could not be opened just now. Try again." };
   await saveCircleKey(circleId, key, old.keyVersion).catch(() => undefined);
   return { ok: true, key, keyVersion: old.keyVersion };
 }
 
-/** "Start fresh": the saved photos that need the lost words are removed, and the circle gets a new key. */
+/** "Start fresh": the saved summaries that need the lost words are removed, and the circle gets a new key. */
 export async function startFresh(circleId: string): Promise<CircleKeyResult> {
   let result: Awaited<ReturnType<typeof startFreshCircleKeyAction>>;
   try {

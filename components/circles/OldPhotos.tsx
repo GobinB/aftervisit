@@ -9,9 +9,9 @@ const plain = "inline-flex min-h-12 items-center justify-center rounded-lg borde
 const quiet = "inline-flex min-h-12 items-center justify-center rounded-lg px-4 text-[15px] font-semibold text-ink-500 hover:bg-paper-100 disabled:opacity-50";
 
 /**
- * The one place recovery words are still mentioned. Shown only for a circle whose saved photos
+ * The one place recovery words are still mentioned. Shown only for a circle whose saved summaries
  * were locked with 12 words, on a device that does not have the key, when no other device has
- * handed it over. Two ways on: type the words once, or remove those photos and start fresh.
+ * handed it over. Two ways on: type the words once, or remove those summaries and start fresh.
  */
 export function OldPhotos({ circleId, old, onReady }: { circleId: string; old: OldKey; onReady: () => void }) {
   const baseId = useId();
@@ -36,7 +36,7 @@ export function OldPhotos({ circleId, old, onReady }: { circleId: string; old: O
         setWords("");
         onReady();
       } else {
-        setError(result.reason === "failed" ? result.error : "Those words did not open the saved photos.");
+        setError(result.reason === "failed" ? result.error : "Those words did not open the saved summaries.");
       }
     });
   }
@@ -46,7 +46,7 @@ export function OldPhotos({ circleId, old, onReady }: { circleId: string; old: O
     start(async () => {
       const result = await startFresh(circleId);
       if (result.ok) onReady();
-      else setError(result.reason === "failed" ? result.error : "The saved photos could not be removed. Try again.");
+      else setError(result.reason === "failed" ? result.error : "The saved summaries could not be removed. Try again.");
     });
   }
 
@@ -57,7 +57,7 @@ export function OldPhotos({ circleId, old, onReady }: { circleId: string; old: O
         {many ? `${old.savedFiles} visit summaries saved before cannot be opened here` : "A visit summary saved before cannot be opened here"}
       </h2>
       <p className="mt-1 text-[14px] text-ink-500">
-        {many ? "Their photos were" : "Its photos were"} locked with 12 words that were shown once and never stored by All Hands Care. Without those words nobody can open {them}.
+        {many ? "They were" : "It was"} locked with 12 words that were shown once and never stored by All Hands Care. Without those words nobody can open {them}.
         Medications, reminders and the calendar are not affected.
       </p>
       {error ? (
@@ -102,11 +102,11 @@ export function OldPhotos({ circleId, old, onReady }: { circleId: string; old: O
               maxLength={300}
               className="mt-1.5 min-h-24 w-full rounded-lg border border-border-200 bg-white px-3 py-2 text-[16px] text-ink-900 outline-none focus:border-action-500"
             />
-            <p className="mt-1 text-[13px] text-ink-500">You only do this once. All Hands Care then keeps the key, so the photos open on any device when you sign in.</p>
+            <p className="mt-1 text-[13px] text-ink-500">You only do this once. All Hands Care then keeps the key, so they open on any device when you sign in.</p>
           </div>
           <div className="flex flex-wrap gap-2">
             <button type="submit" className={primary} disabled={pending} aria-busy={pending}>
-              {pending ? "Opening" : "Open my saved photos"}
+              {pending ? "Opening" : "Open my saved summaries"}
             </button>
             <button type="button" className={quiet} onClick={back} disabled={pending}>
               Back

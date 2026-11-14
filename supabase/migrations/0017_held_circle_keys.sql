@@ -126,7 +126,8 @@ begin
        and d.file_key_wrapped is not null
     returning d.id, d.paths
   )
-  select count(distinct g.id)::int,
+  -- Counted for the activity note: only summaries that had a page, which are the ones the caregiver saw listed.
+  select count(distinct g.id) filter (where u.path is not null)::int,
          coalesce(array_agg(u.path) filter (where u.path is not null), '{}'::text[])
     into v_removed, v_paths
     from gone g

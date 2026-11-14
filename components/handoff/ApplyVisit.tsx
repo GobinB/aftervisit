@@ -183,7 +183,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
     try {
       const found = await ensureCircleKey(circleId, context.key);
       if (!found.ok) {
-        setKept({ status: "failed", error: found.reason === "failed" ? found.error : "Photos saved before need a choice from you first. Open Saved visit summaries, then scan this one again." });
+        setKept({ status: "failed", error: found.reason === "failed" ? found.error : "Summaries saved before need a choice from you first. Open Saved visit summaries, then scan this one again." });
         return;
       }
       fileKey = await generateFileKey();

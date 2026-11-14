@@ -56,7 +56,7 @@ export async function openWithWords(packed: string, words: string): Promise<Cryp
   try {
     return await crypto.subtle.unwrapKey("raw", asBuffer(wrapped), wrapping, { name: "AES-GCM", iv: asBuffer(iv) }, AES, true, CIRCLE_USES);
   } catch {
-    throw new Error("Those words did not open the saved photos.");
+    throw new Error("Those words did not open the saved summaries.");
   }
 }
 
