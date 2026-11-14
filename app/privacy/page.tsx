@@ -12,6 +12,8 @@ export const dynamic = "force-dynamic";
 
 const TTL_DAYS = Number(process.env.HANDOFF_TTL_DAYS || 30);
 const EFFECTIVE = "November 13, 2026";
+/** The policy changed when OpenAI started reading visit summaries. Shown only while it does. */
+const READER_EFFECTIVE = "November 14, 2026";
 
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
@@ -43,6 +45,9 @@ const SECTIONS = [
 
 export default function PrivacyPage() {
   const provider = providerDisclosure();
+  // OpenAI reads the photos, PDF or text of a visit summary itself; otherwise photos are read on the phone.
+  const reads = provider.readsPages;
+  const effective = reads ? READER_EFFECTIVE : EFFECTIVE;
   return (
     <PageShell>
       <main id="main" className="flex-1 overflow-x-clip">
@@ -99,7 +104,7 @@ export default function PrivacyPage() {
               <h2 id="policy-title" className="font-display text-[1.9rem] leading-tight text-primary-900">
                 Privacy policy
               </h2>
-              <p className="text-[14px] text-ink-500">Effective {EFFECTIVE}</p>
+              <p className="text-[14px] text-ink-500">Effective {effective}</p>
 
               <div className="mt-8 space-y-9">
                 <section id="who">
@@ -134,10 +139,22 @@ export default function PrivacyPage() {
                       <strong>What people do on their link:</strong> who took or finished a reminder and who said they would go to an event.
                     </li>
                     <li>
-                      <strong>Visit summaries.</strong> Photos are read in your browser; only the text is sent to our server. Pasted text and
-                      PDFs are read on our server. Either way the text is used to build a draft and is not saved: we keep only the items you
-                      confirm. The photos (or PDF) are kept only if you leave &ldquo;Keep the photos&rdquo; on. They are encrypted on your device before they
-                      are sent, and we keep the key so you can open them on any device after you sign in.
+                      {reads ? (
+                        <>
+                          <strong>Visit summaries.</strong> To build a draft, the photos, PDF or pasted text of a visit summary are sent
+                          through our server to {provider.label}, which reads them. We do not store them or the text on the way, and we keep
+                          only the items you confirm. If {provider.label} cannot read them, the photos are read in your browser instead and
+                          only the text is sent to our server.
+                        </>
+                      ) : (
+                        <>
+                          <strong>Visit summaries.</strong> Photos are read in your browser; only the text is sent to our server. Pasted text
+                          and PDFs are read on our server. Either way the text is used to build a draft and is not saved: we keep only the
+                          items you confirm.
+                        </>
+                      )}{" "}
+                      The photos (or PDF) are kept only if you leave &ldquo;Keep the photos&rdquo; on. They are encrypted on your device before
+                      they are sent, and we keep the key so you can open them on any device after you sign in.
                     </li>
                     <li>
                       <strong>Feedback</strong> you send, stored without your name, IP address or any link to your circle.
@@ -180,10 +197,18 @@ export default function PrivacyPage() {
                       people you add) is read by our server to show each person their part. We do not look through it either, except to fix a
                       problem you ask us about or when the law requires it.
                     </li>
-                    <li>
-                      <strong>Passing through.</strong> The text of a visit summary reaches our server while the draft is built. It is not
-                      saved.
-                    </li>
+                    {reads ? (
+                      <li>
+                        <strong>Reading a new scan is a different step.</strong> When you scan a visit summary, the photos (or PDF) go
+                        through our server to {provider.label} once, to be read, before anything is saved. No person looks at them, and our
+                        server does not store them or the text. The promise above is about the photos you choose to keep.
+                      </li>
+                    ) : (
+                      <li>
+                        <strong>Passing through.</strong> The text of a visit summary reaches our server while the draft is built. It is not
+                        saved.
+                      </li>
+                    )}
                   </ul>
                 </section>
 
@@ -269,7 +294,11 @@ export default function PrivacyPage() {
                       {provider.thirdParty ? (
                         <>
                           {" "}
-                          The text of your summary is sent to that service; see its{" "}
+                          {reads ? "The photos, PDF or text of your summary are sent to it to be read." : "The text of your summary is sent to that service."}{" "}
+                          {provider.name === "openai"
+                            ? "Under its terms, OpenAI does not use them to train its models, and may keep them for up to 30 days to check for abuse. "
+                            : ""}
+                          See its{" "}
                           <a className="text-primary-700 underline" href={provider.termsUrl} target="_blank" rel="noreferrer">
                             terms
                           </a>
@@ -282,7 +311,7 @@ export default function PrivacyPage() {
                       whole list and searches it itself, so what you type is not sent to the Library.
                     </li>
                     <li>
-                      To read photos in your browser, it downloads the reading engine from jsDelivr and Project Naptha. They see that a browser
+                      To read photos in your browser{reads ? ` (only when ${provider.label} cannot)` : ""}, it downloads the reading engine from jsDelivr and Project Naptha. They see that a browser
                       asked for the engine (its IP address), never your photos or their text.
                     </li>
                     <li>
@@ -415,8 +444,15 @@ export default function PrivacyPage() {
                     If this policy changes, we will update the date above and say what changed. Before a big change, we will show a notice in
                     the app. All Hands Care organizes what you and the clinician wrote; it does not give medical advice.
                   </p>
+                  {reads ? (
+                    <p>
+                      <strong>Latest change, {READER_EFFECTIVE}:</strong> visit summaries are now read by {provider.label}. The photos, PDF
+                      or pasted text go through our server to {provider.label} to be read, and are not stored by us on the way. Before, photos
+                      were read in your browser and only the text was sent.
+                    </p>
+                  ) : null}
                   <p>
-                    <strong>Latest change, {EFFECTIVE}:</strong> saved photos and PDFs of visit summaries no longer need 12 recovery words.
+                    <strong>{reads ? "Before that" : "Latest change"}, {EFFECTIVE}:</strong> saved photos and PDFs of visit summaries no longer need 12 recovery words.
                     They are still locked on your device before they are sent. All Hands Care now keeps the key, so they open on any device
                     after you sign in and nobody is locked out. Before, only the 12 words could open them; now we are able to, and we have
                     written down that we do not, under{" "}

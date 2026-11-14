@@ -27,6 +27,8 @@ export const MedicationChangeSchema = z.object({
   reason: shortText.optional(), // only if stated in the source
   sourceQuote: itemText.optional(), // the clinic's original sentence; absent when the caregiver added the item
   origin: z.enum(["summary", "caregiver"]).optional(), // "caregiver" when added during review, not from the summary
+  sourcePage: z.number().int().min(1).max(100).optional(), // the page of the summary it came from, when known
+  unreadable: z.array(z.enum(["name", "dose", "instructions"])).max(3).optional(), // what the reader could not read; left blank
   confidence: ConfidenceSchema,
 });
 export type MedicationChange = z.infer<typeof MedicationChangeSchema>;
@@ -45,6 +47,7 @@ export const TaskSchema = z.object({
   assignee: z.string().trim().max(80).optional(), // free text, chosen by caregiver
   sourceQuote: itemText.optional(), // the clinic's original sentence; absent when the caregiver added the item
   origin: z.enum(["summary", "caregiver"]).optional(), // "caregiver" when added during review, not from the summary
+  sourcePage: z.number().int().min(1).max(100).optional(), // the page of the summary it came from, when known
   confidence: ConfidenceSchema,
 });
 export type Task = z.infer<typeof TaskSchema>;
@@ -153,6 +156,8 @@ export type CreateHandoffInput = z.infer<typeof CreateHandoffSchema>;
 export const ExtractTextSchema = z.object({
   text: z.string().min(1).max(100_000),
   patientFirstName: z.string().trim().max(60).optional(),
+  /** "builtin" asks for the built-in parser, used when the phone read the photos after the model could not. */
+  reader: z.enum(["builtin"]).optional(),
 });
 
 /** The view a recipient sees. Never includes hashes, source text or storage paths. */

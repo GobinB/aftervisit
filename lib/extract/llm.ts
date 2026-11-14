@@ -5,6 +5,7 @@ import { z } from "zod";
 import { itemId } from "../parse/util";
 import { HandoffDraftSchema, MED_KINDS, TASK_CATEGORIES, type HandoffDraft } from "../schema";
 import { heuristicProvider } from "./heuristic";
+import { openaiProvider } from "./openai";
 import type { ExtractionProvider, ProviderName } from "./provider";
 
 /**
@@ -116,6 +117,7 @@ function anthropicProvider(): ExtractionProvider {
 
 export function llmProvider(name: ProviderName): ExtractionProvider | null {
   if (name === "anthropic") return anthropicProvider();
-  // openai / gemini can be added here behind the same interface.
+  if (name === "openai") return openaiProvider();
+  // gemini can be added here behind the same interface.
   return null;
 }
