@@ -73,6 +73,10 @@ $$;
 
 revoke all on function public.circle_caregivers_own_key() from public, anon, authenticated, service_role;
 
+-- The table that holds stored keys is for signed-in caregivers only. Row security already showed a
+-- signed-out request no rows; this takes away its permission to ask at all.
+revoke all on public.circle_caregivers from anon;
+
 -- Returns the storage paths of the summaries it removed, so the app can check none is left behind.
 create or replace function public.reset_own_circle_key(p_circle uuid, p_wrapped text, p_version int)
 returns text[]

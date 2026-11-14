@@ -2,7 +2,7 @@
 
 begin;
 
-select plan(9);
+select plan(11);
 
 select is(
   (select coalesce(string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text), '')
@@ -34,6 +34,15 @@ select ok(
 select ok(
   not has_function_privilege('service_role', 'public.rotate_own_circle_key(uuid, text, int, jsonb)', 'execute'),
   'the server cannot change a key'
+);
+
+select ok(
+  has_function_privilege('authenticated', 'public.reset_own_circle_key(uuid, text, int)', 'execute'),
+  'a signed-in caregiver can start their circle fresh'
+);
+select ok(
+  not has_function_privilege('service_role', 'public.reset_own_circle_key(uuid, text, int)', 'execute'),
+  'the server cannot start a circle fresh'
 );
 
 select ok(
