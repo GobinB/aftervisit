@@ -68,9 +68,11 @@ export default function HealthDataPage() {
 
           <h2>Saved photos and PDFs</h2>
           <p>
-            If you keep the photos or PDF of a visit summary, they are encrypted on your device before they are sent, so what is stored is
-            scrambled. All Hands Care keeps the key and hands it to you after you sign in, which is why they open on any device. That means
-            we are technically able to open them. In the app they are shown only to you, the caregiver: the people you add cannot see them.
+            If you keep the photos or PDF of a visit summary, they are locked (encrypted) on your device before they are sent, so only the
+            locked version is stored. The key that opens them is kept apart from them, and All Hands Care hands it to you after you sign
+            in, which is why they open on any device. We are able to open them, and we do not: only if you ask us to, or if a valid legal
+            order requires it, and then we tell you first unless the law forbids it. In the app they are shown only to you, the caregiver:
+            the people you add cannot see them.
           </p>
 
           <h2>Your rights</h2>

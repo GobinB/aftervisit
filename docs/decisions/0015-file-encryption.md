@@ -11,7 +11,7 @@ Saved visit summaries (the photos or the PDF) are the files. They are encrypted 
 - A copy of the database alone opens nothing: it has wrapped keys and no secret.
 - A copy of file storage alone opens nothing: it has ciphertext.
 - A stored key copied onto another circle's row does not open there.
-- All Hands Care, which has both the database and the secret, is technically able to open saved files. The privacy page says so. This is not end-to-end encryption.
+- All Hands Care, which has both the database and the secret, is technically able to open saved files. This is not end-to-end encryption. The privacy page says so, and commits that we do not open them except at the caregiver's request or under a valid legal order, telling the caregiver first unless the law forbids it.
 
 If `CIRCLE_KEY_SECRET` is lost or replaced, stored keys no longer open and saved files cannot be recovered by anyone. The server never replaces a key it fails to open.
 
