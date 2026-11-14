@@ -1,11 +1,12 @@
 import { extractText, getDocumentProxy } from "unpdf";
 import { json } from "@/lib/access";
+import { getActor } from "@/lib/auth";
 import { COPY } from "@/lib/copy";
 import { env, RATE_LIMITS } from "@/lib/env";
 import { heuristicProvider } from "@/lib/extract/heuristic";
-import { getProvider, type PageFile } from "@/lib/extract/provider";
+import { getProvider, type ExtractionProvider, type PageFile } from "@/lib/extract/provider";
 import { isUnsorted } from "@/lib/parse";
-import { checkRateLimit } from "@/lib/ratelimit";
+import { checkDailyLimit, checkRateLimit } from "@/lib/ratelimit";
 import { ExtractTextSchema, type HandoffDraft } from "@/lib/schema";
 
 export const runtime = "nodejs";
@@ -22,6 +23,18 @@ function sniff(bytes: Uint8Array): PageFile["mime"] | null {
   if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "image/png";
   if (String.fromCharCode(...bytes.slice(0, 4)) === "RIFF" && String.fromCharCode(...bytes.slice(8, 12)) === "WEBP") return "image/webp";
   return null;
+}
+
+/**
+ * The outside reader (OpenAI) costs money per page, so it reads only for a signed-in caregiver, and
+ * at most EXTRACTION_DAILY_LIMIT times a day each (10 by default). Otherwise, the built-in reader.
+ * Called only when the outside reader is about to be used, so each call counts one read.
+ */
+async function readerFor(provider: ExtractionProvider): Promise<ExtractionProvider> {
+  if (provider.name === "heuristic") return provider;
+  const actor = await getActor();
+  if (!actor || actor.kind !== "caregiver") return heuristicProvider;
+  return (await checkDailyLimit(actor.userId, "outside_reader", env.extractionDailyLimit)) ? provider : heuristicProvider;
 }
 
 const ok = (draft: HandoffDraft, provider: string) => json({ draft, unsorted: isUnsorted(draft), provider });
@@ -46,14 +59,14 @@ export async function POST(req: Request) {
   const type = req.headers.get("content-type") ?? "";
 
   try {
-    const provider = await getProvider();
+    const configured = await getProvider();
 
     if (!type.includes("multipart/form-data")) {
       const body = ExtractTextSchema.safeParse(await req.json().catch(() => null));
       if (!body.success) return json({ error: "invalid", message: "Please paste the text of the summary." }, 400);
       const input = { text: body.data.text, patientFirstName: body.data.patientFirstName || undefined };
       // "builtin": the model already could not read these pages, so do not wait for it twice.
-      const reader = body.data.reader === "builtin" ? heuristicProvider : provider;
+      const reader = body.data.reader === "builtin" ? heuristicProvider : await readerFor(configured);
       return ok(await reader.extract(input), reader.name);
     }
 
@@ -62,7 +75,7 @@ export async function POST(req: Request) {
     const photos = form.getAll("page");
 
     if (photos.length) {
-      if (!provider.readPages) return json({ error: "invalid", message: COPY.genericError }, 400);
+      if (!configured.readPages) return json({ error: "invalid", message: COPY.genericError }, 400);
       if (photos.length > MAX_PAGES_PER_REQUEST) return json({ error: "too_many", message: COPY.genericError }, 400);
       const firstPage = Math.max(1, Math.min(100, Number(form.get("firstPage")) || 1));
       const pages: PageFile[] = [];
@@ -76,8 +89,10 @@ export async function POST(req: Request) {
         if (!mime || mime === "application/pdf") return json({ error: "unsupported_type", message: COPY.uploadType }, 415);
         pages.push({ mime, bytes });
       }
-      const draft = await provider.readPages({ pages, patientFirstName, firstPage });
-      return draft ? ok(draft, provider.name) : json({ fallback: "read_on_device" });
+      // Not signed in, or over today's limit: the phone reads the photos itself.
+      const reader = await readerFor(configured);
+      const draft = reader.readPages ? await reader.readPages({ pages, patientFirstName, firstPage }) : null;
+      return draft ? ok(draft, reader.name) : json({ fallback: "read_on_device" });
     }
 
     const file = form.get("file");
@@ -95,6 +110,7 @@ export async function POST(req: Request) {
     const text = (Array.isArray(out.text) ? out.text.join("\n\n") : String(out.text)).trim();
     const hasText = text.replace(/\s+/g, "").length >= SCANNED_PDF_MIN_CHARS;
 
+    const provider = await readerFor(configured);
     if (provider.readPages) {
       const draft = await provider.readPages({ pages: [{ mime: "application/pdf", bytes }], patientFirstName, text: hasText ? text : undefined });
       if (draft) return ok(draft, provider.name);

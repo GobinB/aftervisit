@@ -5,7 +5,15 @@ import { parse } from "@/lib/parse";
 import { SAMPLE_SOURCE_TEXT } from "@/lib/sample";
 
 vi.mock("server-only", () => ({}));
-vi.mock("@/lib/ratelimit", () => ({ checkRateLimit: async () => true }));
+const limits = { signedIn: true, underDailyLimit: true, dailyCalls: [] as unknown[][] };
+vi.mock("@/lib/ratelimit", () => ({
+  checkRateLimit: async () => true,
+  checkDailyLimit: async (...args: unknown[]) => {
+    limits.dailyCalls.push(args);
+    return limits.underDailyLimit;
+  },
+}));
+vi.mock("@/lib/auth", () => ({ getActor: async () => (limits.signedIn ? { kind: "caregiver", userId: "user-1" } : null) }));
 vi.mock("@/lib/access", () => ({ json: (data: unknown, status = 200) => Response.json(data, { status }) }));
 
 const provider: { current: ExtractionProvider } = { current: null as unknown as ExtractionProvider };
@@ -42,7 +50,10 @@ function pdfForm(bytes: Uint8Array) {
   return form;
 }
 
-beforeEach(() => vi.spyOn(console, "warn").mockImplementation(() => undefined));
+beforeEach(() => {
+  vi.spyOn(console, "warn").mockImplementation(() => undefined);
+  Object.assign(limits, { signedIn: true, underDailyLimit: true, dailyCalls: [] });
+});
 
 describe("POST /api/extract", () => {
   it("sends photos to the model and returns its draft", async () => {
@@ -94,6 +105,44 @@ describe("POST /api/extract", () => {
     const input = (readPages.mock.calls[0] as unknown[])[0] as { pages: { mime: string }[]; text?: string };
     expect(input.pages[0].mime).toBe("application/pdf");
     expect(input.text).toMatch(/lisinopril/i);
+  });
+
+  it("each read by the model counts against the caregiver's daily limit", async () => {
+    fakeModel("works");
+    await post(photos(1));
+    expect(limits.dailyCalls).toEqual([["user-1", "outside_reader", 10]]);
+  });
+
+  it("over today's limit, photos are read on the phone and the model is not called", async () => {
+    const { readPages } = fakeModel("works");
+    limits.underDailyLimit = false;
+    expect(await (await post(photos(1))).json()).toEqual({ fallback: "read_on_device" });
+    expect(readPages).not.toHaveBeenCalled();
+  });
+
+  it("over today's limit, pasted text goes to the built-in parser", async () => {
+    const { extract } = fakeModel("works");
+    limits.underDailyLimit = false;
+    const body = await (await post({ text: SAMPLE_SOURCE_TEXT })).json();
+    expect(extract).not.toHaveBeenCalled();
+    expect(body.provider).toBe("heuristic");
+  });
+
+  it("without signing in, the model is never used and nothing is counted", async () => {
+    const { readPages, extract } = fakeModel("works");
+    limits.signedIn = false;
+    expect(await (await post(photos(1))).json()).toEqual({ fallback: "read_on_device" });
+    expect((await (await post({ text: SAMPLE_SOURCE_TEXT })).json()).provider).toBe("heuristic");
+    expect((await (await post(pdfForm(new Uint8Array(readFileSync("public/sample-avs.pdf"))))).json()).provider).toBe("heuristic");
+    expect(readPages).not.toHaveBeenCalled();
+    expect(extract).not.toHaveBeenCalled();
+    expect(limits.dailyCalls).toEqual([]);
+  });
+
+  it("text the phone read is never counted", async () => {
+    fakeModel("works");
+    await post({ text: SAMPLE_SOURCE_TEXT, reader: "builtin" });
+    expect(limits.dailyCalls).toEqual([]);
   });
 
   it("a PDF the model cannot read falls back to the built-in parser on its text", async () => {

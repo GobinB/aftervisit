@@ -176,6 +176,21 @@ export function table(rows: { label: string; score: CaseScore }[]): string {
   return [head, ...rows.map((r) => line(r.label, r.score)), line("**All cases**", sumScores(rows.map((r) => r.score)))].join("\n");
 }
 
+const METRIC_LABELS: Record<Metric, string> = {
+  medicines: "Medicines (name and change)",
+  doses: "Doses",
+  dates: "Dates",
+  nextSteps: "Next steps",
+  noGuess: "Unreadable dose left blank",
+};
+
+/** One column per reader, one row per measure: the side-by-side summary. */
+export function compare(readers: { reader: string; score: CaseScore }[]): string {
+  const head = `| | ${readers.map((r) => r.reader).join(" | ")} |\n|---|${readers.map(() => "---").join("|")}|`;
+  const rows = METRICS.map((m) => `| ${METRIC_LABELS[m]} | ${readers.map((r) => describe(r.score[m])).join(" | ")} |`);
+  return [head, ...rows].join("\n");
+}
+
 export const CASES_DIR = join(import.meta.dirname, "cases");
 
 export function loadCases(dir = CASES_DIR): Case[] {

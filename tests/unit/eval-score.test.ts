@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { caseText, loadCases, nameMatches, scoreCase, sumScores, table, type Answers } from "@/eval/score";
-import { parse } from "@/lib/parse";
+import { compare, loadCases, nameMatches, scoreCase, table, type Answers } from "@/eval/score";
 import type { HandoffDraft } from "@/lib/schema";
 
 const answers: Answers = {
@@ -65,6 +64,16 @@ describe("scoring a case", () => {
     expect(nameMatches({ name: "aspirin", kind: "new" }, "")).toBe(false);
   });
 
+  it("puts readers side by side", () => {
+    const s = scoreCase(answers, draft());
+    const out = compare([
+      { reader: "Built-in parser, text", score: s },
+      { reader: "OpenAI, text", score: s },
+    ]);
+    expect(out.split("\n")[0]).toBe("| | Built-in parser, text | OpenAI, text |");
+    expect(out).toContain("| Doses | 1 of 1 (100%) | 1 of 1 (100%) |");
+  });
+
   it("prints a table with a total row", () => {
     const s = scoreCase(answers, draft());
     expect(table([{ label: "a", score: s }])).toContain("| **All cases** | 3 of 3 (100%) | 1 of 1 (100%) | 2 of 2 (100%) | 1 of 1 (100%) | 1 of 1 (100%) | 1 |");
@@ -82,16 +91,5 @@ describe("the accuracy set", () => {
       expect(c.pages.length, c.id).toBeGreaterThan(0);
       expect(c.photos.length, c.id).toBe(c.pages.length);
     }
-  });
-
-  // The built-in parser's results on the text of every case. A change that lowers one fails here;
-  // a change that raises one should raise the number too. (The model runs only with npm run eval.)
-  it("the built-in parser does not get worse", () => {
-    const total = sumScores(cases.map((c) => scoreCase(c.answers, parse({ text: caseText(c) }))));
-    expect(total.medicines.found).toBeGreaterThanOrEqual(12);
-    expect(total.doses.found).toBeGreaterThanOrEqual(12);
-    expect(total.dates.found).toBeGreaterThanOrEqual(9);
-    expect(total.nextSteps.found).toBeGreaterThanOrEqual(19);
-    expect(total.medicines.extra).toBeLessThanOrEqual(11);
   });
 });

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SOURCE_URL } from "@/components/AppBar";
 import { PageShell } from "@/components/PageShell";
 import { PRIVACY_EMAIL } from "@/lib/contact";
+import { env } from "@/lib/env";
 import { providerDisclosure } from "@/lib/extract/provider";
 import { LINK_IDLE_DAYS, LINK_MAX_DAYS } from "@/lib/link-life";
 
@@ -143,8 +144,9 @@ export default function PrivacyPage() {
                         <>
                           <strong>Visit summaries.</strong> To build a draft, the photos, PDF or pasted text of a visit summary are sent
                           through our server to {provider.label}, which reads them. We do not store them or the text on the way, and we keep
-                          only the items you confirm. If {provider.label} cannot read them, the photos are read in your browser instead and
-                          only the text is sent to our server.
+                          only the items you confirm. This is for caregivers who are signed in, for up to {env.extractionDailyLimit} summaries a
+                          day each. Beyond that, when you are not signed in, or if {provider.label} cannot read them, the photos are read in
+                          your browser instead and only the text is sent to our server.
                         </>
                       ) : (
                         <>

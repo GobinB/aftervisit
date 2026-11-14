@@ -1,6 +1,6 @@
 # Accuracy set
 
-How well All Hands Care reads an after-visit summary, measured on fictional summaries with known right answers. Every name, clinic, date and phone number here is made up. Never add real patient documents.
+How well All Hands Care reads an after-visit summary, measured on fictional summaries with known right answers. It compares the two readers the app has: OpenAI, which reads a scan when it is switched on, and the built-in parser, which reads it when OpenAI is off, over a caregiver's daily limit, or cannot answer. It is a script you run by hand, for a demo or after changing a reader; it is not part of the app. Every name, clinic, date and phone number here is made up. Never add real patient documents.
 
 ## What is in it
 
@@ -46,9 +46,9 @@ This runs:
 
 1. The built-in parser on the text of each case.
 2. The built-in parser on the photos, read by Tesseract the way the phone reads them. The first run downloads Tesseract's English data.
-3. OpenAI on the text and on the photos, only when `OPENAI_API_KEY` is set. `EXTRACTION_MODEL` picks the model (`gpt-6.1-terra` by default). Each run sends the fictional pages to OpenAI, which is billed to that key.
+3. OpenAI on the text and on the photos, when `OPENAI_API_KEY` is set, in the shell or in `.env.local` (never committed). `EXTRACTION_MODEL` picks the model, the same setting the app uses, so the run scores whichever model the site is set to. Each run sends the fictional pages to OpenAI, billed to that key.
 
-The tables are printed and saved to `eval/results.md` (not committed). CI runs the built-in parser on the text only, in `tests/unit/eval-score.test.ts`, and fails if its scores drop.
+It prints a table per reader, then a side-by-side summary of all of them, and saves both to `eval/results.md` (not committed). The scorer itself has unit tests in `tests/unit/eval-score.test.ts`; the accuracy run is never part of CI.
 
 ## Adding a case
 

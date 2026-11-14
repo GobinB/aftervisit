@@ -2,7 +2,7 @@
 
 begin;
 
-select plan(7);
+select plan(9);
 
 select is(
   (select coalesce(string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text), '')
@@ -45,6 +45,15 @@ select ok(
 select ok(
   not has_function_privilege('authenticated', 'public.try_pin(text, uuid, text, int, int, int)', 'execute'),
   'a signed-in caregiver cannot check a PIN directly'
+);
+
+select ok(
+  has_function_privilege('service_role', 'public.check_daily_limit(text, text, int)', 'execute'),
+  'the server can count a caregiver''s reads for the day'
+);
+select ok(
+  not has_function_privilege('authenticated', 'public.check_daily_limit(text, text, int)', 'execute'),
+  'a signed-in caregiver cannot touch the daily count directly'
 );
 
 select * from finish();
