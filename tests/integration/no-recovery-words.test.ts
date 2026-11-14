@@ -31,16 +31,16 @@ let device = new Map<string, LocalCircleKey>();
 vi.mock("@/lib/crypto/idb", () => ({
   loadCircleKey: async (circleId: string) => device.get(circleId) ?? null,
   saveCircleKey: async (circleId: string, key: CryptoKey, keyVersion: number) => void device.set(circleId, { circleId, key, keyVersion }),
-  clearCircleKeys: async () => device.clear(),
+  listCircleKeys: async () => [...device.values()],
+  removeCircleKey: async (circleId: string) => void device.delete(circleId),
 }));
 
-const { ensureCircleKey, openOldKeyWithWords, startFresh } = await import("@/components/circles/circle-key");
+const { ensureCircleKey, openOldKeyWithWords, releaseDeviceKeys, startFresh } = await import("@/components/circles/circle-key");
 const { urlForMemberToken } = await import("@/components/circles/member-link");
 const { handOverCircleKeyAction, openCircleKeyAction, startFreshCircleKeyAction } = await import("@/app/actions/circle-keys");
 const { createDocumentAction } = await import("@/app/actions/documents");
 const { addPage, readPage } = await import("@/services/documents");
 const { getCircleKeyState } = await import("@/services/circle-keys");
-const { clearCircleKeys } = await import("@/lib/crypto/idb");
 const { generateFileKey, importCircleKey, unwrapFileKey, wrapFileKey } = await import("@/lib/crypto/keys");
 const { exportKeyBytes } = await import("@/lib/crypto/export");
 const { bytesToBase64Url } = await import("@/lib/crypto/bytes");
@@ -131,8 +131,9 @@ describe("no recovery words", () => {
     expect(stored().circle_key_wrapped).toMatch(/^av2\./);
     expect(JSON.stringify([state.circle_caregivers, state.visit_documents])).not.toContain(bytesToBase64Url(await exportKeyBytes(first.key)));
 
-    // Sign out: this device's keys are cleared.
-    await clearCircleKeys();
+    // Sign out: this device's keys are cleared, because the server holds them.
+    await releaseDeviceKeys();
+    expect(device.size).toBe(0);
     signedIn = null;
     expect((await openCircleKeyAction(CIRCLE)).ok).toBe(false);
 
@@ -267,6 +268,43 @@ describe("a circle that had recovery words", () => {
     expect(elsewhere.ok).toBe(true);
     if (!elsewhere.ok) return;
     expect(await openPhoto(documentId, elsewhere.key)).toEqual(PHOTO);
+  });
+
+  test("signing out on the only device that has the key hands it over first, so it is not lost", async () => {
+    const documentId = await circleWithWords();
+    device.set(CIRCLE, { circleId: CIRCLE, key: await importCircleKey(OLD_KEY), keyVersion: 1 });
+
+    // Straight to Sign out, before any page of the circle had the chance to hand the key over.
+    await releaseDeviceKeys();
+    expect(device.size).toBe(0);
+    expect(openStored(stored().circle_key_wrapped!, CIRCLE, 1)).toEqual(OLD_KEY);
+
+    device = new Map();
+    const later = await ensureCircleKey(CIRCLE, await known());
+    expect(later.ok && (await openPhoto(documentId, later.key))).toEqual(PHOTO);
+  });
+
+  test("signing out keeps a key on the device when the server could not take it", async () => {
+    await circleWithWords();
+    device.set(CIRCLE, { circleId: CIRCLE, key: await importCircleKey(OLD_KEY), keyVersion: 1 });
+
+    // The server cannot keep keys just now (its secret is missing): the only copy must not be thrown away.
+    env.circleKeySecret = "";
+    await releaseDeviceKeys();
+    env.circleKeySecret = "test-secret-for-circle-keys-0123456789-abcdefghijklmnop";
+    expect(device.has(CIRCLE)).toBe(true);
+    expect(stored().circle_key_wrapped).toBe(WORDS_WRAPPED);
+
+    // Nor when the request is refused for being one too many in the hour.
+    underLimit.mockResolvedValue(false);
+    await releaseDeviceKeys();
+    expect(device.has(CIRCLE)).toBe(true);
+
+    // Next time it works, and the key is handed over and cleared.
+    underLimit.mockResolvedValue(true);
+    await releaseDeviceKeys();
+    expect(device.size).toBe(0);
+    expect(stored().circle_key_wrapped).toMatch(/^av2\./);
   });
 
   test("a wrong key on a device is refused, and the words still work afterwards", async () => {

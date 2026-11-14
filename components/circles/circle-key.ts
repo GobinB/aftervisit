@@ -3,7 +3,7 @@
 import { handOverCircleKeyAction, openCircleKeyAction, startFreshCircleKeyAction } from "@/app/actions/circle-keys";
 import { base64UrlToBytes, bytesToBase64Url } from "@/lib/crypto/bytes";
 import { exportKeyBytes } from "@/lib/crypto/export";
-import { loadCircleKey, saveCircleKey } from "@/lib/crypto/idb";
+import { listCircleKeys, loadCircleKey, removeCircleKey, saveCircleKey } from "@/lib/crypto/idb";
 import { importCircleKey, openWithWords } from "@/lib/crypto/keys";
 import type { CircleKeyState } from "@/lib/schema/circles";
 
@@ -22,7 +22,7 @@ const running = new Map<string, Promise<CircleKeyResult>>();
  * The circle's key for files, ready to use on this device, with nothing for the caregiver to do.
  * A copy kept on this device is used when it is the one All Hands Care holds. Otherwise the
  * server hands the key over (making one for a circle that has none), and it is kept here for
- * next time. Signing out clears the copy; signing in again brings it back the same way.
+ * next time. Signing out clears the copy (releaseDeviceKeys); signing in again brings it back the same way.
  *
  * One case is not silent: a key made with recovery words, on a device that does not have it.
  * A device that does have it gives it to the server here, so no other device ever has to ask.
@@ -98,4 +98,19 @@ export async function startFresh(circleId: string): Promise<CircleKeyResult> {
   }
   if (!result.ok) return { ok: false, reason: "failed", error: result.error };
   return keep(circleId, result.key, result.keyVersion);
+}
+
+/**
+ * For signing out: takes each circle key off this device, but only once All Hands Care holds it.
+ * A key made with recovery words that has not been handed over yet is handed over first, here.
+ * If that cannot be confirmed (no connection, or the server cannot keep keys just now), the key
+ * stays on the device, because it may be the only copy that still opens that circle's saved
+ * summaries. A key alone opens nothing: the files are only ever served to the signed-in caregiver.
+ */
+export async function releaseDeviceKeys(): Promise<void> {
+  const kept = await listCircleKeys().catch(() => []);
+  for (const local of kept) {
+    const held = await ensureCircleKey(local.circleId).catch(() => null);
+    if (held?.ok) await removeCircleKey(local.circleId).catch(() => undefined);
+  }
 }
