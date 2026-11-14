@@ -1,16 +1,7 @@
 import "client-only";
 import { asBuffer, base64UrlToBytes, bytesToBase64Url } from "@/lib/crypto/bytes";
 import { exportKeyBytes } from "@/lib/crypto/export";
-import { normalizePhrase, phraseEntropy } from "@/lib/crypto/phrase";
-import { WRAPPED_CIRCLE_KEY } from "@/lib/schema/circles";
-
-/**
- * PBKDF2-SHA256 at the OWASP 2023 minimum (600,000).
- * Web Crypto has PBKDF2. Argon2 and scrypt are not in the browser API.
- * av1 records that choice: salt, IV, and the wrapped key travel in one string.
- */
-export const PBKDF2_ITERATIONS = 600_000;
-export const WRAPPED_PREFIX = `av1.${PBKDF2_ITERATIONS}`;
+import { WORDS_WRAPPED_KEY } from "@/lib/schema/circles";
 
 const AES = { name: "AES-GCM", length: 256 } as const;
 const CIRCLE_USES: KeyUsage[] = ["encrypt", "decrypt", "wrapKey", "unwrapKey"];
@@ -27,11 +18,6 @@ export type FilePayload = {
   iv: Uint8Array;
 };
 
-export async function generateCircleKey(): Promise<CryptoKey> {
-  // Extractable because helper links have to carry this key after #.
-  return crypto.subtle.generateKey(AES, true, CIRCLE_USES);
-}
-
 export async function generateFileKey(): Promise<CryptoKey> {
   // Extractable so the circle key can wrap it. Decrypt later uses a non-extractable copy.
   return crypto.subtle.generateKey(AES, true, FILE_USES);
@@ -39,46 +25,38 @@ export async function generateFileKey(): Promise<CryptoKey> {
 
 export { exportKeyBytes };
 
+/** The circle key as the browser uses it. Extractable because helper links carry it after #. */
 export async function importCircleKey(raw: Uint8Array): Promise<CryptoKey> {
   if (raw.length !== 32) throw new Error("Circle key is not valid.");
   return crypto.subtle.importKey("raw", asBuffer(raw), AES, true, CIRCLE_USES);
 }
 
-async function deriveWrappingKey(phrase: string, salt: Uint8Array): Promise<CryptoKey> {
-  const entropy = await phraseEntropy(phrase);
-  if (!entropy) throw new Error("Those words are not a recovery phrase.");
-  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(normalizePhrase(phrase)), "PBKDF2", false, ["deriveKey"]);
-  return crypto.subtle.deriveKey(
-    { name: "PBKDF2", salt: asBuffer(salt), iterations: PBKDF2_ITERATIONS, hash: "SHA-256" },
-    base,
-    AES,
-    false,
-    ["wrapKey", "unwrapKey"],
-  );
+/**
+ * Circle keys used to be wrapped in the browser by 12 recovery words (PBKDF2-SHA256, 600,000
+ * iterations, then AES-GCM). Nothing wraps a key that way any more. This opens one that still is,
+ * for a caregiver who kept their words, so the key can be handed over and the words retired.
+ */
+export const WORDS_ITERATIONS = 600_000;
+export const WORDS_COUNT = 12;
+
+export function normalizeWords(words: string): string {
+  return words.normalize("NFKD").trim().toLowerCase().split(/\s+/).filter(Boolean).join(" ");
 }
 
-/** The phrase and the raw key never leave the browser. The return value is what the server may store. */
-export async function wrapCircleKey(circleKey: CryptoKey, phrase: string): Promise<string> {
-  const salt = crypto.getRandomValues(new Uint8Array(16));
-  const iv = crypto.getRandomValues(new Uint8Array(12));
-  const wrapping = await deriveWrappingKey(phrase, salt);
-  const wrapped = new Uint8Array(await crypto.subtle.wrapKey("raw", circleKey, wrapping, { name: "AES-GCM", iv: asBuffer(iv) }));
-  const packed = `${WRAPPED_PREFIX}.${bytesToBase64Url(salt)}.${bytesToBase64Url(iv)}.${bytesToBase64Url(wrapped)}`;
-  if (!WRAPPED_CIRCLE_KEY.test(packed)) throw new Error("Wrapped key is not valid.");
-  return packed;
-}
-
-export async function unwrapCircleKey(packed: string, phrase: string): Promise<CryptoKey> {
-  const match = WRAPPED_CIRCLE_KEY.exec(packed);
+export async function openWithWords(packed: string, words: string): Promise<CryptoKey> {
+  const match = WORDS_WRAPPED_KEY.exec(packed);
   if (!match) throw new Error("Wrapped key is not valid.");
+  const normal = normalizeWords(words);
+  if (normal.split(" ").length !== WORDS_COUNT) throw new Error("Enter all 12 words.");
   const salt = base64UrlToBytes(match[1] ?? "");
   const iv = base64UrlToBytes(match[2] ?? "");
   const wrapped = base64UrlToBytes(match[3] ?? "");
-  const wrapping = await deriveWrappingKey(phrase, salt);
+  const base = await crypto.subtle.importKey("raw", new TextEncoder().encode(normal), "PBKDF2", false, ["deriveKey"]);
+  const wrapping = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: asBuffer(salt), iterations: WORDS_ITERATIONS, hash: "SHA-256" }, base, AES, false, ["unwrapKey"]);
   try {
     return await crypto.subtle.unwrapKey("raw", asBuffer(wrapped), wrapping, { name: "AES-GCM", iv: asBuffer(iv) }, AES, true, CIRCLE_USES);
   } catch {
-    throw new Error("Those words did not open the key.");
+    throw new Error("Those words did not open the saved photos.");
   }
 }
 
@@ -104,22 +82,4 @@ export async function encryptFile(plaintext: Uint8Array, fileKey: CryptoKey): Pr
 export async function decryptFile(ciphertext: Uint8Array, iv: Uint8Array, fileKey: CryptoKey): Promise<Uint8Array> {
   const plain = await crypto.subtle.decrypt({ name: "AES-GCM", iv: asBuffer(iv) }, fileKey, asBuffer(ciphertext));
   return new Uint8Array(plain);
-}
-
-/**
- * Rewrap each file key from the previous circle key to the next one, in the same order.
- * Called when the circle key changes, so saved summaries stay readable under the new key.
- */
-export async function rewrapFileKeys(
-  files: readonly StoredFileKey[],
-  previousCircleKey: CryptoKey,
-  nextCircleKey: CryptoKey,
-  nextKeyVersion: number,
-): Promise<StoredFileKey[]> {
-  const next: StoredFileKey[] = [];
-  for (const file of files) {
-    const key = await unwrapFileKey(file, previousCircleKey, true);
-    next.push(await wrapFileKey(key, nextCircleKey, nextKeyVersion));
-  }
-  return next;
 }

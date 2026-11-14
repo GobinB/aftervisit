@@ -11,8 +11,8 @@ export type VisitDocument = {
   saved: number;
   createdAt: string;
   /**
-   * The summary's file key, wrapped by the circle key in the caregiver's browser. The server stores it
-   * and cannot open it. Null only for a summary saved before pages were encrypted.
+   * The summary's file key, wrapped by the circle key in the caregiver's browser.
+   * Null only for a summary saved before pages were encrypted.
    */
   fileKey: StoredDocumentKey | null;
 };
@@ -47,12 +47,6 @@ export const CreateDocumentSchema = z
   })
   .strict();
 export type CreateDocumentInput = z.infer<typeof CreateDocumentSchema>;
-
-/** One summary's file key, rewrapped by a new circle key. Sent when the circle key changes. */
-export const FileKeyRewrapSchema = z
-  .object({ id: z.string().uuid(), fileKeyWrapped: z.string().regex(WRAPPED_FILE_KEY), fileKeyIv: z.string().regex(FILE_KEY_IV) })
-  .strict();
-export type FileKeyRewrap = z.infer<typeof FileKeyRewrapSchema>;
 
 export const DocumentChangeSchema = z.object({ circleId: z.string().uuid(), id: z.string().uuid() }).strict();
 

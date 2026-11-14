@@ -87,7 +87,7 @@ export async function createDocument(actor: Actor, input: CreateDocumentInput): 
     .select("id")
     .single();
   if (error && /file key version/i.test(error.message ?? "")) {
-    return { ok: false, error: "The key for files was changed on another device. Enter your recovery words in Settings, then try again." };
+    return { ok: false, error: "Something changed on another device while these were being kept. Scan the summary again to keep the photos." };
   }
   if (error || !data) return { ok: false, error: "The summary could not be kept. Try again." };
   return { ok: true, id: data.id as string };
@@ -95,7 +95,7 @@ export async function createDocument(actor: Actor, input: CreateDocumentInput): 
 
 /**
  * Stores one encrypted page at {circle}/{document}/{n}.enc. The bytes were encrypted in the caregiver's
- * browser with the summary's file key, so the server holds something it cannot read. A plain photo or
+ * browser with the summary's file key, so storage only ever holds ciphertext. A plain photo or
  * PDF is refused: its own first bytes give it away. Pages are added in order; a page number that is
  * already saved is refused.
  */
@@ -139,7 +139,7 @@ export async function readPage(actor: Actor, circleId: string, id: string, page:
   return { bytes: await data.arrayBuffer(), type: sealed ? "application/octet-stream" : row.kind === "pdf" ? "application/pdf" : "image/jpeg", sealed };
 }
 
-/** Every encrypted summary's wrapped file key, so the browser can rewrap them when the circle key changes. */
+/** Every encrypted summary's wrapped file key, so a circle key handed over by a device can be checked against them. */
 export async function listFileKeys(actor: Actor, circleId: string): Promise<({ id: string } & StoredDocumentKey)[] | null> {
   if (!isCaregiver(actor, circleId)) return null;
   const { data, error } = await clientFor(actor).from("visit_documents").select("id, key_version, file_key_wrapped, file_key_iv").eq("circle_id", circleId).not("file_key_wrapped", "is", null);
@@ -158,6 +158,40 @@ export async function deleteDocument(actor: Actor, circleId: string, id: string)
   const { error } = await clientFor(actor).from("visit_documents").delete().eq("circle_id", circleId).eq("id", id);
   if (error) return { ok: false, error: "The photos could not be deleted. Try again." };
   return { ok: true };
+}
+
+/** How many encrypted summaries a circle has. Null when the count could not be read. */
+export async function countEncryptedDocuments(actor: Actor, circleId: string): Promise<number | null> {
+  if (!isCaregiver(actor, circleId)) return null;
+  const { count, error } = await clientFor(actor)
+    .from("visit_documents")
+    .select("id", { count: "exact", head: true })
+    .eq("circle_id", circleId)
+    .not("file_key_wrapped", "is", null);
+  if (error || count == null) return null;
+  return count;
+}
+
+/** The storage paths of every encrypted summary in a circle. Null when they could not be read. */
+export async function listEncryptedPaths(actor: Actor, circleId: string): Promise<string[] | null> {
+  if (!isCaregiver(actor, circleId)) return null;
+  const { data, error } = await clientFor(actor).from("visit_documents").select("paths").eq("circle_id", circleId).not("file_key_wrapped", "is", null);
+  if (error || !data) return null;
+  return data.flatMap((row) => (row.paths as string[]) ?? []);
+}
+
+/**
+ * Removes stored pages by path. Only for paths that belong to this caregiver's circle: every
+ * path starts with the circle's id, and anything else is refused.
+ */
+export async function removeStoredPages(actor: Actor, circleId: string, paths: string[]): Promise<boolean> {
+  if (!isCaregiver(actor, circleId)) return false;
+  if (paths.some((path) => !path.startsWith(`${circleId}/`))) return false;
+  for (let i = 0; i < paths.length; i += 100) {
+    const { error } = await serviceClient().storage.from(DOCUMENTS_BUCKET).remove(paths.slice(i, i + 100));
+    if (error) return false;
+  }
+  return true;
 }
 
 /** Removes every saved file of the circles about to be erased. Used by the daily cleanup. */

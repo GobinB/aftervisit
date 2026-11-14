@@ -2,11 +2,9 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { CircleFrame, circleTabs, roleLine } from "@/components/circles/CircleFrame";
 import { DeleteCircle } from "@/components/circles/DeleteCircle";
-import { RestoreKeys } from "@/components/circles/RestoreKeys";
-import { RotateKey } from "@/components/circles/RotateKey";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { getCircle, listOwnCircleKeys } from "@/services/circles";
+import { getCircle } from "@/services/circles";
 
 export const metadata: Metadata = { title: "Settings", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -16,45 +14,14 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   const actor = await getActor(id);
   if (!actor) redirect(`/login?next=/circles/${id}/settings`);
   if (actor.kind !== "caregiver") notFound();
-  const canRotate = actor.role === "owner" && can(actor, "circle:rotate_key", { circleId: id });
   const canDelete = can(actor, "circle:delete", { circleId: id });
-  if (!canRotate && !canDelete) notFound();
+  if (!canDelete) notFound();
   const content = await getCircle(actor, id);
   if (!content) notFound();
-  const key = (await listOwnCircleKeys(actor)).find((item) => item.circleId === id) ?? null;
   return (
     <>
-      <CircleFrame personName={content.person_name} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} help="Rarely needed. Change the key that protects attached files, or delete this circle." active="settings">
+      <CircleFrame personName={content.person_name} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} help="Rarely needed. Delete this circle." active="settings">
         <div className="max-w-xl space-y-6">
-          {key && canRotate ? (
-            <section aria-labelledby="key-title" className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">
-              <h2 id="key-title" className="font-display border-b border-border-200 pb-3 text-section text-primary-900">
-                Key for files
-              </h2>
-              {key.wrapped ? (
-                <>
-                  <p className="mt-4 text-ink-500">
-                    If your recovery words may have been seen by someone else, make a new key. Saved visit summaries stay readable. Every helper link is replaced, so send
-                    each person their new link.
-                  </p>
-                  <div className="mt-4 space-y-4">
-                    <RestoreKeys circles={[key]} />
-                    <RotateKey circle={key} />
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p className="mt-4 text-ink-500">
-                    Needed to keep photos of visit summaries: they are locked with this key on your device, so only you can open them. People,
-                    medications, reminders and the calendar work without it.
-                  </p>
-                  <div className="mt-4">
-                    <RestoreKeys circles={[key]} />
-                  </div>
-                </>
-              )}
-            </section>
-          ) : null}
           {canDelete ? (
             <section aria-labelledby="delete-title" className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">
               <h2 id="delete-title" className="font-display border-b-2 border-attn pb-3 text-section text-attn-ink">

@@ -10,7 +10,7 @@ const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * Keeps one page of a saved visit summary. The page (a JPEG made on the phone, or the PDF) was
- * encrypted in the browser, so the body is bytes this server cannot read. ?page=N, in order from 1. Only the circle's caregiver.
+ * encrypted in the browser, so the body is ciphertext and is stored as it arrives. ?page=N, in order from 1. Only the circle's caregiver.
  */
 export async function POST(request: Request, { params }: { params: Promise<{ id: string; docId: string }> }) {
   const { id, docId } = await params;

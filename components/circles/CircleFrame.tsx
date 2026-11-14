@@ -18,7 +18,7 @@ export function circleTabs(actor: Actor, circleId: string): { key: CircleTab; la
   if (can(actor, "members:manage", { circleId }) || can(actor, "members:read", { circleId }) || can(actor, "members:read:caregivers", { circleId })) {
     tabs.push({ key: "people", label: "People", href: `${base}/members` });
   }
-  if (can(actor, "circle:delete", { circleId }) || can(actor, "circle:rotate_key", { circleId })) tabs.push({ key: "settings", label: "Settings", href: `${base}/settings` });
+  if (can(actor, "circle:delete", { circleId })) tabs.push({ key: "settings", label: "Settings", href: `${base}/settings` });
   return tabs;
 }
 

@@ -2,7 +2,6 @@ import { describe, expect, test } from "vitest";
 import { CreateCircleSchema } from "@/lib/schema/circles";
 import { careSummaryError, explainCreateFailure, personNameError, stepForCreatePath } from "@/lib/circle-form";
 
-const WRAPPED = `av1.600000.${"a".repeat(22)}.${"b".repeat(16)}.${"c".repeat(64)}`;
 const empty = { name: "", extra: "", phone: "" };
 
 describe("new circle form checks", () => {
@@ -64,12 +63,11 @@ describe("new circle form checks", () => {
     expect(stepForCreatePath(["content", "doctors", 0, "name"])).toBe(1);
     expect(stepForCreatePath(["content", "pharmacy", "phone"])).toBe(1);
     expect(stepForCreatePath(["consents", "privacy"])).toBe(2);
-    expect(stepForCreatePath(["circleKeyWrapped"])).toBe(3);
+    expect(stepForCreatePath(["circleKeyWrapped"])).toBeNull();
 
     const tooLong = CreateCircleSchema.safeParse({
       content: { person_name: "A".repeat(121) },
       consents: { authorized_to_share: true, terms: true, privacy: true },
-      circleKeyWrapped: WRAPPED,
     });
     expect(tooLong.success).toBe(false);
     if (!tooLong.success) {
@@ -81,7 +79,6 @@ describe("new circle form checks", () => {
     const pharmacy = CreateCircleSchema.safeParse({
       content: { person_name: "Alex Sample", pharmacy: { name: "C".repeat(121) } },
       consents: { authorized_to_share: true, terms: true, privacy: true },
-      circleKeyWrapped: WRAPPED,
     });
     expect(pharmacy.success).toBe(false);
     if (!pharmacy.success) expect(explainCreateFailure(pharmacy.error).step).toBe(1);

@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/Switch";
 import { dateTime } from "@/lib/format";
 import { forgetLink, loadLink, saveLink } from "@/lib/local-links";
 import { AREA_DETAILS, ROLE_DETAILS, SEE_PRESETS, presetFor } from "@/lib/share-message";
-import { AREA_LABELS, HELPER_ROLES, HELPER_ROLE_LABELS, READY_AREAS, type HelperRole, type PersonView, type VisibilityArea } from "@/lib/schema/circles";
+import { AREA_LABELS, HELPER_ROLES, HELPER_ROLE_LABELS, READY_AREAS, type CircleKeyState, type HelperRole, type PersonView, type VisibilityArea } from "@/lib/schema/circles";
 
 const field = "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-[16px] text-ink-900 outline-none focus:border-action-500";
 const option = "flex min-h-12 cursor-pointer items-start gap-3 rounded-xl border border-border-200 bg-white px-3 py-2.5 has-[:checked]:border-primary-700 has-[:checked]:bg-sky-100/60";
@@ -26,13 +26,14 @@ export function MembersPanel({
   personName,
   people,
   canManage,
-  keyVersion,
+  circleKey,
 }: {
   circleId: string;
   personName: string;
   people: PersonView[];
   canManage: boolean;
-  keyVersion: number | null;
+  /** Where the circle's key for files stands, so a new link can carry it. Null for anyone but the caregiver. */
+  circleKey: CircleKeyState | null;
 }) {
   const router = useRouter();
   const helpers = people.filter((person) => person.kind === "member");
@@ -50,14 +51,10 @@ export function MembersPanel({
     }
     setError(null);
     if (result.token && result.name && result.memberId) {
-      const built = await urlForMemberToken(circleId, result.token, keyVersion);
-      if (!built.ok) {
-        setError(built.error);
-      } else {
-        saveLink(circleId, result.memberId, built.url);
-        setShare({ link: { url: built.url, name: result.name, email: result.email ?? null, pin, personName }, fresh });
-        setAdding(false);
-      }
+      const built = await urlForMemberToken(circleId, result.token, circleKey);
+      saveLink(circleId, result.memberId, built.url);
+      setShare({ link: { url: built.url, name: result.name, email: result.email ?? null, pin, personName }, fresh });
+      setAdding(false);
     }
     router.refresh();
   }

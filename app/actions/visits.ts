@@ -5,10 +5,11 @@ import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import type { CircleKeyStatus } from "@/lib/schema/circles";
+import type { CircleKeyState } from "@/lib/schema/circles";
 import type { Medication } from "@/lib/schema/medications";
 import { ApplyVisitSchema } from "@/lib/schema/visit";
-import { getCircle, listOwnCircleKeys } from "@/services/circles";
+import { getCircleKeyState } from "@/services/circle-keys";
+import { getCircle } from "@/services/circles";
 import { listMedications } from "@/services/medications";
 import { listPeople } from "@/services/members";
 import { applyVisit } from "@/services/visits";
@@ -19,11 +20,10 @@ export type VisitContext =
       personName: string;
       medications: Medication[];
       people: { value: string; label: string }[];
-      /** The people who can be sent a new link after the visit, and the key version their links are built with. */
+      /** The people who can be sent a new link after the visit. */
       helpers: { id: string; name: string; roleLabel: string; email: string | null }[];
-      keyVersion: number | null;
-      /** The circle's key for files, as this caregiver's account has it. Photos are kept only once this device holds it. */
-      key: CircleKeyStatus | null;
+      /** Where the circle's key for files stands. Photos are encrypted with that key on this device before they are kept. */
+      key: CircleKeyState | null;
     }
   | { ok: false; error: string };
 
@@ -43,8 +43,8 @@ export async function visitContextAction(circleId: unknown): Promise<VisitContex
   const active = (listed.ok ? listed.people : []).filter((person) => person.kind === "member" && !person.revokedAt);
   const people = active.map((person) => ({ value: person.id, label: `${person.name} (${person.roleLabel})` }));
   const helpers = active.map((person) => ({ id: person.id, name: person.name, roleLabel: person.roleLabel, email: person.email ?? null }));
-  const key = (await listOwnCircleKeys(actor)).find((item) => item.circleId === parsed.data) ?? null;
-  return { ok: true, personName: content.person_name, medications, people, helpers, keyVersion: key?.circleKeyVersion ?? null, key };
+  const key = await getCircleKeyState(actor, parsed.data);
+  return { ok: true, personName: content.person_name, medications, people, helpers, key };
 }
 
 export async function applyVisitAction(input: unknown) {
