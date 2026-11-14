@@ -1,0 +1,13 @@
+{
+  "format": "urgent care",
+  "visitDate": "2026-11-09",
+  "medications": [
+    { "name": "nitrofurantoin", "kind": "new", "dose": "100 mg" },
+    { "name": "phenazopyridine", "kind": "new", "dose": "200 mg" }
+  ],
+  "nextSteps": [
+    { "what": "Pick up prescriptions", "match": ["pick up|pharmacy|prescription"], "optional": true },
+    { "what": "Follow up with primary care if not better", "match": ["primary|follow"] },
+    { "what": "Drink plenty of fluids", "match": ["fluid|drink"] }
+  ]
+}

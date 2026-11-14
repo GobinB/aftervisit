@@ -1,0 +1,15 @@
+{
+  "format": "clinic visit",
+  "visitDate": "2026-11-05",
+  "medications": [
+    { "name": "hydrochlorothiazide", "kind": "new", "dose": "12.5 mg" },
+    { "name": "amlodipine", "kind": "dose_changed", "dose": "5 mg" },
+    { "name": "ibuprofen", "kind": "stopped" },
+    { "name": "levothyroxine", "kind": "continue", "dose": "75 mcg" }
+  ],
+  "nextSteps": [
+    { "what": "Blood work in 2 weeks", "match": ["blood|kidney|potassium|lab"] },
+    { "what": "Check blood pressure at home", "match": ["blood pressure"] },
+    { "what": "Return visit with Dr. Okafor", "match": ["return|visit|okafor|appointment|clinic"], "date": "2026-12-03" }
+  ]
+}

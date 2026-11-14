@@ -1,0 +1,12 @@
+{
+  "format": "clinic visit, dose smudged",
+  "visitDate": "2026-11-11",
+  "medications": [
+    { "name": "metoprolol", "kind": "new", "unreadableDose": true },
+    { "name": "aspirin", "kind": "continue", "dose": "81 mg" }
+  ],
+  "nextSteps": [
+    { "what": "Check heart rate each morning", "match": ["heart rate|pulse"] },
+    { "what": "Return in 6 weeks", "match": ["return|follow|visit|6 weeks"] }
+  ]
+}

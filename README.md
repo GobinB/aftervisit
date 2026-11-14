@@ -91,6 +91,7 @@ cp .env.example .env.local
 npm run dev          # http://localhost:3000
 npm test             # parser, permissions grid, and invitation unit tests
 npm run test:e2e     # full browser suite (builds and starts the app on :3005)
+npm run eval         # accuracy set: fictional summaries scored for each reader (eval/README.md)
 ```
 
 ## How extraction works

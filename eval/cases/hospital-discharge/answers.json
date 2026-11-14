@@ -1,0 +1,77 @@
+{
+  "format": "hospital discharge",
+  "visitDate": "2026-11-06",
+  "alsoAcceptDates": [
+    "2026-11-01"
+  ],
+  "medications": [
+    {
+      "name": "spironolactone",
+      "kind": "new",
+      "dose": "25 mg"
+    },
+    {
+      "name": "potassium chloride",
+      "kind": "new",
+      "dose": "10 mEq"
+    },
+    {
+      "name": "furosemide",
+      "kind": "dose_changed",
+      "dose": "40 mg"
+    },
+    {
+      "name": "carvedilol",
+      "kind": "dose_changed",
+      "dose": "6.25 mg"
+    },
+    {
+      "name": "naproxen",
+      "kind": "stopped"
+    },
+    {
+      "name": "apixaban",
+      "kind": "continue",
+      "dose": "5 mg"
+    },
+    {
+      "name": "metformin",
+      "kind": "continue",
+      "dose": "500 mg"
+    }
+  ],
+  "nextSteps": [
+    {
+      "what": "Heart Failure Clinic appointment",
+      "match": [
+        "heart|natarajan"
+      ],
+      "date": "2026-11-13"
+    },
+    {
+      "what": "See primary care doctor within 1 week",
+      "match": [
+        "primary|shaw"
+      ]
+    },
+    {
+      "what": "Blood test",
+      "match": [
+        "blood|potassium|kidney|lab"
+      ],
+      "date": "2026-11-10"
+    },
+    {
+      "what": "Weigh every morning",
+      "match": [
+        "weigh"
+      ]
+    },
+    {
+      "what": "Limit salt",
+      "match": [
+        "salt"
+      ]
+    }
+  ]
+}
