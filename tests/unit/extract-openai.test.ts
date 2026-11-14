@@ -60,7 +60,7 @@ function completed(body: unknown) {
 }
 
 function mockFetch(response: Response | (() => Promise<Response>)) {
-  return vi.fn(async (...args: Parameters<typeof fetch>) => (args && typeof response === "function" ? response() : response.clone()));
+  return vi.fn<typeof fetch>(async () => (typeof response === "function" ? response() : response.clone()));
 }
 
 const sentBody = (f: ReturnType<typeof mockFetch>) => JSON.parse(String(f.mock.calls[0][1]?.body));
