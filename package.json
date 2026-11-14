@@ -9,6 +9,7 @@
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
+    "eval": "vitest run --config eval/vitest.config.mts",
     "test:e2e": "playwright test",
     "sample-pdf": "node scripts/make-sample-pdf.mjs"
   },

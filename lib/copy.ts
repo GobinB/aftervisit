@@ -13,6 +13,10 @@ export const COPY = {
   scannedPdf: "This PDF looks like a scan. Take a photo of each page instead and we will read it on your phone.",
   lowConfidenceBadge: "Please check this",
   lowConfidenceHelper: "The summary was not clear here. Edit it, or tap Accept if it is right.",
+  unreadableHelper: (what: string, noName: boolean) =>
+    noName
+      ? `We could not read ${what}, so we left it blank. Tap the medicine to type it from the paper, or delete it.`
+      : `We could not read ${what}, so we left it blank. Tap the medicine to type it from the paper, or tap Accept to leave it blank.`,
   removed: "Removed.",
   sectionReviewed: "I've reviewed this section",
   confirmIncomplete: (n: number) => `Review all ${n} sections to continue`,

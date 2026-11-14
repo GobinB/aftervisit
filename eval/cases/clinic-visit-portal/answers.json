@@ -1,0 +1,14 @@
+{
+  "format": "clinic visit (portal text)",
+  "visitDate": "2026-10-22",
+  "medications": [
+    { "name": "donepezil", "kind": "new", "dose": "5 mg" },
+    { "name": "diphenhydramine", "kind": "stopped" },
+    { "name": "sertraline", "kind": "continue", "dose": "50 mg" }
+  ],
+  "nextSteps": [
+    { "what": "Schedule a brain MRI", "match": ["mri"] },
+    { "what": "See a sleep specialist", "match": ["sleep"] },
+    { "what": "Come back in 3 months", "match": ["come back|return|follow|3 months|visit"] }
+  ]
+}

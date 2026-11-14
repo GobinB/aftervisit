@@ -1,0 +1,15 @@
+{
+  "format": "prescription label",
+  "visitDate": null,
+  "alsoAcceptDates": [
+    "2026-11-10"
+  ],
+  "medications": [
+    {
+      "name": "amoxicillin",
+      "kind": ["new", "continue"],
+      "dose": "875 mg"
+    }
+  ],
+  "nextSteps": []
+}

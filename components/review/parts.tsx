@@ -3,6 +3,7 @@ import { Check, FileSearch, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge, MED_KIND_LABEL } from "@/components/Badge";
 import { COPY } from "@/lib/copy";
+import { unreadableLabel, type MedField } from "@/lib/extract/flags";
 import { MED_KINDS, type MedicationChange, type Task } from "@/lib/schema";
 
 export const inputClass =
@@ -108,7 +109,7 @@ function RowActions({ label, onEdit, onDelete }: { label: string; onEdit: () => 
 }
 
 /** "View original instruction" for items from the summary; a label for items the caregiver added. */
-export function SourceLink({ quote, added, onShow }: { quote?: string; added?: boolean; onShow?: (q: string) => void }) {
+export function SourceLink({ quote, added, onShow, page }: { quote?: string; added?: boolean; onShow?: (q: string) => void; page?: number }) {
   if (added) return <p className="mt-1.5 text-xs font-semibold tracking-wide text-ink-500 uppercase">Added by you, not in the summary</p>;
   if (!quote || !onShow) return null;
   return (
@@ -120,19 +121,28 @@ export function SourceLink({ quote, added, onShow }: { quote?: string; added?: b
       }}
       className="mt-1.5 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-1 text-sm font-medium text-primary-700 underline decoration-primary-700/30 underline-offset-4 hover:decoration-primary-700"
     >
-      <FileSearch size={16} aria-hidden="true" /> View original instruction
+      <FileSearch size={16} aria-hidden="true" /> View original instruction{page ? ` (page ${page})` : ""}
     </button>
   );
 }
 
-function LowConfidence({ onAccept }: { onAccept: () => void }) {
+/**
+ * "Please check this", with Accept. When the reader could not read part of a medicine, it says which
+ * part; when it could not read the name, there is no Accept: the caregiver types it or deletes the item.
+ */
+function LowConfidence({ onAccept, unreadable }: { onAccept: () => void; unreadable?: MedField[] }) {
+  const noName = unreadable?.includes("name");
   return (
     <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
       <Badge tone="med">{COPY.lowConfidenceBadge}</Badge>
-      <span className="text-sm text-ink-500">{COPY.lowConfidenceHelper}</span>
-      <button type="button" onClick={onAccept} className="min-h-9 rounded-lg border border-med px-3 text-sm font-semibold text-med-ink hover:bg-med-bg">
-        Accept
-      </button>
+      <span className="text-sm text-ink-500">
+        {unreadable?.length ? COPY.unreadableHelper(unreadableLabel(unreadable), !!noName) : COPY.lowConfidenceHelper}
+      </span>
+      {noName ? null : (
+        <button type="button" onClick={onAccept} className="min-h-9 rounded-lg border border-med px-3 text-sm font-semibold text-med-ink hover:bg-med-bg">
+          Accept
+        </button>
+      )}
     </div>
   );
 }
@@ -226,7 +236,7 @@ export function MedRow({
 
   const save = () => {
     if (!form.name.trim() && !form.detail.trim()) return onDelete();
-    onChange({ ...form, name: form.name.trim() || "Medicine", detail: form.detail.trim(), confidence: "high" });
+    onChange({ ...form, name: form.name.trim() || "Medicine", detail: form.detail.trim(), unreadable: undefined, confidence: "high" });
     setEditing(false);
   };
 
@@ -301,7 +311,7 @@ export function MedRow({
     <li className="group flex flex-wrap items-start gap-2 border-b border-border-200/70 py-3 last:border-0" onClick={onFocusItem}>
       <button type="button" className="min-w-0 flex-1 cursor-text text-left" onClick={() => setEditing(true)} onFocus={onFocusItem}>
         <span className="flex flex-wrap items-center gap-2">
-          <span className="font-medium">{med.name}</span>
+          <span className="font-medium">{med.name || <span className="text-ink-500 italic">Name not read</span>}</span>
           <Badge tone={med.kind === "continue" ? "muted" : med.kind === "stopped" ? "attn" : "med"}>{MED_KIND_LABEL[med.kind]}</Badge>
         </span>
         <span className="mt-0.5 block text-ink-900/85">{med.detail}</span>
@@ -309,11 +319,11 @@ export function MedRow({
       </button>
       <RowActions label={med.name || "medicine"} onEdit={() => setEditing(true)} onDelete={onDelete} />
       <div className="basis-full">
-        <SourceLink quote={med.sourceQuote} added={med.origin === "caregiver"} onShow={onShowSource} />
+        <SourceLink quote={med.sourceQuote} added={med.origin === "caregiver"} onShow={onShowSource} page={med.sourcePage} />
       </div>
       {med.confidence === "low" ? (
         <div className="basis-full">
-          <LowConfidence onAccept={() => onChange({ ...med, confidence: "high" })} />
+          <LowConfidence unreadable={med.unreadable} onAccept={() => onChange({ ...med, unreadable: undefined, confidence: "high" })} />
         </div>
       ) : null}
     </li>
@@ -393,7 +403,7 @@ export function TaskRow({
         )}
         {!editing ? <RowActions label={task.title || "task"} onEdit={() => setEditing(true)} onDelete={onDelete} /> : null}
       </div>
-      <SourceLink quote={task.sourceQuote} added={task.origin === "caregiver"} onShow={onShowSource} />
+      <SourceLink quote={task.sourceQuote} added={task.origin === "caregiver"} onShow={onShowSource} page={task.sourcePage} />
       <div className="mt-2 grid grid-cols-2 gap-2 sm:max-w-md">
         <div>
           <label htmlFor={ids.who} className="text-sm text-ink-500">

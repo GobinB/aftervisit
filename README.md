@@ -83,7 +83,7 @@ cp .env.example .env.local
 | `CRON_SECRET` | Bearer token Vercel Cron sends to `/api/cron/purge` (`openssl rand -hex 24`) |
 | `IP_HASH_SALT` | Salt for IP, PIN, invite, and manage-key hashes (`openssl rand -hex 24`) |
 | `NEXT_PUBLIC_FEEDBACK_URL` | Optional two-question feedback form shown on the manage page |
-| `EXTRACTION_PROVIDER`, `ANTHROPIC_API_KEY`, `EXTRACTION_MODEL` | Optional; leave unset for the built-in parser |
+| `EXTRACTION_PROVIDER`, `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `EXTRACTION_MODEL`, `EXTRACTION_DAILY_LIMIT` | Optional; leave unset for the built-in parser |
 
 3. Start it:
 
@@ -91,6 +91,7 @@ cp .env.example .env.local
 npm run dev          # http://localhost:3000
 npm test             # parser, permissions grid, and invitation unit tests
 npm run test:e2e     # full browser suite (builds and starts the app on :3005)
+npm run eval         # accuracy run, by hand: built-in parser vs OpenAI on fictional summaries (eval/README.md)
 ```
 
 ## How extraction works
@@ -105,7 +106,7 @@ The default `heuristic` provider needs no API key and is fully deterministic:
 
 `tests/unit/parse.test.ts` checks six layouts (Epic MyChart, Cerner, an OCR'd printout, an urgent-care sheet, pasted portal text and the sample) and asserts that every source line lands in exactly one place.
 
-An LLM provider can be switched on with `EXTRACTION_PROVIDER=anthropic` and `ANTHROPIC_API_KEY` (`openai` and `gemini` are reserved names and currently fall back to the built-in parser). It uses structured output validated with zod and falls back to the built-in parser on any error. The privacy page automatically discloses the configured provider.
+OpenAI can read the summary instead, with `EXTRACTION_PROVIDER=openai` and `OPENAI_API_KEY`. `EXTRACTION_MODEL` names the model (`gpt-6.1-terra` if unset), so switching models is a change of that setting. It reads only for a signed-in caregiver, up to `EXTRACTION_DAILY_LIMIT` summaries a day each (10 if unset, counted in the database by `check_daily_limit`); past that, or when not signed in, the built-in reader is used. Page photos (made small on the phone) and PDFs then go through the server to the Responses API as image or file input, with Structured Outputs checked by zod and `store: false`; nothing is kept or logged on the way. Every item keeps the page and the sentence it came from. A medicine name, dose or instruction the model cannot read is left blank and the item is marked *Please check this*, which the caregiver must clear before the section can be confirmed. If the model fails or takes too long, the phone reads the photos itself and the built-in parser builds the draft; the caregiver never sees the error. `EXTRACTION_PROVIDER=anthropic` with `ANTHROPIC_API_KEY` reads text only. The scan page and the privacy page describe whichever reader is configured.
 
 ## Deploying to Vercel
 

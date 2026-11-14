@@ -10,6 +10,7 @@ import { ShareLink, type ShareableLink } from "@/components/circles/ShareLink";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { Switch } from "@/components/ui/Switch";
+import { LocalTime } from "@/components/ui/LocalTime";
 import { dateTime } from "@/lib/format";
 import { LINK_IDLE_DAYS, LINK_MAX_DAYS } from "@/lib/link-life";
 import { AREA_DETAILS, ROLE_DETAILS, SEE_PRESETS, presetFor } from "@/lib/share-message";
@@ -139,7 +140,16 @@ function PersonLine({ person }: { person: PersonView }) {
         <span className="block truncate text-[16px] font-semibold text-ink-900">{person.name}</span>
         <span className="block text-[13px] text-ink-500">
           {person.roleLabel}
-          {person.kind === "member" && !person.revokedAt ? ` · ${person.lastSeenAt ? `opened ${dateTime(person.lastSeenAt)}` : "not opened yet"}` : ""}
+          {person.kind === "member" && !person.revokedAt ? (
+            person.lastSeenAt ? (
+              <>
+                {" · opened "}
+                <LocalTime iso={person.lastSeenAt} />
+              </>
+            ) : (
+              " · not opened yet"
+            )
+          ) : null}
         </span>
       </span>
       {person.revokedAt ? <Badge tone="attn">Removed</Badge> : person.locked ? <Badge tone="attn">Locked</Badge> : null}

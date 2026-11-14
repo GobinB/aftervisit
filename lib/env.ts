@@ -27,6 +27,8 @@ export const env = {
   appUrl: (process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000").replace(/\/$/, ""),
   ttlDays: num(process.env.HANDOFF_TTL_DAYS, 30),
   maxUploadMb: num(process.env.MAX_UPLOAD_MB, 10),
+  /** How many visit summaries one caregiver can have read by the outside reader (OpenAI) each day. */
+  extractionDailyLimit: num(process.env.EXTRACTION_DAILY_LIMIT, 10),
   cronSecret: process.env.CRON_SECRET ?? "",
   // Server salt for IP, PIN, link and manage-key hashes. Refused when missing on the live site (below).
   salt: requiredInProduction("IP_HASH_SALT"),

@@ -1,12 +1,15 @@
 "use client";
 import { ArrowLeft, ArrowRight, Camera, CheckCircle2, FileText, ImageIcon, Loader2, X } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useRef, useState } from "react";
 import { visitContextAction } from "@/app/actions/visits";
 import { Button } from "@/components/Button";
 import { BackLink } from "@/components/circles/PageHead";
+import { useReaderReadsPages } from "@/components/intake/ReaderContext";
 import { StepHeader } from "@/components/StepHeader";
 import { COPY } from "@/lib/copy";
+import { isUnsorted } from "@/lib/parse";
 import type { HandoffDraft } from "@/lib/schema";
 import { setOriginalFile, setOriginalPages, useFlow } from "@/lib/store";
 
@@ -35,6 +38,8 @@ export default function IntakePage() {
   const startDraft = useFlow((s) => s.startDraft);
   const setOriginalName = useFlow((s) => s.setOriginalName);
   const savedCaregiver = useFlow((s) => s.caregiverFirstName);
+  // On: page photos and PDFs go through our server to OpenAI to be read. Off: photos are read on this phone.
+  const sendsPages = useReaderReadsPages();
 
   const [files, setFiles] = useState<File[]>([]);
   const [pasteMode, setPasteMode] = useState(false);
@@ -108,7 +113,8 @@ export default function IntakePage() {
     const t2 = setTimeout(() => setStepsDone((n) => Math.max(n, 2)), 4000);
 
     try {
-      let res: Response;
+      let res: Response | null = null;
+      let data: ExtractResponse | null = null;
       if (pasteMode) {
         res = await fetch("/api/extract", {
           method: "POST",
@@ -120,8 +126,14 @@ export default function IntakePage() {
         fd.append("file", files[0]);
         if (patient) fd.append("patientFirstName", patient);
         res = await fetch("/api/extract", { method: "POST", body: fd });
-      } else {
-        // Photos are read here in the browser; only the text is sent.
+      } else if (sendsPages) {
+        // Photos go through our server to the model. If it cannot read them, the phone reads them below.
+        const { readPagesOnServer } = await import("@/lib/read-pages");
+        const draft = await readPagesOnServer(files, patient || undefined);
+        if (draft) data = { draft, unsorted: isUnsorted(draft) };
+      }
+      if (!pasteMode && kind !== "pdf" && !data) {
+        // Photos are read here in the browser; only the text is sent. Also the fallback when the model could not read them.
         const { ocrImages } = await import("@/lib/ocr");
         setOcr(0);
         const ocrText = await ocrImages(files, (p) => {
@@ -132,12 +144,15 @@ export default function IntakePage() {
         res = await fetch("/api/extract", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text: ocrText, patientFirstName: patient || undefined }),
+          body: JSON.stringify({ text: ocrText, patientFirstName: patient || undefined, reader: sendsPages ? "builtin" : undefined }),
         });
       }
 
-      const data = (await res.json().catch(() => ({}))) as ExtractResponse;
-      if (!res.ok || !data.draft) throw new UserError(data.message || COPY.genericError);
+      if (!data) {
+        data = res ? ((await res.json().catch(() => ({}))) as ExtractResponse) : {};
+        if (!res?.ok) throw new UserError(data.message || COPY.genericError);
+      }
+      if (!data.draft) throw new UserError(data.message || COPY.genericError);
 
       setStepsDone(3);
       const wait = Math.max(0, 1500 - (Date.now() - started));
@@ -202,7 +217,9 @@ export default function IntakePage() {
             })}
           </ol>
           <p className="mt-6 text-sm text-ink-500">
-            This usually takes a few seconds. Photos take longer while your phone reads the text.
+            {sendsPages
+              ? "This usually takes a few seconds, and up to a minute for several pages."
+              : "This usually takes a few seconds. Photos take longer while your phone reads the text."}
           </p>
         </div>
       </div>
@@ -475,9 +492,18 @@ export default function IntakePage() {
         </div>
       ) : null}
       <p className="mt-3 text-sm text-ink-500">
-        {kind === "image" || !files.length
-          ? "Photos are read on this device. Only the text is sent to All Hands Care's server to build the draft, and it is not saved."
-          : "Your file is sent to All Hands Care's server to build the draft and is not saved."}
+        {sendsPages
+          ? pasteMode
+            ? "The text is sent through All Hands Care's server to OpenAI, which reads it and builds the draft. We do not store it on the way."
+            : kind === "pdf"
+              ? "Your file is sent through All Hands Care's server to OpenAI, which reads it and builds the draft. We do not store it on the way."
+              : "The photos are sent through All Hands Care's server to OpenAI, which reads them and builds the draft. We do not store them on the way."
+          : kind === "image" || !files.length
+            ? "Photos are read on this device. Only the text is sent to All Hands Care's server to build the draft, and it is not saved."
+            : "Your file is sent to All Hands Care's server to build the draft and is not saved."}{" "}
+        <Link href="/privacy#collect" className="underline underline-offset-4">
+          Privacy
+        </Link>
       </p>
     </div>
   );

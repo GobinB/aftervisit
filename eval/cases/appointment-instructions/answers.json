@@ -1,0 +1,67 @@
+{
+  "format": "appointment instructions",
+  "visitDate": null,
+  "alsoAcceptDates": [
+    "2026-11-12"
+  ],
+  "medications": [
+    {
+      "name": "ferrous sulfate",
+      "aliases": [
+        "iron"
+      ],
+      "kind": "stopped"
+    },
+    {
+      "name": "clopidogrel",
+      "kind": "stopped"
+    },
+    {
+      "name": "polyethylene glycol",
+      "aliases": [
+        "bowel prep"
+      ],
+      "kind": "new",
+      "optional": true
+    }
+  ],
+  "nextSteps": [
+    {
+      "what": "Colonoscopy appointment",
+      "match": [
+        "colonoscopy|procedure|endoscopy|whitaker"
+      ],
+      "date": "2026-11-19"
+    },
+    {
+      "what": "Call heart doctor about clopidogrel",
+      "match": [
+        "heart doctor|cardiolog"
+      ]
+    },
+    {
+      "what": "Clear liquids the day before",
+      "match": [
+        "liquid"
+      ]
+    },
+    {
+      "what": "Start bowel prep the evening before",
+      "match": [
+        "prep"
+      ]
+    },
+    {
+      "what": "Bring a driver",
+      "match": [
+        "driver|ride"
+      ]
+    },
+    {
+      "what": "Bring insurance card and medicine list",
+      "match": [
+        "insurance|list"
+      ]
+    }
+  ]
+}
