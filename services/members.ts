@@ -1,21 +1,24 @@
 import "server-only";
-import { randomInt, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { activeLock, HARD_LOCK_AFTER, LOCK_MINUTES, MAX_PIN_ATTEMPTS, toPinCheck, type TryPinRow } from "@/lib/access";
 import type { Actor } from "@/lib/auth";
 import { COPY } from "@/lib/copy";
 import { linkTag } from "@/lib/helper-cookie";
-import { hashInvite, INVITE_RE, newInviteToken } from "@/lib/invites";
+import { hashInvite, INVITE_RE } from "@/lib/invites";
+import { linkExpiry, UPDATE_AREAS, type UpdateArea } from "@/lib/link-life";
+import { memberToken } from "@/lib/member-token";
 import { can } from "@/lib/permissions";
 import { caregiverDisplayName } from "@/lib/caregiver-name";
-import { CAREGIVER_ROLE_LABELS, HELPER_ROLE_LABELS, MEMBER_TTL_DAYS, type AddMemberInput, type HelperRole, type PersonView, type Visibility, VisibilitySchema } from "@/lib/schema/circles";
+import { CAREGIVER_ROLE_LABELS, HELPER_ROLE_LABELS, type AddMemberInput, type HelperRole, type PersonView, type Visibility, VisibilitySchema } from "@/lib/schema/circles";
 import { PinSchema } from "@/lib/schema";
 import { hashPin } from "@/lib/tokens";
+import { whoNeedsUpdate, type PendingUpdate } from "@/lib/updates";
 import { clientFor, serviceClient } from "@/store/db";
 
 const denied = "You cannot change people on this circle.";
 const generic = "That could not be saved. Try again.";
 
-export type { PersonView };
+export type { PendingUpdate, PersonView };
 
 export type MemberLinkPreview =
   | { status: "absent" }
@@ -43,9 +46,7 @@ async function caregiverNames(ids: string[]): Promise<Map<string, string>> {
   return names;
 }
 
-function expiresAt(): string {
-  return new Date(Date.now() + MEMBER_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString();
-}
+const notSetUp = "Links are not set up on this site yet.";
 
 function missingRelation(error: unknown): boolean {
   const code = (error as { code?: string }).code;
@@ -133,7 +134,9 @@ export async function addMember(
 ): Promise<{ ok: true; token: string; memberId: string; name: string; email: string | null } | { ok: false; error: string }> {
   if (!can(actor, "members:manage", { circleId: input.circleId })) return { ok: false, error: denied };
   const id = randomUUID();
-  const token = newInviteToken();
+  const token = memberToken(id, 1);
+  if (!token) return { ok: false, error: notSetUp };
+  const now = new Date();
   const { error } = await clientFor(actor).from("members").insert({
     id,
     circle_id: input.circleId,
@@ -143,7 +146,9 @@ export async function addMember(
     token_hash: hashInvite(token),
     pin_hash: input.pin ? hashPin(id, input.pin) : null,
     visibility: input.visibility ?? {},
-    expires_at: expiresAt(),
+    link_version: 1,
+    link_issued_at: now.toISOString(),
+    expires_at: linkExpiry(now, now).toISOString(),
   });
   if (error) return { ok: false, error: generic };
   await log(actor, input.circleId, "member_added", id);
@@ -193,76 +198,114 @@ export async function revokeMember(actor: Actor, circleId: string, memberId: str
   return { ok: true as const };
 }
 
-export async function renewMember(actor: Actor, circleId: string, memberId: string) {
-  if (!can(actor, "members:manage", { circleId })) return { ok: false as const, error: denied };
-  const { data, error } = await clientFor(actor)
-    .from("members")
-    .update({ expires_at: expiresAt() })
-    .eq("id", memberId)
-    .eq("circle_id", circleId)
-    .is("revoked_at", null)
-    .select("id")
-    .maybeSingle();
-  if (error || !data) return { ok: false as const, error: "Renew works on a link that is still active." };
-  await log(actor, circleId, "member_renewed", memberId);
-  return { ok: true as const };
-}
-
+/**
+ * A fresh link for one person: the old one stops working on every phone that opened it, and the
+ * new one starts its own 30 and 90 days. Also lets a removed person back in. Their PIN, if they
+ * have one, stays the same.
+ */
 export async function newMemberLink(actor: Actor, circleId: string, memberId: string) {
   if (!can(actor, "members:manage", { circleId })) return { ok: false as const, error: denied };
-  const token = newInviteToken();
-  const { data, error } = await clientFor(actor)
+  const db = clientFor(actor);
+  const current = await db.from("members").select("link_version").eq("id", memberId).eq("circle_id", circleId).maybeSingle();
+  if (current.error || !current.data) return { ok: false as const, error: generic };
+  const version = (current.data.link_version as number) + 1;
+  const token = memberToken(memberId, version);
+  if (!token) return { ok: false as const, error: notSetUp };
+  const now = new Date();
+  const { data, error } = await db
     .from("members")
     .update({
       token_hash: hashInvite(token),
-      // A new link also lets a removed person back in. Old devices stay out: their cookies name the old link.
+      link_version: version,
+      link_issued_at: now.toISOString(),
+      expires_at: linkExpiry(now, now).toISOString(),
+      last_told_at: now.toISOString(),
       revoked_at: null,
       pin_failures: 0,
       locked_until: null,
       lock_count: 0,
-      expires_at: expiresAt(),
     })
     .eq("id", memberId)
     .eq("circle_id", circleId)
-    .select("name, email")
+    .eq("link_version", version - 1)
+    .select("name, email, pin_hash")
     .maybeSingle();
   if (error || !data) return { ok: false as const, error: generic };
   await log(actor, circleId, "member_link", memberId);
-  return { ok: true as const, token, memberId, name: data.name as string, email: (data.email as string | null) ?? null };
-}
-
-/** A 4-digit PIN chosen by the server, so a person never reuses an old one. */
-export function newPin(): string {
-  return String(randomInt(0, 10_000)).padStart(4, "0");
+  return { ok: true as const, token, memberId, name: data.name as string, email: (data.email as string | null) ?? null, hasPin: Boolean(data.pin_hash) };
 }
 
 /**
- * A new link and a new PIN for one person, made when the caregiver sends them a visit update.
- * The old link and the old PIN stop working at once. Only for a person who is still in the circle.
- * The PIN is returned once and kept only as a hash.
+ * A person's current link, to share again: the same link they already have. Only for the
+ * caregiver, and only while the link still works.
  */
-export async function shareMemberLink(actor: Actor, circleId: string, memberId: string) {
+export async function memberLink(actor: Actor, circleId: string, memberId: string) {
   if (!can(actor, "members:manage", { circleId })) return { ok: false as const, error: denied };
-  const token = newInviteToken();
-  const pin = newPin();
-  const { data, error } = await clientFor(actor)
+  const db = clientFor(actor);
+  const { data, error } = await db
     .from("members")
-    .update({
-      token_hash: hashInvite(token),
-      pin_hash: hashPin(memberId, pin),
-      pin_failures: 0,
-      locked_until: null,
-      lock_count: 0,
-      expires_at: expiresAt(),
-    })
+    .select("name, email, pin_hash, token_hash, link_version, revoked_at, expires_at")
     .eq("id", memberId)
     .eq("circle_id", circleId)
-    .is("revoked_at", null)
-    .select("name, email")
     .maybeSingle();
-  if (error || !data) return { ok: false as const, error: "That person is not an active member of this circle." };
-  await log(actor, circleId, "member_link", memberId);
-  return { ok: true as const, token, pin, memberId, name: data.name as string, email: (data.email as string | null) ?? null };
+  if (error || !data) return { ok: false as const, error: generic };
+  const first = (data.name as string).trim().split(/\s+/)[0];
+  if (data.revoked_at) return { ok: false as const, error: `${first}'s link is turned off. Make a new link to let them back in.` };
+  if (new Date(data.expires_at as string).getTime() <= Date.now()) return { ok: false as const, error: `${first}'s link has ended. Send them a fresh link.` };
+  const token = memberToken(memberId, data.link_version as number);
+  if (!token) return { ok: false as const, error: notSetUp };
+  // A link made before links could be shared again was random; it is replaced the first time it is shared.
+  if (hashInvite(token) !== data.token_hash) {
+    const adopted = await db.from("members").update({ token_hash: hashInvite(token) }).eq("id", memberId).eq("circle_id", circleId).select("id").maybeSingle();
+    if (adopted.error || !adopted.data) return { ok: false as const, error: generic };
+  }
+  return { ok: true as const, token, memberId, name: data.name as string, email: (data.email as string | null) ?? null, hasPin: Boolean(data.pin_hash) };
+}
+
+/** Records that the caregiver sent these people their link about the latest changes (or chose not to). */
+export async function markTold(actor: Actor, circleId: string, memberIds: string[]) {
+  if (!can(actor, "members:manage", { circleId })) return { ok: false as const, error: denied };
+  if (!memberIds.length) return { ok: true as const };
+  const { error } = await clientFor(actor).from("members").update({ last_told_at: new Date().toISOString() }).eq("circle_id", circleId).in("id", memberIds);
+  if (error) return { ok: false as const, error: generic };
+  return { ok: true as const };
+}
+
+/** The people who have not heard about the caregiver's latest changes, and what changed for each. Empty for anyone else. */
+export async function getPendingUpdates(actor: Actor, circleId: string): Promise<PendingUpdate[]> {
+  if (actor.kind !== "caregiver" || !can(actor, "members:manage", { circleId })) return [];
+  const db = clientFor(actor);
+  const [updates, members] = await Promise.all([
+    db.from("circle_updates").select("area, changed_at").eq("circle_id", circleId),
+    db
+      .from("members")
+      .select("id, name, role, visibility, last_seen_at, last_told_at, link_issued_at, expires_at")
+      .eq("circle_id", circleId)
+      .is("revoked_at", null)
+      .order("created_at"),
+  ]);
+  if (updates.error || members.error || !updates.data?.length || !members.data?.length) return [];
+  const now = Date.now();
+  return whoNeedsUpdate(
+    updates.data
+      .filter((row) => (UPDATE_AREAS as readonly string[]).includes(row.area as string))
+      .map((row) => ({ area: row.area as UpdateArea, changedAt: row.changed_at as string })),
+    members.data
+      .filter((row) => new Date(row.expires_at as string).getTime() > now)
+      .map((row) => {
+        const visibility = VisibilitySchema.safeParse(row.visibility ?? {});
+        return {
+          id: row.id as string,
+          circleId,
+          name: row.name as string,
+          role: row.role as HelperRole,
+          visibility: visibility.success ? visibility.data : {},
+          lastSeenAt: (row.last_seen_at as string | null) ?? null,
+          lastToldAt: (row.last_told_at as string | null) ?? null,
+          linkIssuedAt: row.link_issued_at as string,
+        };
+      }),
+  );
 }
 
 export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: true; people: PersonView[]; canManage: boolean } | { ok: false; error: string }> {

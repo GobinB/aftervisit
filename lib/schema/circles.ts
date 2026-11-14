@@ -155,6 +155,7 @@ export const MemberChangeSchema = z
 export const ChangeRoleSchema = MemberChangeSchema.extend({ role: HelperRoleSchema });
 export const SetVisibilitySchema = MemberChangeSchema.extend({ visibility: VisibilitySchema });
 
+/** How long a person's browser stays signed in after it last opened the circle; the link's own limits are in lib/link-life.ts. */
 export const MEMBER_TTL_DAYS = 90;
 
 export interface PersonView {

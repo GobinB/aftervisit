@@ -35,7 +35,7 @@ export default async function InvitePage({ params }: Props) {
   const { invite } = await params;
   return (
     <>
-      <CaptureLinkKey token={invite} />
+      <CaptureLinkKey />
       {await inviteBody(invite)}
     </>
   );

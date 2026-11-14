@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { mailtoHref, presetFor, shareMessage, smsHref } from "@/lib/share-message";
 
-const details = { name: "Sam Rivera", personName: "Margaret", url: "https://allhandscare.org/i/abcdefghijklmnopqrstuvwx#k=xyz" };
+const details = { name: "Sam Rivera", personName: "Margaret", url: "https://allhandscare.org/i/abcdefghijklmnopqrstuvwx" };
 
 describe("share message", () => {
   it("greets by first name and includes the link", () => {
@@ -16,13 +16,20 @@ describe("share message", () => {
     expect(shareMessage({ ...details, pin: "4821" }).body).toContain("Your PIN is 4821.");
   });
 
-  it("says the link is new after a visit, with no health details", () => {
-    const { subject, body } = shareMessage({ ...details, pin: "4821", afterVisit: true });
-    expect(subject).toBe("Margaret's care circle: new after a visit");
-    expect(body).toContain("after a visit");
-    expect(body).toContain("Your old link no longer works.");
+  it("after a change, says what changed and that the link is the same, with no health details", () => {
+    const { subject, body } = shareMessage({ ...details, changed: "medicines and the calendar" });
+    expect(subject).toBe("Margaret's care circle: medicines and the calendar changed");
+    expect(body).toContain("medicines and the calendar changed");
+    expect(body).toContain("same link as before");
+    expect(body).not.toContain("no longer works");
     expect(body).toContain(details.url);
-    expect(body).toContain("Your PIN is 4821.");
+    expect(body).not.toMatch(/metformin|mg\b/i);
+  });
+
+  it("reminds a person of their PIN without showing it, when the same link is shared again", () => {
+    const { body } = shareMessage({ ...details, hasPin: true, changed: "reminders" });
+    expect(body).toContain("Use the same PIN as before.");
+    expect(body).not.toMatch(/PIN is \d/);
   });
 
   it("builds mailto and sms links with the message filled in", () => {

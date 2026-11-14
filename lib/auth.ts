@@ -8,6 +8,7 @@ import { HELPER_ROLES, MEMBER_TTL_DAYS, VisibilitySchema, type HelperRole, type 
 import { serviceClient, userClient } from "@/store/db";
 import { createSupabaseServerClient } from "@/store/supabase-server";
 import { caregiverHome, LAST_CIRCLE_COOKIE } from "@/lib/home-path";
+import { linkExpiry } from "@/lib/link-life";
 
 /** One caregiver signs in per circle: its owner. Everyone else uses a personal link. */
 export type CaregiverRole = "owner";
@@ -113,7 +114,7 @@ async function loadHelper(circleId: string): Promise<Actor | null> {
     const db = serviceClient();
     const { data, error } = await db
       .from("members")
-      .select("id, role, visibility, revoked_at, expires_at, last_seen_at, token_hash")
+      .select("id, role, visibility, revoked_at, expires_at, last_seen_at, token_hash, link_issued_at")
       .eq("id", claim.memberId)
       .eq("circle_id", circleId)
       .maybeSingle();
@@ -132,7 +133,8 @@ async function loadHelper(circleId: string): Promise<Actor | null> {
         .from("members")
         .update({
           last_seen_at: new Date().toISOString(),
-          expires_at: new Date(Date.now() + MEMBER_TTL_DAYS * 24 * 60 * 60 * 1000).toISOString(),
+          // Another 30 days from now, but never past 90 days from when the link was made.
+          expires_at: linkExpiry(new Date(data.link_issued_at as string)).toISOString(),
         })
         .eq("id", data.id as string);
     }

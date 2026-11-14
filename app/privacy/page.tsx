@@ -5,7 +5,7 @@ import { SOURCE_URL } from "@/components/AppBar";
 import { PageShell } from "@/components/PageShell";
 import { PRIVACY_EMAIL } from "@/lib/contact";
 import { providerDisclosure } from "@/lib/extract/provider";
-import { MEMBER_TTL_DAYS } from "@/lib/schema/circles";
+import { LINK_IDLE_DAYS, LINK_MAX_DAYS } from "@/lib/link-life";
 
 export const metadata: Metadata = { title: "Privacy" };
 export const dynamic = "force-dynamic";
@@ -204,8 +204,9 @@ export default function PrivacyPage() {
                       programs see only the reminders given to them.
                     </li>
                     <li>
-                      Anyone who has a person&apos;s link can open it, because a link can be forwarded. Add a PIN for a second step. If a link
-                      is shared by mistake, make a new link or remove the person: every phone that opened the old link is signed out.
+                      Anyone who has a person&apos;s link can open it, because a link can be forwarded. Add a PIN for a second step. Every link
+                      stops working {LINK_IDLE_DAYS} days after it was last opened, and always {LINK_MAX_DAYS} days after it was made. If a link is
+                      shared by mistake, make a new link or remove the person: every phone that opened the old link is signed out.
                     </li>
                     <li>The people you add see your name as it appears on your Google account.</li>
                     <li>
@@ -312,7 +313,10 @@ export default function PrivacyPage() {
                     <li>Saved photos of a visit summary are kept until you delete them, or the circle.</li>
                     <li>Our database provider keeps backup copies for up to 7 days, so erased information leaves the backups within a week.</li>
                     <li>A shared visit summary (handoff) is deleted {TTL_DAYS} days after it is made, with any attached original.</li>
-                    <li>A helper&apos;s browser stays signed in to a circle for up to {MEMBER_TTL_DAYS} days after they last open it.</li>
+                    <li>
+                      A helper&apos;s browser stays signed in to a circle while their link works: up to {LINK_IDLE_DAYS} days after they last open it,
+                      and never more than {LINK_MAX_DAYS} days after the link was made.
+                    </li>
                   </ul>
                 </section>
 

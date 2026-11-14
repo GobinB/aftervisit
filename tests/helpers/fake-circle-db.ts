@@ -23,18 +23,20 @@ export type FakeState = {
     file_key_iv: string | null;
   }[];
   activity: { circle_id: string; action: string }[];
+  members: Record<string, unknown>[];
+  circle_updates: { circle_id: string; area: string; changed_at: string }[];
   storage: Map<string, Uint8Array>;
   /** Every table or function a client touched, so a test can show the database was never reached. */
   touched: string[];
 };
 
 export function emptyState(): FakeState {
-  return { circles: [], circle_caregivers: [], visit_documents: [], activity: [], storage: new Map(), touched: [] };
+  return { circles: [], circle_caregivers: [], visit_documents: [], activity: [], members: [], circle_updates: [], storage: new Map(), touched: [] };
 }
 
 const AV2 = /^av2\.[A-Za-z0-9_-]{16}\.[A-Za-z0-9_-]{64}$/;
 
-type Table = "circles" | "circle_caregivers" | "visit_documents";
+type Table = "circles" | "circle_caregivers" | "visit_documents" | "members" | "circle_updates" | "activity";
 
 class Query {
   private filters: ((row: Row) => boolean)[] = [];
@@ -69,6 +71,10 @@ class Query {
   }
   eq(column: string, value: unknown) {
     this.filters.push((row) => row[column] === value);
+    return this;
+  }
+  in(column: string, values: unknown[]) {
+    this.filters.push((row) => values.includes(row[column]));
     return this;
   }
   is(column: string, value: null) {

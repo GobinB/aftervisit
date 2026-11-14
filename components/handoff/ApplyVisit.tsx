@@ -16,7 +16,7 @@ import { keepPages } from "@/lib/page-image";
 import { MAX_PAGE_BYTES } from "@/lib/schema/documents";
 import { getOriginalPages } from "@/lib/store";
 import { WhoChips } from "@/components/todos/TodoForm";
-import { TellPeople } from "@/components/handoff/TellPeople";
+import { ShareUpdates } from "@/components/circles/ShareUpdates";
 import { ensureCircleKey } from "@/components/circles/circle-key";
 import { generateFileKey, sealPage, wrapFileKey } from "@/lib/crypto";
 
@@ -234,7 +234,9 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
               {done.failed} change{done.failed === 1 ? "" : "s"} could not be saved. Check the Medications and Reminders pages.
             </p>
           ) : null}
-          <TellPeople circleId={circleId} personName={context.personName} helpers={context.helpers} circleKey={context.key} />
+          <div className="mt-5 border-t border-border-200 pt-5">
+            <ShareUpdates circleId={circleId} personName={context.personName} />
+          </div>
           <div className="mt-5 flex flex-wrap gap-2">
             <Link href={`/circles/${circleId}`} className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary-700 px-4 text-[14px] font-semibold text-white hover:bg-primary-900">
               Go to Today <ArrowRight className="size-4" aria-hidden="true" />

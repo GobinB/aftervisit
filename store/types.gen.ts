@@ -1,4 +1,4 @@
-// The database after migrations 0001-0018, as the Supabase CLI writes it. Regenerate with:
+// The database after migrations 0001-0019, as the Supabase CLI writes it. Regenerate with:
 // supabase gen types typescript --local > store/types.gen.ts
 export type Json =
   | string
@@ -131,6 +131,32 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "circle_caregivers_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      circle_updates: {
+        Row: {
+          area: string
+          changed_at: string
+          circle_id: string
+        }
+        Insert: {
+          area: string
+          changed_at?: string
+          circle_id: string
+        }
+        Update: {
+          area?: string
+          changed_at?: string
+          circle_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "circle_updates_circle_id_fkey"
             columns: ["circle_id"]
             isOneToOne: false
             referencedRelation: "circles"
@@ -687,6 +713,9 @@ export type Database = {
           expires_at: string
           id: string
           last_seen_at: string | null
+          last_told_at: string | null
+          link_issued_at: string
+          link_version: number
           lock_count: number
           locked_until: string | null
           name: string
@@ -705,6 +734,9 @@ export type Database = {
           expires_at: string
           id?: string
           last_seen_at?: string | null
+          last_told_at?: string | null
+          link_issued_at?: string
+          link_version?: number
           lock_count?: number
           locked_until?: string | null
           name: string
@@ -723,6 +755,9 @@ export type Database = {
           expires_at?: string
           id?: string
           last_seen_at?: string | null
+          last_told_at?: string | null
+          link_issued_at?: string
+          link_version?: number
           lock_count?: number
           locked_until?: string | null
           name?: string
