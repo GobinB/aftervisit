@@ -4,6 +4,7 @@ Notable changes to All Hands Care (formerly AfterVisit). The newest entries are 
 
 ## Unreleased
 
+- The privacy policy has new sections: what we can and cannot read, when we share information (legal demands, safety, a change of who runs the site), where information is kept, and cookies. Vercel, Supabase and Google are named with links to their own privacy policies, and the page says what changed. How information is handled did not change.
 - Nothing in the database can be run without signing in. Every database function is closed to signed-out requests, including one added with encrypted summaries that had been left open, and a test now fails if a new one is left open. Needs migration `0016`.
 - Saved photos and PDFs of visit summaries are now end-to-end encrypted. Each page is encrypted on the caregiver's device before it is sent, with a key made on that device and protected by the 12 recovery words, so the server stores only bytes it cannot read. Keeping photos asks for the key for files if this device does not have it yet; opening them on a new device asks for the recovery words. Changing the key keeps every saved summary readable. Summaries saved earlier are unchanged. Needs migration `0015`.
 - After a visit summary updates a circle, the last screen offers "Tell the people who help": tap a name to make that person a new link and a new 4-digit PIN, then send it by email, text or copy with the message already written. The old link and PIN stop working, and nobody's link changes unless their name is tapped.
