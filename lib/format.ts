@@ -17,10 +17,21 @@ export function longDate(iso?: string | null): string {
   return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
-export function dateTime(iso: string): string {
+/**
+ * "Nov 14, 6:40 AM", in the given time zone (the device's own when left out).
+ * Built from parts rather than toLocaleString: Safari writes "Nov 14 at 6:40 AM" and Node
+ * "Nov 14, 6:40 AM", and some engines put a narrow space before AM, so the server and the
+ * browser would draw different text.
+ */
+export function dateTime(iso: string, timeZone?: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "";
-  return d.toLocaleString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+  const parts = new Intl.DateTimeFormat("en-US", { month: "numeric", day: "numeric", hour: "numeric", minute: "2-digit", hourCycle: "h23", timeZone }).formatToParts(d);
+  const part = (type: Intl.DateTimeFormatPartTypes) => Number(parts.find((p) => p.type === type)?.value);
+  const hour24 = part("hour") % 24;
+  const hour = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  const minute = String(part("minute")).padStart(2, "0");
+  return `${MONTHS[part("month") - 1]} ${part("day")}, ${hour}:${minute} ${hour24 < 12 ? "AM" : "PM"}`;
 }
 
 /** "Dr. Anita Patel" -> "Dr. Patel"; "Maria Chen, NP" -> "Maria Chen, NP". */

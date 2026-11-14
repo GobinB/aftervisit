@@ -1,6 +1,6 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
-import { dateTime } from "@/lib/format";
+import { LocalTime } from "@/components/ui/LocalTime";
 import type { PersonView } from "@/lib/schema/circles";
 
 /** Read-only list of the people on a circle. "Last opened" shows only when the viewer may manage people. */
@@ -14,7 +14,16 @@ export function PeopleList({ people, showSeen }: { people: PersonView[]; showSee
             <p className="truncate font-semibold text-ink-900">{person.name}</p>
             <p className="text-sm text-ink-500">
               {person.roleLabel}
-              {showSeen && person.kind === "member" && !person.revokedAt ? ` · Last opened ${person.lastSeenAt ? dateTime(person.lastSeenAt) : "not yet"}` : ""}
+              {showSeen && person.kind === "member" && !person.revokedAt ? (
+                person.lastSeenAt ? (
+                  <>
+                    {" · Last opened "}
+                    <LocalTime iso={person.lastSeenAt} />
+                  </>
+                ) : (
+                  " · Last opened not yet"
+                )
+              ) : null}
             </p>
           </div>
           {person.revokedAt ? <Badge tone="attn">Access removed</Badge> : person.locked ? <Badge tone="attn">Locked</Badge> : null}
