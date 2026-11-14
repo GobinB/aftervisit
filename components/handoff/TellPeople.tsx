@@ -7,6 +7,7 @@ import { shareLinkAction } from "@/app/actions/members";
 import { urlForMemberToken } from "@/components/circles/member-link";
 import { ShareLink, type ShareableLink } from "@/components/circles/ShareLink";
 import { saveLink } from "@/lib/local-links";
+import type { CircleKeyState } from "@/lib/schema/circles";
 
 type Helper = { id: string; name: string; roleLabel: string; email: string | null };
 
@@ -17,7 +18,7 @@ const firstName = (name: string) => name.trim().split(/\s+/)[0] || name.trim();
  * a new link and a new PIN (the old ones stop working), then offers Email, Text or Copy with the
  * message already written. Nobody's link changes unless the caregiver taps their name.
  */
-export function TellPeople({ circleId, personName, helpers, keyVersion }: { circleId: string; personName: string; helpers: Helper[]; keyVersion: number | null }) {
+export function TellPeople({ circleId, personName, helpers, circleKey }: { circleId: string; personName: string; helpers: Helper[]; circleKey: CircleKeyState | null }) {
   const [busy, setBusy] = useState<string | null>(null);
   const [share, setShare] = useState<ShareableLink | null>(null);
   const [links, setLinks] = useState<Record<string, ShareableLink>>({});
@@ -50,11 +51,7 @@ export function TellPeople({ circleId, personName, helpers, keyVersion }: { circ
         setError(result.error);
         return;
       }
-      const built = await urlForMemberToken(circleId, result.token, keyVersion);
-      if (!built.ok) {
-        setError(built.error);
-        return;
-      }
+      const built = await urlForMemberToken(circleId, result.token, circleKey);
       saveLink(circleId, result.memberId, built.url);
       const link: ShareableLink = { url: built.url, name: result.name, email: result.email, pin: result.pin, personName, afterVisit: true };
       setLinks((all) => ({ ...all, [helper.id]: link }));

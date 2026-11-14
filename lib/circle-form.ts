@@ -70,7 +70,7 @@ export function careSummaryError(input: CareSummaryInput): string | null {
 }
 
 /** Which step of the new-circle form holds this field. */
-export function stepForCreatePath(path: readonly PropertyKey[]): 0 | 1 | 2 | 3 | null {
+export function stepForCreatePath(path: readonly PropertyKey[]): 0 | 1 | 2 | null {
   const [root, field] = path;
   if (root === "content") {
     if (field === "person_name") return 0;
@@ -86,7 +86,6 @@ export function stepForCreatePath(path: readonly PropertyKey[]): 0 | 1 | 2 | 3 |
     return 1;
   }
   if (root === "consents") return 2;
-  if (root === "circleKeyWrapped") return 3;
   return null;
 }
 
@@ -99,12 +98,11 @@ function messageForPath(path: readonly PropertyKey[], code: string): string {
   if (path[0] === "content" && field === "emergency_contacts") return "Check the emergency contacts and try again.";
   if (path[0] === "content" && field === "poa_location") return "Where the power of attorney is kept is too long.";
   if (path[0] === "consents") return "Confirm each statement to continue.";
-  if (path[0] === "circleKeyWrapped") return "The recovery words could not be saved. Go back and try again.";
   return "Check the form and try again.";
 }
 
 /** A server-side schema failure, pointed at the step that holds the field. */
-export function explainCreateFailure(error: ZodError): { error: string; step: 0 | 1 | 2 | 3 } {
+export function explainCreateFailure(error: ZodError): { error: string; step: 0 | 1 | 2 } {
   const issue = error.issues[0];
   const step = (issue && stepForCreatePath(issue.path)) ?? 1;
   return { error: messageForPath(issue?.path ?? [], issue?.code ?? ""), step };

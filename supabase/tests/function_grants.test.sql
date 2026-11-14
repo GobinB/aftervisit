@@ -2,7 +2,7 @@
 
 begin;
 
-select plan(9);
+select plan(7);
 
 select is(
   (select coalesce(string_agg(p.oid::regprocedure::text, ', ' order by p.oid::regprocedure::text), '')
@@ -23,17 +23,11 @@ select is(
   'no function is open to every role'
 );
 
-select ok(
-  has_function_privilege('authenticated', 'public.rotate_own_circle_key(uuid, text, int, jsonb, jsonb)', 'execute'),
-  'a signed-in caregiver can change the key and carry file keys along'
-);
-select ok(
-  not has_function_privilege('service_role', 'public.rotate_own_circle_key(uuid, text, int, jsonb, jsonb)', 'execute'),
-  'the server cannot change a key with file keys'
-);
-select ok(
-  not has_function_privilege('service_role', 'public.rotate_own_circle_key(uuid, text, int, jsonb)', 'execute'),
-  'the server cannot change a key'
+select is(
+  (select count(*)::int from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+    where n.nspname = 'public' and p.proname in ('rotate_own_circle_key', 'reset_own_circle_key')),
+  0,
+  'the old ways to change a circle key are gone'
 );
 
 select ok(
@@ -41,7 +35,7 @@ select ok(
   'row security can still ask whether the caregiver is in the circle'
 );
 select ok(
-  has_function_privilege('authenticated', 'public.create_circle(jsonb, jsonb, text)', 'execute'),
+  has_function_privilege('authenticated', 'public.create_circle(jsonb, jsonb)', 'execute'),
   'a signed-in caregiver can still start a circle'
 );
 select ok(

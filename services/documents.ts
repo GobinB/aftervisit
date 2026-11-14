@@ -87,7 +87,7 @@ export async function createDocument(actor: Actor, input: CreateDocumentInput): 
     .select("id")
     .single();
   if (error && /file key version/i.test(error.message ?? "")) {
-    return { ok: false, error: "The key for files was changed on another device. Enter your recovery words in Settings, then try again." };
+    return { ok: false, error: "Something changed on another device while these were being kept. Scan the summary again to keep the photos." };
   }
   if (error || !data) return { ok: false, error: "The summary could not be kept. Try again." };
   return { ok: true, id: data.id as string };
@@ -95,7 +95,7 @@ export async function createDocument(actor: Actor, input: CreateDocumentInput): 
 
 /**
  * Stores one encrypted page at {circle}/{document}/{n}.enc. The bytes were encrypted in the caregiver's
- * browser with the summary's file key, so the server holds something it cannot read. A plain photo or
+ * browser with the summary's file key, so storage only ever holds ciphertext. A plain photo or
  * PDF is refused: its own first bytes give it away. Pages are added in order; a page number that is
  * already saved is refused.
  */
@@ -137,14 +137,6 @@ export async function readPage(actor: Actor, circleId: string, id: string, page:
   if (error || !data) return null;
   const sealed = fileKeyOf(row) !== null;
   return { bytes: await data.arrayBuffer(), type: sealed ? "application/octet-stream" : row.kind === "pdf" ? "application/pdf" : "image/jpeg", sealed };
-}
-
-/** Every encrypted summary's wrapped file key, so the browser can rewrap them when the circle key changes. */
-export async function listFileKeys(actor: Actor, circleId: string): Promise<({ id: string } & StoredDocumentKey)[] | null> {
-  if (!isCaregiver(actor, circleId)) return null;
-  const { data, error } = await clientFor(actor).from("visit_documents").select("id, key_version, file_key_wrapped, file_key_iv").eq("circle_id", circleId).not("file_key_wrapped", "is", null);
-  if (error || !data) return null;
-  return data.map((row) => ({ id: row.id as string, fileKeyWrapped: row.file_key_wrapped as string, fileKeyIv: row.file_key_iv as string, keyVersion: row.key_version as number }));
 }
 
 /** Deletes the files first, then the row, so nothing is left behind that the app cannot reach. */

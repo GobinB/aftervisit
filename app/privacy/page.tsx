@@ -16,14 +16,14 @@ const EFFECTIVE = "November 13, 2026";
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
   { icon: HeartHandshake, title: "Never sold, no ads", body: "We don't sell information, show ads, or use tracking cookies." },
-  { icon: ShieldCheck, title: "Only what's needed", body: "We keep what you enter. A visit summary's photos are kept only if you choose, and they are locked with a key only you hold." },
+  { icon: ShieldCheck, title: "Your photos stay locked", body: "Saved visit-summary photos are locked on your phone before they are sent, and we do not open them. They are kept only if you choose." },
   { icon: Trash2, title: "Delete it any time", body: "Deleting a circle closes it for everyone at once, and erases it for good after 30 days." },
 ];
 
 const SECTIONS = [
   { id: "who", title: "Who we are" },
   { id: "collect", title: "Information we collect" },
-  { id: "read", title: "What we can and cannot read" },
+  { id: "read", title: "How your saved photos are protected" },
   { id: "use", title: "How we use it" },
   { id: "see", title: "Who can see it" },
   { id: "share", title: "When we share information" },
@@ -70,8 +70,8 @@ export default function PrivacyPage() {
               <p className="mt-1 text-ink-900">
                 HIPAA covers doctors, hospitals, health plans and the companies that work for them. All Hands Care is a free tool that families
                 use on their own, so HIPAA generally does not apply to what you keep here. We still treat it as sensitive health information:
-                it is encrypted on its way to and from the site, every circle is walled off from every other, and saved photos are encrypted on
-                your device with a key only you hold, so we cannot open them. Some states have their own health-data laws; see our{" "}
+                it is encrypted on its way to and from the site, every circle is walled off from every other, and saved photos are locked on
+                your device before they are stored, and we do not open them. Some states have their own health-data laws; see our{" "}
                 <Link className="underline" href="/privacy/health-data">
                   health data notice
                 </Link>
@@ -137,7 +137,7 @@ export default function PrivacyPage() {
                       <strong>Visit summaries.</strong> Photos are read in your browser; only the text is sent to our server. Pasted text and
                       PDFs are read on our server. Either way the text is used to build a draft and is not saved: we keep only the items you
                       confirm. The photos (or PDF) are kept only if you leave &ldquo;Keep the photos&rdquo; on. They are encrypted on your device before they
-                      are sent, with a key only you hold, so what we store is something we cannot read.
+                      are sent, and we keep the key so you can open them on any device after you sign in.
                     </li>
                     <li>
                       <strong>Feedback</strong> you send, stored without your name, IP address or any link to your circle.
@@ -150,17 +150,35 @@ export default function PrivacyPage() {
                 </section>
 
                 <section id="read">
-                  <h3>What we can and cannot read</h3>
+                  <h3>How your saved photos are protected</h3>
                   <ul>
                     <li>
-                      <strong>We cannot read</strong> saved photos and PDFs of visit summaries. They are end-to-end encrypted: your device
-                      encrypts them before they are sent, with a key made on your device and protected by your 12 recovery words. We never
-                      receive the key or the words, so we cannot open those files, and if the words are lost we cannot recover them.
+                      <strong>Locked on your phone first.</strong> When you keep the photos or PDF of a visit summary, your phone or computer
+                      locks (encrypts) them before they are sent. Our file storage and our database only ever hold the locked version.
                     </li>
                     <li>
-                      <strong>We can read</strong> the rest of a circle: the care summary, medications, reminders, calendar, and the names and
-                      roles of the people you add. Our server has to read these to show each person their part. They are protected by the
-                      access rules described under Security.
+                      <strong>The key is kept apart.</strong> The key that unlocks them is itself locked with a secret that is kept in a
+                      different system from the files and the database. Someone who got hold of the files, or of the database, would still
+                      have nothing they could open.
+                    </li>
+                    <li>
+                      <strong>We do not open them.</strong> Nobody at All Hands Care looks at your saved photos. The only exceptions are if you
+                      ask us to, for example to help with a problem, or if a valid legal order requires it. In that case we tell you first,
+                      unless the law forbids it.
+                    </li>
+                    <li>
+                      <strong>Why we keep the key.</strong> So you are never locked out: your saved photos open on any phone or computer once you
+                      sign in, with nothing to remember. Keeping the key does mean we are able to open them, which is why we make the promise
+                      above in writing, and why our code is open for anyone to check.
+                    </li>
+                    <li>
+                      <strong>Only you see them in the app.</strong> Saved photos are shown only to you, the caregiver, after you sign in. The
+                      people you add cannot see them from their links.
+                    </li>
+                    <li>
+                      <strong>The rest of a circle</strong> (the care summary, medications, reminders, calendar, and the names and roles of the
+                      people you add) is read by our server to show each person their part. We do not look through it either, except to fix a
+                      problem you ask us about or when the law requires it.
                     </li>
                     <li>
                       <strong>Passing through.</strong> The text of a visit summary reaches our server while the draft is built. It is not
@@ -178,8 +196,8 @@ export default function PrivacyPage() {
                   <h3>Who can see it</h3>
                   <ul>
                     <li>
-                      You, the caregiver who signed in. Saved photos of visit summaries are for your eyes only: they open only on a device that
-                      has your key.
+                      You, the caregiver who signed in. Saved photos of visit summaries are shown only to you, after you sign in. The people
+                      you add cannot see them from their links.
                     </li>
                     <li>
                       The people you add, through their own link, and only the parts their role and your choices allow. Home aides and day
@@ -207,8 +225,8 @@ export default function PrivacyPage() {
                     </li>
                     <li>
                       <strong>When the law requires it,</strong> such as a court order or another valid legal demand. We give only what the
-                      demand covers and, where the law allows, we tell the caregiver first. We cannot hand over what we cannot read: saved
-                      photos and PDFs stay encrypted with your key.
+                      demand covers and, where the law allows, we tell the caregiver first. This includes saved photos and PDFs: we would open them
+                      only if a valid order covers them.
                     </li>
                     <li>
                       <strong>To protect someone&apos;s safety,</strong> if we believe in good faith that it is needed to prevent serious
@@ -357,11 +375,11 @@ export default function PrivacyPage() {
                     Information is encrypted between your device and the site, and stored encrypted by our database provider. For
                     caregivers, the database itself walls each circle off from every other. People with a link reach a circle only through our
                     server, which checks on every request what their role and your choices let them see. Saved photos and PDFs of visit
-                    summaries are end-to-end encrypted, as described under{" "}
+                    summaries are also locked on your device before they are stored, and the key is kept apart from them, as described under{" "}
                     <a className="text-primary-700 underline" href="#read">
-                      What we can and cannot read
+                      How your saved photos are protected
                     </a>
-                    ; the rest of a circle is not encrypted that way. No system is perfectly secure, and All Hands Care has not yet completed a
+                    ; the rest of a circle is not locked that way. No system is perfectly secure, and All Hands Care has not yet completed a
                     formal review. The code is open source, so anyone can{" "}
                     <a className="text-primary-700 underline" href={SOURCE_URL} target="_blank" rel="noreferrer">
                       read how it works
@@ -394,9 +412,14 @@ export default function PrivacyPage() {
                     the app. All Hands Care organizes what you and the clinician wrote; it does not give medical advice.
                   </p>
                   <p>
-                    <strong>Latest change, {EFFECTIVE}:</strong> new sections on what we can and cannot read, when we share information,
-                    where information is kept, and cookies; links to the privacy policies of the services we use. How we handle
-                    information did not change.
+                    <strong>Latest change, {EFFECTIVE}:</strong> saved photos and PDFs of visit summaries no longer need 12 recovery words.
+                    They are still locked on your device before they are sent. All Hands Care now keeps the key, so they open on any device
+                    after you sign in and nobody is locked out. Before, only the 12 words could open them; now we are able to, and we have
+                    written down that we do not, under{" "}
+                    <a className="text-primary-700 underline" href="#read">
+                      How your saved photos are protected
+                    </a>
+                    .
                   </p>
                 </section>
 

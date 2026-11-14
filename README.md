@@ -74,7 +74,8 @@ cp .env.example .env.local
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Publishable key. Google sign-in and a caregiver's own session (row-level security) |
 | `SUPABASE_SERVICE_ROLE_KEY` | Server only. Existing handoff routes, and helper sessions. Bypasses row-level security; helper access is checked in `lib/permissions.ts` |
 | `HELPER_SESSION_SECRET` | HMAC key for helper-link cookies (`openssl rand -hex 32`) |
-| `PREVIEW_SUPABASE_URL`, `PREVIEW_SUPABASE_ANON_KEY`, `PREVIEW_SUPABASE_SERVICE_ROLE_KEY`, `PREVIEW_HELPER_SESSION_SECRET` | Optional, Vercel previews only: a separate test project. The four settings above are ignored on preview builds |
+| `CIRCLE_KEY_SECRET` | Server only. Wraps each circle's key for saved photos and PDFs before it is stored (`openssl rand -base64 48`). Keep a copy somewhere safe: if it is lost or changed, saved photos cannot be opened by anyone. Required on the production deployment |
+| `PREVIEW_SUPABASE_URL`, `PREVIEW_SUPABASE_ANON_KEY`, `PREVIEW_SUPABASE_SERVICE_ROLE_KEY`, `PREVIEW_HELPER_SESSION_SECRET`, `PREVIEW_CIRCLE_KEY_SECRET` | Optional, Vercel previews only: a separate test project. The five settings above are ignored on preview builds |
 | `SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID` / `SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET` | Google client. Read by `supabase/config.toml` for local auth. Hosted Google settings are in the Supabase dashboard |
 | `NEXT_PUBLIC_APP_URL` | Base for share links and the Google redirect (`{origin}/callback`). Leave unset locally to use the request origin |
 | `HANDOFF_TTL_DAYS` | Default 30 |
@@ -109,7 +110,7 @@ An LLM provider can be switched on with `EXTRACTION_PROVIDER=anthropic` and `ANT
 ## Deploying to Vercel
 
 1. Import the GitHub repo in Vercel; the framework is detected automatically.
-2. Apply every Supabase migration (above) to the production database before deploying, including `0004_circles_members.sql`, `0005_create_circle.sql`, and `0006_circle_key_guard.sql`. Personal links, task tracking and feedback require `0002_invites_tracking.sql`; PIN checks require `0003_pin_lockout.sql` and fail without it. Circles require `0004`. Creating a circle requires `0005`. File keys require `0006`. Set `HELPER_SESSION_SECRET` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` on the one shared project. Add `{origin}/callback` to the Google redirect allow-list.
+2. Apply every Supabase migration (above) to the production database before deploying, including `0004_circles_members.sql`, `0005_create_circle.sql`, and `0006_circle_key_guard.sql`. Personal links, task tracking and feedback require `0002_invites_tracking.sql`; PIN checks require `0003_pin_lockout.sql` and fail without it. Circles require `0004`. Creating a circle requires `0005`. File keys require `0006`. Keeping saved photos requires `0015`, `0017` and `0018`, and `CIRCLE_KEY_SECRET` set before the deploy (the production build stops without it). Set `HELPER_SESSION_SECRET` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` on the one shared project. Add `{origin}/callback` to the Google redirect allow-list.
 3. Add the environment variables for Production and Preview.
 4. `vercel.json` schedules `/api/cron/purge` daily at 03:00 UTC.
 5. Enable Web Analytics. Turn on Deployment Protection for previews only.

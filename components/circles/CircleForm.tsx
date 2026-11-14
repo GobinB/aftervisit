@@ -37,7 +37,7 @@ export function CircleForm() {
       return;
     }
     setError(null);
-    // No recovery words here: the key for files is made later, in Settings, when a circle first needs it.
+    // Nothing about keys here: the key for files is made by itself the first time the circle needs it.
     start(async () => {
       try {
         const result = await createCircle({

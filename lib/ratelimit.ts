@@ -30,3 +30,25 @@ export async function checkRateLimit(req: Request, bucket: string, limit: number
     return true;
   }
 }
+
+/**
+ * The same hourly counter for a signed-in caregiver, for server actions, which have no request to
+ * read an address from. Counted per account, so it follows the person across networks.
+ */
+export async function checkActorRateLimit(userId: string, bucket: string, limit: number): Promise<boolean> {
+  try {
+    const { data, error } = await db().rpc("check_rate_limit", {
+      p_ip_hash: hashIp(`user:${userId}`),
+      p_bucket: bucket,
+      p_limit: limit,
+    });
+    if (error) {
+      console.error("rate limit check failed:", error.message);
+      return true;
+    }
+    return data !== false;
+  } catch (e) {
+    console.error("rate limit check failed:", (e as Error).message);
+    return true;
+  }
+}

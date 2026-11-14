@@ -1,3 +1,5 @@
+// The database after migrations 0001-0018, as the Supabase CLI writes it. Regenerate with:
+// supabase gen types typescript --local > store/types.gen.ts
 export type Json =
   | string
   | number
@@ -6,147 +8,301 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-// Public schema after migrations 0001-0006. Regenerate with:
-// supabase gen types typescript --local > store/types.gen.ts
 export type Database = {
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       activity: {
         Row: {
-          id: string
-          circle_id: string
-          actor: string
           action: string
-          subject_type: string | null
-          subject_id: string | null
+          actor: string
           at: string
+          circle_id: string
+          id: string
+          subject_id: string | null
+          subject_type: string | null
         }
         Insert: {
-          id?: string
-          circle_id: string
-          actor: string
           action: string
-          subject_type?: string | null
-          subject_id?: string | null
+          actor: string
           at?: string
+          circle_id: string
+          id?: string
+          subject_id?: string | null
+          subject_type?: string | null
         }
         Update: {
-          id?: string | null
-          circle_id?: string | null
-          actor?: string | null
-          action?: string | null
-          subject_type?: string | null
+          action?: string
+          actor?: string
+          at?: string
+          circle_id?: string
+          id?: string
           subject_id?: string | null
-          at?: string | null
+          subject_type?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "activity_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      calendar_feeds: {
+        Row: {
+          circle_id: string
+          created_at: string
+          created_by: string
+          token: string
+        }
+        Insert: {
+          circle_id: string
+          created_at?: string
+          created_by?: string
+          token: string
+        }
+        Update: {
+          circle_id?: string
+          created_at?: string
+          created_by?: string
+          token?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "calendar_feeds_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: true
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       circle_caregivers: {
         Row: {
           circle_id: string
-          user_id: string
-          role: string
           circle_key_wrapped: string | null
-          key_version: number
           created_at: string
+          key_version: number
+          role: string
+          user_id: string
         }
         Insert: {
           circle_id: string
-          user_id: string
-          role: string
           circle_key_wrapped?: string | null
-          key_version?: number
           created_at?: string
+          key_version?: number
+          role: string
+          user_id: string
         }
         Update: {
-          circle_id?: string | null
-          user_id?: string | null
-          role?: string | null
+          circle_id?: string
           circle_key_wrapped?: string | null
-          key_version?: number | null
-          created_at?: string | null
+          created_at?: string
+          key_version?: number
+          role?: string
+          user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "circle_caregivers_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       circles: {
         Row: {
-          id: string
-          owner_id: string
+          content: Json
           created_at: string
           deleted_at: string | null
+          id: string
           key_version: number
-          content: Json
+          owner_id: string
         }
         Insert: {
-          id?: string
-          owner_id: string
+          content: Json
           created_at?: string
           deleted_at?: string | null
+          id?: string
           key_version?: number
-          content: Json
+          owner_id: string
         }
         Update: {
-          id?: string | null
-          owner_id?: string | null
-          created_at?: string | null
+          content?: Json
+          created_at?: string
           deleted_at?: string | null
-          key_version?: number | null
-          content?: Json | null
+          id?: string
+          key_version?: number
+          owner_id?: string
         }
         Relationships: []
       }
       consents: {
         Row: {
-          id: string
-          circle_id: string
-          user_id: string
-          type: string
-          version: string
-          text_hash: string
           agreed_at: string
+          circle_id: string
+          id: string
+          text_hash: string
+          type: string
+          user_id: string
+          version: string
         }
         Insert: {
-          id?: string
-          circle_id: string
-          user_id: string
-          type: string
-          version: string
-          text_hash: string
           agreed_at?: string
+          circle_id: string
+          id?: string
+          text_hash: string
+          type: string
+          user_id: string
+          version: string
         }
         Update: {
-          id?: string | null
-          circle_id?: string | null
-          user_id?: string | null
-          type?: string | null
-          version?: string | null
-          text_hash?: string | null
-          agreed_at?: string | null
+          agreed_at?: string
+          circle_id?: string
+          id?: string
+          text_hash?: string
+          type?: string
+          user_id?: string
+          version?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "consents_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      events: {
+        Row: {
+          circle_id: string
+          created_at: string
+          created_by: string | null
+          end_time: string | null
+          event_date: string
+          going_caregiver: boolean
+          going_member_id: string | null
+          id: string
+          location: string | null
+          needs_volunteer: boolean
+          notes: string | null
+          repeat: string
+          repeat_until: string | null
+          source: string
+          start_time: string | null
+          title: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          circle_id: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string | null
+          event_date: string
+          going_caregiver?: boolean
+          going_member_id?: string | null
+          id?: string
+          location?: string | null
+          needs_volunteer?: boolean
+          notes?: string | null
+          repeat?: string
+          repeat_until?: string | null
+          source?: string
+          start_time?: string | null
+          title: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          circle_id?: string
+          created_at?: string
+          created_by?: string | null
+          end_time?: string | null
+          event_date?: string
+          going_caregiver?: boolean
+          going_member_id?: string | null
+          id?: string
+          location?: string | null
+          needs_volunteer?: boolean
+          notes?: string | null
+          repeat?: string
+          repeat_until?: string | null
+          source?: string
+          start_time?: string | null
+          title?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "events_going_member_id_fkey"
+            columns: ["going_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       feedback: {
         Row: {
-          id: number
-          created_at: string
           context: string
+          created_at: string
           easier: string | null
+          id: number
           still_need: string | null
           who_else: string | null
         }
         Insert: {
-          id: number
-          created_at?: string
           context: string
+          created_at?: string
           easier?: string | null
+          id?: never
           still_need?: string | null
           who_else?: string | null
         }
         Update: {
-          id?: number | null
-          created_at?: string | null
-          context?: string | null
+          context?: string
+          created_at?: string
           easier?: string | null
+          id?: never
           still_need?: string | null
           who_else?: string | null
         }
@@ -154,310 +310,745 @@ export type Database = {
       }
       handoff_events: {
         Row: {
-          id: number
-          handoff_token: string
-          recipient_id: string | null
           actor: string
-          via: string
-          kind: string
-          detail: Json
           at: string
+          detail: Json
+          handoff_token: string
+          id: number
+          kind: string
+          recipient_id: string | null
+          via: string
         }
         Insert: {
-          id: number
-          handoff_token: string
-          recipient_id?: string | null
           actor: string
-          via: string
-          kind: string
-          detail?: Json
           at?: string
+          detail?: Json
+          handoff_token: string
+          id?: never
+          kind: string
+          recipient_id?: string | null
+          via: string
         }
         Update: {
-          id?: number | null
-          handoff_token?: string | null
+          actor?: string
+          at?: string
+          detail?: Json
+          handoff_token?: string
+          id?: never
+          kind?: string
           recipient_id?: string | null
-          actor?: string | null
-          via?: string | null
-          kind?: string | null
-          detail?: Json | null
-          at?: string | null
+          via?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "handoff_events_handoff_token_fkey"
+            columns: ["handoff_token"]
+            isOneToOne: false
+            referencedRelation: "handoffs"
+            referencedColumns: ["token"]
+          },
+          {
+            foreignKeyName: "handoff_events_recipient_id_fkey"
+            columns: ["recipient_id"]
+            isOneToOne: false
+            referencedRelation: "handoff_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       handoff_recipients: {
         Row: {
-          id: string
+          acked_at: string | null
+          created_at: string
+          first_opened_at: string | null
           handoff_token: string
-          name: string
-          role: string
+          id: string
           invite_hash: string
+          last_opened_at: string | null
+          locked_until: string | null
+          name: string
+          pin_failures: number
+          pin_lock_count: number
+          revoked_at: string | null
+          role: string
           sections: Json
           tasks_scope: string
-          created_at: string
-          revoked_at: string | null
-          first_opened_at: string | null
-          last_opened_at: string | null
-          acked_at: string | null
-          pin_failures: number
-          locked_until: string | null
-          pin_lock_count: number
         }
         Insert: {
-          id?: string
+          acked_at?: string | null
+          created_at?: string
+          first_opened_at?: string | null
           handoff_token: string
-          name: string
-          role: string
+          id?: string
           invite_hash: string
+          last_opened_at?: string | null
+          locked_until?: string | null
+          name: string
+          pin_failures?: number
+          pin_lock_count?: number
+          revoked_at?: string | null
+          role: string
           sections?: Json
           tasks_scope?: string
-          created_at?: string
-          revoked_at?: string | null
-          first_opened_at?: string | null
-          last_opened_at?: string | null
-          acked_at?: string | null
-          pin_failures?: number
-          locked_until?: string | null
-          pin_lock_count?: number
         }
         Update: {
-          id?: string | null
-          handoff_token?: string | null
-          name?: string | null
-          role?: string | null
-          invite_hash?: string | null
-          sections?: Json | null
-          tasks_scope?: string | null
-          created_at?: string | null
-          revoked_at?: string | null
-          first_opened_at?: string | null
-          last_opened_at?: string | null
           acked_at?: string | null
-          pin_failures?: number | null
+          created_at?: string
+          first_opened_at?: string | null
+          handoff_token?: string
+          id?: string
+          invite_hash?: string
+          last_opened_at?: string | null
           locked_until?: string | null
-          pin_lock_count?: number | null
+          name?: string
+          pin_failures?: number
+          pin_lock_count?: number
+          revoked_at?: string | null
+          role?: string
+          sections?: Json
+          tasks_scope?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "handoff_recipients_handoff_token_fkey"
+            columns: ["handoff_token"]
+            isOneToOne: false
+            referencedRelation: "handoffs"
+            referencedColumns: ["token"]
+          },
+        ]
       }
       handoff_task_status: {
         Row: {
-          handoff_token: string
-          task_id: string
           assignee_id: string | null
-          status: string
+          completed_at: string | null
+          handoff_token: string
           note: string | null
+          status: string
+          task_id: string
           updated_at: string | null
           updated_by_id: string | null
           updated_by_name: string | null
           updated_via: string | null
-          completed_at: string | null
         }
         Insert: {
-          handoff_token: string
-          task_id: string
           assignee_id?: string | null
-          status?: string
+          completed_at?: string | null
+          handoff_token: string
           note?: string | null
+          status?: string
+          task_id: string
           updated_at?: string | null
           updated_by_id?: string | null
           updated_by_name?: string | null
           updated_via?: string | null
-          completed_at?: string | null
         }
         Update: {
-          handoff_token?: string | null
-          task_id?: string | null
           assignee_id?: string | null
-          status?: string | null
+          completed_at?: string | null
+          handoff_token?: string
           note?: string | null
+          status?: string
+          task_id?: string
           updated_at?: string | null
           updated_by_id?: string | null
           updated_by_name?: string | null
           updated_via?: string | null
-          completed_at?: string | null
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "handoff_task_status_assignee_id_fkey"
+            columns: ["assignee_id"]
+            isOneToOne: false
+            referencedRelation: "handoff_recipients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "handoff_task_status_handoff_token_fkey"
+            columns: ["handoff_token"]
+            isOneToOne: false
+            referencedRelation: "handoffs"
+            referencedColumns: ["token"]
+          },
+          {
+            foreignKeyName: "handoff_task_status_updated_by_id_fkey"
+            columns: ["updated_by_id"]
+            isOneToOne: false
+            referencedRelation: "handoff_recipients"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       handoff_tombstones: {
         Row: {
-          token_hash: string
-          reason: string
           created_at: string
+          reason: string
+          token_hash: string
         }
         Insert: {
-          token_hash: string
-          reason: string
           created_at?: string
+          reason: string
+          token_hash: string
         }
         Update: {
-          token_hash?: string | null
-          reason?: string | null
-          created_at?: string | null
+          created_at?: string
+          reason?: string
+          token_hash?: string
         }
         Relationships: []
       }
       handoffs: {
         Row: {
-          token: string
-          manage_key_hash: string
-          pin_hash: string | null
-          pin_failures: number
-          locked_until: string | null
-          payload: Json
-          source_text: string | null
-          original_path: string | null
-          created_by: string | null
-          recipients: Json
+          access_mode: string
           acks: Json
           created_at: string
+          created_by: string | null
           expires_at: string
-          access_mode: string
+          locked_until: string | null
+          manage_key_hash: string
+          original_path: string | null
+          payload: Json
+          pin_failures: number
+          pin_hash: string | null
           pin_lock_count: number
+          recipients: Json
+          source_text: string | null
+          token: string
         }
         Insert: {
-          token: string
-          manage_key_hash: string
-          pin_hash?: string | null
-          pin_failures?: number
-          locked_until?: string | null
-          payload: Json
-          source_text?: string | null
-          original_path?: string | null
-          created_by?: string | null
-          recipients?: Json
+          access_mode?: string
           acks?: Json
           created_at?: string
+          created_by?: string | null
           expires_at: string
-          access_mode?: string
+          locked_until?: string | null
+          manage_key_hash: string
+          original_path?: string | null
+          payload: Json
+          pin_failures?: number
+          pin_hash?: string | null
           pin_lock_count?: number
+          recipients?: Json
+          source_text?: string | null
+          token: string
         }
         Update: {
-          token?: string | null
-          manage_key_hash?: string | null
-          pin_hash?: string | null
-          pin_failures?: number | null
-          locked_until?: string | null
-          payload?: Json | null
-          source_text?: string | null
-          original_path?: string | null
+          access_mode?: string
+          acks?: Json
+          created_at?: string
           created_by?: string | null
-          recipients?: Json | null
-          acks?: Json | null
-          created_at?: string | null
-          expires_at?: string | null
-          access_mode?: string | null
-          pin_lock_count?: number | null
+          expires_at?: string
+          locked_until?: string | null
+          manage_key_hash?: string
+          original_path?: string | null
+          payload?: Json
+          pin_failures?: number
+          pin_hash?: string | null
+          pin_lock_count?: number
+          recipients?: Json
+          source_text?: string | null
+          token?: string
         }
         Relationships: []
+      }
+      medication_changes: {
+        Row: {
+          actor: string
+          at: string
+          change: string
+          circle_id: string
+          id: string
+          medication_id: string
+          source: string
+          summary: string
+        }
+        Insert: {
+          actor: string
+          at?: string
+          change: string
+          circle_id: string
+          id?: string
+          medication_id: string
+          source?: string
+          summary: string
+        }
+        Update: {
+          actor?: string
+          at?: string
+          change?: string
+          circle_id?: string
+          id?: string
+          medication_id?: string
+          source?: string
+          summary?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medication_changes_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "medication_changes_medication_id_fkey"
+            columns: ["medication_id"]
+            isOneToOne: false
+            referencedRelation: "medications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      medications: {
+        Row: {
+          amount: string | null
+          circle_id: string
+          created_at: string
+          dose: string | null
+          every: number | null
+          form: string | null
+          id: string
+          instructions: string | null
+          last_refill: string | null
+          name: string
+          prescriber: string | null
+          reason: string | null
+          refills_left: number | null
+          schedule: string
+          source: string
+          start_date: string | null
+          status: string
+          stop_date: string | null
+          times: string[]
+          updated_at: string
+          weekdays: number[] | null
+        }
+        Insert: {
+          amount?: string | null
+          circle_id: string
+          created_at?: string
+          dose?: string | null
+          every?: number | null
+          form?: string | null
+          id?: string
+          instructions?: string | null
+          last_refill?: string | null
+          name: string
+          prescriber?: string | null
+          reason?: string | null
+          refills_left?: number | null
+          schedule?: string
+          source?: string
+          start_date?: string | null
+          status?: string
+          stop_date?: string | null
+          times?: string[]
+          updated_at?: string
+          weekdays?: number[] | null
+        }
+        Update: {
+          amount?: string | null
+          circle_id?: string
+          created_at?: string
+          dose?: string | null
+          every?: number | null
+          form?: string | null
+          id?: string
+          instructions?: string | null
+          last_refill?: string | null
+          name?: string
+          prescriber?: string | null
+          reason?: string | null
+          refills_left?: number | null
+          schedule?: string
+          source?: string
+          start_date?: string | null
+          status?: string
+          stop_date?: string | null
+          times?: string[]
+          updated_at?: string
+          weekdays?: number[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "medications_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       members: {
         Row: {
-          id: string
           circle_id: string
-          user_id: string | null
-          name: string
-          role: string
-          email: string | null
-          token_hash: string
-          pin_hash: string | null
-          pin_failures: number
-          locked_until: string | null
-          lock_count: number
-          visibility: Json
-          expires_at: string
-          revoked_at: string | null
-          last_seen_at: string | null
           created_at: string
+          email: string | null
+          expires_at: string
+          id: string
+          last_seen_at: string | null
+          lock_count: number
+          locked_until: string | null
+          name: string
+          pin_failures: number
+          pin_hash: string | null
+          revoked_at: string | null
+          role: string
+          token_hash: string
+          user_id: string | null
+          visibility: Json
         }
         Insert: {
-          id?: string
           circle_id: string
-          user_id?: string | null
-          name: string
-          role: string
-          email?: string | null
-          token_hash: string
-          pin_hash?: string | null
-          pin_failures?: number
-          locked_until?: string | null
-          lock_count?: number
-          visibility?: Json
-          expires_at: string
-          revoked_at?: string | null
-          last_seen_at?: string | null
           created_at?: string
+          email?: string | null
+          expires_at: string
+          id?: string
+          last_seen_at?: string | null
+          lock_count?: number
+          locked_until?: string | null
+          name: string
+          pin_failures?: number
+          pin_hash?: string | null
+          revoked_at?: string | null
+          role: string
+          token_hash: string
+          user_id?: string | null
+          visibility?: Json
         }
         Update: {
-          id?: string | null
-          circle_id?: string | null
-          user_id?: string | null
-          name?: string | null
-          role?: string | null
+          circle_id?: string
+          created_at?: string
           email?: string | null
-          token_hash?: string | null
-          pin_hash?: string | null
-          pin_failures?: number | null
-          locked_until?: string | null
-          lock_count?: number | null
-          visibility?: Json | null
-          expires_at?: string | null
-          revoked_at?: string | null
+          expires_at?: string
+          id?: string
           last_seen_at?: string | null
-          created_at?: string | null
+          lock_count?: number
+          locked_until?: string | null
+          name?: string
+          pin_failures?: number
+          pin_hash?: string | null
+          revoked_at?: string | null
+          role?: string
+          token_hash?: string
+          user_id?: string | null
+          visibility?: Json
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "members_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       rate_limits: {
         Row: {
-          ip_hash: string
           bucket: string
-          window_start: string
           count: number
+          ip_hash: string
+          window_start: string
         }
         Insert: {
-          ip_hash: string
           bucket: string
-          window_start: string
           count?: number
+          ip_hash: string
+          window_start: string
         }
         Update: {
-          ip_hash?: string | null
-          bucket?: string | null
-          window_start?: string | null
-          count?: number | null
+          bucket?: string
+          count?: number
+          ip_hash?: string
+          window_start?: string
         }
         Relationships: []
       }
-    }
-    Views: { [_ in never]: never }
-    Functions: {
-      try_pin: {
-        Args: {
-          p_token: string
-          p_recipient: string | null
-          p_candidate: string | null
-          p_max: number
-          p_lock_minutes: number
-          p_hard_after: number
+      todos: {
+        Row: {
+          assigned_to_caregiver: boolean
+          assignee_member_id: string | null
+          circle_id: string
+          created_at: string
+          done_at: string | null
+          done_by: string | null
+          due_date: string | null
+          id: string
+          note: string | null
+          source: string
+          status: string
+          title: string
+          updated_at: string
         }
-        Returns: { result: string; locked_until: string | null; attempts_left: number | null }[]
+        Insert: {
+          assigned_to_caregiver?: boolean
+          assignee_member_id?: string | null
+          circle_id: string
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          due_date?: string | null
+          id?: string
+          note?: string | null
+          source?: string
+          status?: string
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          assigned_to_caregiver?: boolean
+          assignee_member_id?: string | null
+          circle_id?: string
+          created_at?: string
+          done_at?: string | null
+          done_by?: string | null
+          due_date?: string | null
+          id?: string
+          note?: string | null
+          source?: string
+          status?: string
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "todos_assignee_member_id_fkey"
+            columns: ["assignee_member_id"]
+            isOneToOne: false
+            referencedRelation: "members"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "todos_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
-      check_rate_limit: { Args: { p_ip_hash: string; p_bucket: string; p_limit: number }; Returns: boolean }
-      add_ack: { Args: { p_token: string; p_name: string }; Returns: number | null }
+      visit_documents: {
+        Row: {
+          circle_id: string
+          clinic: string | null
+          created_at: string
+          created_by: string
+          file_key_iv: string | null
+          file_key_wrapped: string | null
+          id: string
+          key_version: number | null
+          kind: string
+          page_count: number
+          paths: string[]
+          visit_date: string | null
+        }
+        Insert: {
+          circle_id: string
+          clinic?: string | null
+          created_at?: string
+          created_by?: string
+          file_key_iv?: string | null
+          file_key_wrapped?: string | null
+          id?: string
+          key_version?: number | null
+          kind: string
+          page_count?: number
+          paths?: string[]
+          visit_date?: string | null
+        }
+        Update: {
+          circle_id?: string
+          clinic?: string | null
+          created_at?: string
+          created_by?: string
+          file_key_iv?: string | null
+          file_key_wrapped?: string | null
+          id?: string
+          key_version?: number | null
+          kind?: string
+          page_count?: number
+          paths?: string[]
+          visit_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visit_documents_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
       ack_recipient: { Args: { p_recipient: string }; Returns: boolean }
-      is_circle_caregiver: { Args: { p_circle: string }; Returns: boolean }
-      is_circle_owner: { Args: { p_circle: string }; Returns: boolean }
+      add_ack: { Args: { p_name: string; p_token: string }; Returns: number }
+      check_rate_limit: {
+        Args: { p_bucket: string; p_ip_hash: string; p_limit: number }
+        Returns: boolean
+      }
+      circle_owner_id: { Args: { p_circle: string }; Returns: string }
       create_circle: {
-        Args: { p_consents: Json; p_content: Json; p_wrapped: string }
+        Args: { p_consents: Json; p_content: Json }
         Returns: string
       }
-      rotate_own_circle_key: {
-        Args: { p_circle: string; p_wrapped: string; p_version: number; p_member_tokens: Json }
-        Returns: number
-      }
       delete_circle: { Args: { p_circle: string }; Returns: undefined }
+      is_circle_caregiver: { Args: { p_circle: string }; Returns: boolean }
+      is_circle_owner: { Args: { p_circle: string }; Returns: boolean }
+      purge_deleted_circles: { Args: { p_days?: number }; Returns: number }
+      try_pin: {
+        Args: {
+          p_candidate: string
+          p_hard_after: number
+          p_lock_minutes: number
+          p_max: number
+          p_recipient: string
+          p_token: string
+        }
+        Returns: {
+          attempts_left: number
+          locked_until: string
+          result: string
+        }[]
+      }
     }
-    Enums: { [_ in never]: never }
-    CompositeTypes: { [_ in never]: never }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
   }
 }
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
+  public: {
+    Enums: {},
+  },
+} as const
+

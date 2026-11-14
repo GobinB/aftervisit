@@ -2,10 +2,8 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { cache } from "react";
 import type { Actor } from "@/lib/auth";
-import { hashInvite, newInviteToken } from "@/lib/invites";
 import { can } from "@/lib/permissions";
-import { CONSENT_TEXT, CONSENT_TYPES, CONSENT_VERSION, CircleContentSchema, nextCircleKeyVersion, type CircleContent, type CircleKeyStatus, type CreateCircleInput } from "@/lib/schema/circles";
-import type { FileKeyRewrap } from "@/lib/schema/documents";
+import { CONSENT_TEXT, CONSENT_TYPES, CONSENT_VERSION, CircleContentSchema, type CircleContent, type CreateCircleInput } from "@/lib/schema/circles";
 import { clientFor, createCircleRecord } from "@/store/db";
 
 const generic = "That could not be saved. Try again.";
@@ -19,7 +17,6 @@ export async function createCircle(actor: Actor, input: CreateCircleInput): Prom
   try {
     const circleId = await createCircleRecord(actor, {
       content: input.content,
-      circleKeyWrapped: input.circleKeyWrapped,
       consents: CONSENT_TYPES.map((type) => ({
         type,
         version: CONSENT_VERSION,
@@ -48,120 +45,6 @@ export async function listCircles(actor: Actor): Promise<{ id: string; personNam
     const parsed = CircleContentSchema.safeParse(row.content);
     return { id: row.id as string, personName: parsed.success ? parsed.data.person_name : "Circle" };
   });
-}
-
-function personName(content: unknown): string {
-  const parsed = CircleContentSchema.safeParse(content);
-  return parsed.success ? parsed.data.person_name : "Circle";
-}
-
-/** Wrapped keys for the signed-in caregiver only. Helpers do not have a recovery phrase. */
-export async function listOwnCircleKeys(actor: Actor): Promise<CircleKeyStatus[]> {
-  if (actor.kind !== "caregiver") return [];
-  const db = clientFor(actor);
-  const caregivers = await db.from("circle_caregivers").select("circle_id, role, circle_key_wrapped, key_version").eq("user_id", actor.userId);
-  if (caregivers.error || !caregivers.data) return [];
-  const circles = await db.from("circles").select("id, key_version, content").is("deleted_at", null);
-  if (circles.error || !circles.data) return [];
-  const byId = new Map(circles.data.map((row) => [row.id as string, row]));
-  const statuses: CircleKeyStatus[] = [];
-  for (const row of caregivers.data) {
-    const circle = byId.get(row.circle_id as string);
-    if (!circle) continue;
-    if (row.role !== "owner") continue;
-    const role = "owner" as const;
-    statuses.push({
-      circleId: row.circle_id as string,
-      personName: personName(circle.content),
-      role,
-      circleKeyVersion: circle.key_version as number,
-      wrapped: (row.circle_key_wrapped as string | null) ?? null,
-      wrappedKeyVersion: row.key_version as number,
-    });
-  }
-  return statuses;
-}
-
-/** First key for a circle that does not have one yet. Does not bump key_version. */
-export async function storeOwnCircleKey(
-  actor: Actor,
-  circleId: string,
-  circleKeyWrapped: string,
-  keyVersion: number,
-): Promise<{ ok: true } | { ok: false; error: string }> {
-  if (actor.kind !== "caregiver" || actor.role !== "owner") return { ok: false, error: "Only the owner can create the first key." };
-  if (!can(actor, "circle:rotate_key", { circleId })) return { ok: false, error: "You cannot save a key for this circle." };
-  const db = clientFor(actor);
-  const circle = await db.from("circles").select("key_version").eq("id", circleId).is("deleted_at", null).maybeSingle();
-  if (circle.error || !circle.data) return { ok: false, error: "That circle was not found." };
-  if ((circle.data.key_version as number) !== keyVersion) return { ok: false, error: "The key was already changed. Reload this page and try again." };
-  const own = await db.from("circle_caregivers").select("circle_key_wrapped").eq("circle_id", circleId).eq("user_id", actor.userId).maybeSingle();
-  if (own.error || !own.data) return { ok: false, error: generic };
-  if (own.data.circle_key_wrapped) return { ok: false, error: "A key is already saved on your account." };
-  const saved = await db
-    .from("circle_caregivers")
-    .update({ circle_key_wrapped: circleKeyWrapped, key_version: keyVersion })
-    .eq("circle_id", circleId)
-    .eq("user_id", actor.userId)
-    .is("circle_key_wrapped", null)
-    .select("user_id")
-    .maybeSingle();
-  if (saved.error || !saved.data) return { ok: false, error: generic };
-  return { ok: true };
-}
-
-export type PreparedLink = { token: string; name: string; email: string | null };
-
-/**
- * New circle key for the owner. The database moves key_version forward by one, replaces every
- * active helper token, and stores each saved summary's file key as rewrapped by the browser, all in
- * one transaction. Only token hashes and wrapped keys are sent.
- */
-export async function rotateCircleKey(
-  actor: Actor,
-  circleId: string,
-  circleKeyWrapped: string,
-  keyVersion: number,
-  fileKeys: FileKeyRewrap[] = [],
-): Promise<{ ok: true; keyVersion: number; links: PreparedLink[] } | { ok: false; error: string }> {
-  if (!can(actor, "circle:rotate_key", { circleId })) return { ok: false, error: "Only the owner can change the key for this circle." };
-  if (actor.kind !== "caregiver") return { ok: false, error: "Sign in with Google to change a key." };
-  const db = clientFor(actor);
-  const current = await db.from("circles").select("key_version").eq("id", circleId).is("deleted_at", null).maybeSingle();
-  if (current.error || !current.data) return { ok: false, error: "That circle was not found." };
-  let expected = 0;
-  try {
-    expected = nextCircleKeyVersion(current.data.key_version as number);
-  } catch {
-    return { ok: false, error: "The key was already changed. Reload this page and try again." };
-  }
-  if (keyVersion !== expected) return { ok: false, error: "The key was already changed. Reload this page and try again." };
-  const members = await db.from("members").select("id, name, email").eq("circle_id", circleId).is("revoked_at", null);
-  if (members.error || !members.data) return { ok: false, error: generic };
-  const links = members.data.map((member) => {
-    const token = newInviteToken();
-    return {
-      id: member.id as string,
-      token,
-      tokenHash: hashInvite(token),
-      name: member.name as string,
-      email: (member.email as string | null) ?? null,
-    };
-  });
-  const { error } = await db.rpc("rotate_own_circle_key", {
-    p_circle: circleId,
-    p_wrapped: circleKeyWrapped,
-    p_version: keyVersion,
-    p_member_tokens: links.map((link) => ({ id: link.id, token_hash: link.tokenHash })),
-    p_file_keys: fileKeys.map((file) => ({ id: file.id, wrapped: file.fileKeyWrapped, iv: file.fileKeyIv })),
-  });
-  if (error) {
-    if (/key version/i.test(error.message ?? "")) return { ok: false, error: "The key was already changed. Reload this page and try again." };
-    if (/file keys/i.test(error.message ?? "")) return { ok: false, error: "A saved summary changed while the key was being changed. Nothing was changed. Try again." };
-    if (/only the owner/i.test(error.message ?? "")) return { ok: false, error: "Only the owner can change the key for this circle." };
-    return { ok: false, error: generic };
-  }
-  return { ok: true, keyVersion, links: links.map(({ token, name, email }) => ({ token, name, email })) };
 }
 
 /** Replaces the care summary. Only the caregiver may; row security checks it again. */

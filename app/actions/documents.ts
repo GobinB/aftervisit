@@ -4,8 +4,7 @@ import "server-only";
 import { revalidatePath } from "next/cache";
 import { getActor } from "@/lib/auth";
 import { CreateDocumentSchema, DocumentChangeSchema } from "@/lib/schema/documents";
-import { z } from "zod";
-import { createDocument, deleteDocument, listFileKeys } from "@/services/documents";
+import { createDocument, deleteDocument } from "@/services/documents";
 
 /** Starts a saved summary with its wrapped file key. The encrypted pages follow, one request each, to /api/documents/{id}/pages. */
 export async function createDocumentAction(input: unknown) {
@@ -27,15 +26,4 @@ export async function deleteDocumentAction(input: unknown) {
     revalidatePath(`/circles/${parsed.data.circleId}/summary`);
   }
   return result;
-}
-
-/** The wrapped file key of every encrypted summary in a circle, for rewrapping when the circle key changes. */
-export async function listFileKeysAction(circleId: unknown) {
-  const parsed = z.string().uuid().safeParse(circleId);
-  if (!parsed.success) return { ok: false as const, error: "That circle was not found." };
-  const actor = await getActor(parsed.data);
-  if (!actor) return { ok: false as const, error: "Sign in to continue." };
-  const files = await listFileKeys(actor, parsed.data);
-  if (!files) return { ok: false as const, error: "The saved summaries could not be read. Try again." };
-  return { ok: true as const, files };
 }

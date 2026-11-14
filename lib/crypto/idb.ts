@@ -49,7 +49,7 @@ export async function loadCircleKey(circleId: string): Promise<LocalCircleKey | 
   return row;
 }
 
-/** Removes every circle key on this device. Used when a caregiver signs out. */
+/** Removes every circle key on this device. Used when a caregiver signs out; the next sign-in is handed the keys again. */
 export async function clearCircleKeys(): Promise<void> {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {

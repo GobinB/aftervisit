@@ -26,7 +26,7 @@ const supabaseJsBan = {
 
 const cryptoBan = {
   group: ["@/lib/crypto", "@/lib/crypto/*", "@/lib/crypto/**"],
-  message: "lib/crypto is browser-only. Server code must not import it. The key and the recovery phrase stay in the browser.",
+  message: "lib/crypto is browser-only. Server code must not import it. The server's own key handling is lib/key-custody.ts.",
 };
 
 const eslintConfig = [

@@ -2,7 +2,7 @@
 
 import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { applyVisitAction, type VisitContext } from "@/app/actions/visits";
 import { BackLink } from "@/components/circles/PageHead";
 import { StepHeader } from "@/components/StepHeader";
@@ -17,8 +17,8 @@ import { MAX_PAGE_BYTES } from "@/lib/schema/documents";
 import { getOriginalPages } from "@/lib/store";
 import { WhoChips } from "@/components/todos/TodoForm";
 import { TellPeople } from "@/components/handoff/TellPeople";
-import { RestoreKeys } from "@/components/circles/RestoreKeys";
-import { generateFileKey, loadCircleKey, sealPage, wrapFileKey } from "@/lib/crypto";
+import { ensureCircleKey } from "@/components/circles/circle-key";
+import { generateFileKey, sealPage, wrapFileKey } from "@/lib/crypto";
 
 type Done = { added: number; changed: number; stopped: number; todos: number; events: number; failed: number };
 
@@ -89,21 +89,6 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
   const pdf = pages.length === 1 && (pages[0].type === "application/pdf" || /\.pdf$/i.test(pages[0].name));
   const canKeep = !pdf || pages[0].size <= MAX_PAGE_BYTES;
   const [keep, setKeep] = useState(true);
-  // Photos are kept only when this device holds the circle's current key for files: they are encrypted with it here.
-  const [keyReady, setKeyReady] = useState<boolean | null>(null);
-  useEffect(() => {
-    let cancel = false;
-    loadCircleKey(circleId)
-      .then((local) => {
-        if (!cancel) setKeyReady(!!local && local.keyVersion === context.keyVersion);
-      })
-      .catch(() => {
-        if (!cancel) setKeyReady(false);
-      });
-    return () => {
-      cancel = true;
-    };
-  }, [circleId, context.keyVersion]);
   const [kept, setKept] = useState<{ status: "saving"; done: number } | { status: "kept"; id: string } | { status: "failed"; error: string } | null>(null);
   const plans = useMemo(() => planMedications(draft.medications, context.medications), [draft, context]);
   // Follow-up appointments with a date (stated, or counted from the visit date) go on the calendar.
@@ -168,26 +153,30 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         return;
       }
       setDone(result);
-      if (keep && pages.length && canKeep && keyReady) await keepTheSummary();
+      if (keep && pages.length && canKeep) await keepTheSummary();
     });
   };
 
   /**
    * Saves the photos (or PDF) after the circle is updated, page by page with a count on screen.
    * Each summary gets its own file key, made here and wrapped by the circle key; the pages are
-   * encrypted with it on this device, so the server only ever receives bytes it cannot read.
+   * encrypted with it on this device, so only encrypted pages are ever sent or stored.
    */
   async function keepTheSummary() {
     setKept({ status: "saving", done: 0 });
     let fileKey: CryptoKey;
     let stored: Awaited<ReturnType<typeof wrapFileKey>>;
     try {
-      const local = await loadCircleKey(circleId);
-      if (!local || local.keyVersion !== context.keyVersion) throw new Error("no key");
+      // The circle's key for files, handed over by the server with nothing to type (made now if the circle has none).
+      const found = await ensureCircleKey(circleId, context.key);
+      if (!found.ok) {
+        setKept({ status: "failed", error: found.error });
+        return;
+      }
       fileKey = await generateFileKey();
-      stored = await wrapFileKey(fileKey, local.key, local.keyVersion);
+      stored = await wrapFileKey(fileKey, found.key, found.keyVersion);
     } catch {
-      setKept({ status: "failed", error: "This device does not have the key for files." });
+      setKept({ status: "failed", error: "This browser could not lock them." });
       return;
     }
     const created = await createDocumentAction({
@@ -245,7 +234,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
               {done.failed} change{done.failed === 1 ? "" : "s"} could not be saved. Check the Medications and Reminders pages.
             </p>
           ) : null}
-          <TellPeople circleId={circleId} personName={context.personName} helpers={context.helpers} keyVersion={context.keyVersion} />
+          <TellPeople circleId={circleId} personName={context.personName} helpers={context.helpers} circleKey={context.key} />
           <div className="mt-5 flex flex-wrap gap-2">
             <Link href={`/circles/${circleId}`} className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary-700 px-4 text-[14px] font-semibold text-white hover:bg-primary-900">
               Go to Today <ArrowRight className="size-4" aria-hidden="true" />
@@ -408,32 +397,17 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
 
       {pages.length ? (
         <section className="mt-6 rounded-lg border border-border-200 bg-white p-4">
-          {keyReady === false && canKeep ? (
-            <div>
-              <h2 className="text-[15px] font-semibold text-ink-900">{pdf ? "Keep the PDF with this visit" : `Keep the ${pages.length === 1 ? "photo" : `${pages.length} photos`} with this visit`}</h2>
-              <p className="mt-1 text-[14px] text-ink-500">
-                {pdf ? "The PDF is" : "Photos are"} locked on this device before {pdf ? "it is" : "they are"} saved, with a key only you hold, so nobody else can open {pdf ? "it" : "them"}, including
-                All Hands Care. This device needs that key first. You can also skip this: the circle is still updated.
-              </p>
-              {context.key ? (
-                <RestoreKeys circles={[context.key]} onReady={() => setKeyReady(true)} />
-              ) : (
-                <p className="mt-2 text-[14px] text-ink-500">Only the person who started this circle can make its key.</p>
-              )}
-            </div>
-          ) : (
-            <Switch
-              id="keep-original"
-              checked={keep && canKeep && keyReady === true}
-              onChange={setKeep}
-              label={pdf ? "Keep the PDF with this visit" : `Keep the ${pages.length === 1 ? "photo" : `${pages.length} photos`} with this visit`}
-              helper={
-                canKeep
-                  ? `Locked on this device before ${pdf ? "it is" : "they are"} saved, with a key only you hold. Only you can open ${pdf ? "it" : "them"}, and you can delete ${pdf ? "it" : "them"} any time.`
-                  : "This PDF is too large to keep. The circle is still updated."
-              }
-            />
-          )}
+          <Switch
+            id="keep-original"
+            checked={keep && canKeep}
+            onChange={setKeep}
+            label={pdf ? "Keep the PDF with this visit" : `Keep the ${pages.length === 1 ? "photo" : `${pages.length} photos`} with this visit`}
+            helper={
+              canKeep
+                ? `Locked on this device before ${pdf ? "it is" : "they are"} saved. In the app, only you can see ${pdf ? "it" : "them"}, and you can delete ${pdf ? "it" : "them"} any time.`
+                : "This PDF is too large to keep. The circle is still updated."
+            }
+          />
         </section>
       ) : null}
 

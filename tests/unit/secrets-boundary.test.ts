@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { describe, expect, test } from "vitest";
 
-const MARKERS = ["SUPABASE_SERVICE_ROLE_KEY", "HELPER_SESSION_SECRET", "serviceRoleKey", "helperSessionSecret"];
+const MARKERS = ["SUPABASE_SERVICE_ROLE_KEY", "HELPER_SESSION_SECRET", "CIRCLE_KEY_SECRET", "serviceRoleKey", "helperSessionSecret", "circleKeySecret"];
 const SKIP = new Set(["node_modules", ".next", ".git", "tests", "e2e", "coverage", "public"]);
 
 function files(dir: string): string[] {

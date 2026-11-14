@@ -65,14 +65,14 @@ export function clientFor(actor: Actor): SupabaseClient {
 }
 
 /**
- * One RPC writes the circle, the owner's wrapped key, consents, and activity.
- * owner_id, role, and key_version are fixed in the database. The browser sends only the wrapped key.
+ * One RPC writes the circle, the owner's row, consents, and activity.
+ * owner_id, role, and key_version are fixed in the database. The circle starts without a key for
+ * files; one is made the first time it is needed (services/circle-keys.ts).
  */
 export async function createCircleRecord(
   actor: Actor,
   input: {
     content: CircleContent;
-    circleKeyWrapped?: string;
     consents: { type: ConsentType; version: string; text_hash: string }[];
   },
 ): Promise<string> {
@@ -80,7 +80,6 @@ export async function createCircleRecord(
   const { data, error } = await clientFor(actor).rpc("create_circle", {
     p_content: input.content,
     p_consents: input.consents,
-    p_wrapped: input.circleKeyWrapped ?? null,
   });
   if (error || typeof data !== "string" || data === "") throw new Error("create_circle failed");
   return data;

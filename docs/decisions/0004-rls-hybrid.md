@@ -4,7 +4,7 @@
 
 There are two paths to the database, and `store/db.ts` picks one with `clientFor(actor)`.
 
-- **Caregivers** query with their own Supabase token (`userClient`). Postgres row-level security applies, so a caregiver can only reach circles they belong to, whatever the app code does. Writes that need several rows to change together, such as creating a circle or changing the circle key, are Postgres functions (`create_circle`, `rotate_own_circle_key`).
+- **Caregivers** query with their own Supabase token (`userClient`). Postgres row-level security applies, so a caregiver can only reach circles they belong to, whatever the app code does. Writes that need several rows to change together, such as creating a circle, are Postgres functions (`create_circle`).
 - **Helpers** have no Supabase account, so their requests use the service role (`serviceClient`), which skips row security. On this path `can()` in `lib/permissions.ts` is the only lock. `docs/Permissions.md` says so plainly.
 
 Every table has row security turned on. `supabase/tests/` checks in CI that one circle can never read another's rows, that a circle holds exactly one caregiver, and that nobody else can join a circle, take it over, or change its key.

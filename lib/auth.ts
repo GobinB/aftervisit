@@ -119,7 +119,7 @@ async function loadHelper(circleId: string): Promise<Actor | null> {
       .maybeSingle();
     if (error || !data) return null;
     if (data.revoked_at) return null;
-    // Made from an older link: "New link" and a new key for files sign those devices out.
+    // Made from an older link: "New link" signs those devices out.
     if (!sameLink(claim.link, data.token_hash as string | null)) return null;
     if (new Date(data.expires_at as string).getTime() <= Date.now()) return null;
     const role = data.role as string;

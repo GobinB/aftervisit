@@ -1,5 +1,4 @@
 import { z } from "zod";
-import { FileKeyRewrapSchema } from "@/lib/schema/documents";
 
 /** What a caregiver may store about one person. Medical text stays inside this object. */
 const line = z.string().trim().min(1).max(200);
@@ -95,27 +94,18 @@ export const CONSENT_LABELS: Record<ConsentType, string> = {
 };
 
 /**
- * av1 is PBKDF2-SHA256 with 600,000 iterations, a 16-byte salt, a 12-byte IV,
- * and AES-GCM wrapping the raw circle key. A recovery phrase cannot match this.
+ * av2 is how a circle's key for files is stored: wrapped on the server (lib/key-custody.ts) with a
+ * key derived from a secret that is not in the database. A 12-byte IV, then the 32-byte key and
+ * AES-GCM's 16-byte tag, both base64url.
  */
-export const WRAPPED_CIRCLE_KEY = /^av1\.600000\.([A-Za-z0-9_-]{22})\.([A-Za-z0-9_-]{16})\.([A-Za-z0-9_-]{64})$/;
+export const HELD_CIRCLE_KEY = /^av2\.([A-Za-z0-9_-]{16})\.([A-Za-z0-9_-]{64})$/;
 
-export const CircleKeyWrappedSchema = z.string().regex(WRAPPED_CIRCLE_KEY).max(200);
-
-export function nextCircleKeyVersion(current: number): number {
-  if (!Number.isInteger(current) || current < 1 || current >= 1000) throw new Error("Key version is not valid.");
-  return current + 1;
-}
-
-/** What the browser needs in order to keep or restore a circle key. The wrapped value is not the key. */
-export type CircleKeyStatus = {
-  circleId: string;
-  personName: string;
-  role: "owner";
-  circleKeyVersion: number;
-  wrapped: string | null;
-  wrappedKeyVersion: number;
-};
+/**
+ * Where a circle's key for files stands, for the pages that need it.
+ * - none: no key yet. One is made the first time it is needed.
+ * - held: All Hands Care holds it, so it is handed to the caregiver after sign-in.
+ */
+export type CircleKeyState = { keyVersion: number; state: "none" | "held" };
 
 export const CreateCircleSchema = z
   .object({
@@ -125,32 +115,9 @@ export const CreateCircleSchema = z
       terms: z.literal(true),
       privacy: z.literal(true),
     }),
-    /**
-     * Optional: the key for files is usually made later, in Settings, when the circle first needs it.
-     * When sent, it is already wrapped in the browser. The raw key, the recovery phrase, and a key version are not accepted.
-     */
-    circleKeyWrapped: CircleKeyWrappedSchema.optional(),
   })
   .strict();
 export type CreateCircleInput = z.infer<typeof CreateCircleSchema>;
-
-export const StoreCircleKeySchema = z
-  .object({
-    circleId: z.string().uuid(),
-    circleKeyWrapped: CircleKeyWrappedSchema,
-    keyVersion: z.number().int().min(1).max(1000),
-  })
-  .strict();
-
-export const RotateCircleKeySchema = z
-  .object({
-    circleId: z.string().uuid(),
-    circleKeyWrapped: CircleKeyWrappedSchema,
-    keyVersion: z.number().int().min(2).max(1000),
-    /** Every encrypted summary's file key, rewrapped in the browser by the new circle key. */
-    fileKeys: z.array(FileKeyRewrapSchema).max(2000).default([]),
-  })
-  .strict();
 
 /** Token and optional PIN only. A key fragment is not a field. */
 export const OpenMemberLinkSchema = z

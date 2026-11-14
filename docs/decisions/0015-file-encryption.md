@@ -1,33 +1,40 @@
-# 0015. File keys stay in the browser
+# 0015. Files are encrypted in the browser, and All Hands Care keeps the key
 
 ## Decision
 
-Each circle can have one key. It is made only when the caregiver chooses to, under Settings → Key for files; starting a circle and adding people do not need it. Keeping the photos or PDF of a visit summary does: the screen that keeps them asks for the key if this device does not have it. The caregiver's browser creates it with Web Crypto (AES-GCM, 256 bits). The server stores only a wrapped copy on that caregiver's `circle_caregivers` row, plus `key_version`. It never receives the raw key or the recovery phrase.
+Saved visit summaries (the photos or the PDF) are the files. They are encrypted in the caregiver's browser before they are uploaded. All Hands Care keeps each circle's key, wrapped, and hands it to the circle's caregiver after Google sign-in. Nobody types or stores recovery words.
 
-The recovery phrase is 12 BIP39 English words (128 bits plus a checksum). It is shown once, when the key is made, and the person types three of the words before continuing. The screen says that if the words are lost, files cannot be recovered. The browser derives a wrapping key with PBKDF2-SHA256, 600,000 iterations, a random 16-byte salt, and AES-GCM. Web Crypto provides PBKDF2. Argon2 and scrypt are not in the browser API, and a WASM library would be a new dependency. 600,000 iterations is the OWASP 2023 minimum for PBKDF2-SHA256, which makes guessing a 12-word phrase impractical. The salt, IV, and ciphertext travel inside `circle_key_wrapped` (`av1.600000...`), so no extra column is required. The phrase-derived key is non-extractable and is not stored.
+**The circle key.** Each circle has one key (AES-GCM, 256 bits) and a `key_version`. A circle starts without one. The first time a key is needed (keeping photos, opening a saved summary, making a helper link), the server makes it (`services/circle-keys.ts`), so there is no "create a key" step.
 
-The circle key stored on the device is extractable. Helper links have to carry it. Where a key does not need to be copied out, it is non-extractable: the phrase wrapping key, and a file key after it is unwrapped for decrypt.
+**How it is stored.** The key is stored on the caregiver's `circle_caregivers` row as `av2.<iv>.<wrapped key>` (migrations `0017` and `0018`). It is wrapped on the server with AES-GCM (`lib/key-custody.ts`). The wrapping key is derived with HKDF-SHA256 from `CIRCLE_KEY_SECRET`, an environment variable that is never written to the database, and from the circle's id. The circle id and the key version are also bound into the wrap. So:
 
-Saved visit summaries are the files. Each summary gets its own file key (AES-GCM, 256 bits), made in the browser and wrapped by the circle key. Its row in `visit_documents` stores the wrap, the wrap's IV and `key_version` (migration `0015`). Each page, or the PDF, is encrypted in the browser with the file key and uploaded as a fresh 12-byte IV followed by the ciphertext, to `{circle}/{document}/{n}.enc`. The summary's id and the page number are bound in as additional data, so a page moved to another place does not open. The server refuses a page whose first bytes are a plain JPEG or PDF, and it returns pages still encrypted; the browser unwraps the file key and opens them. On a device without the circle key, the page asks for the recovery words.
+- A copy of the database alone opens nothing: it has wrapped keys and no secret.
+- A copy of file storage alone opens nothing: it has ciphertext.
+- A stored key copied onto another circle's row does not open there.
+- All Hands Care, which has both the database and the secret, is technically able to open saved files. This is not end-to-end encryption. The privacy page says so, and commits that we do not open them except at the caregiver's request or under a valid legal order, telling the caregiver first unless the law forbids it.
 
-When the circle key is changed, the browser opens every file key with the previous circle key, wraps it with the new one (`rewrapFileKeys`), and `rotate_own_circle_key` stores them in the same transaction as the new key version. If any encrypted summary is not covered, the whole change is refused, so no file is left under a key that is gone.
+If `CIRCLE_KEY_SECRET` is lost or replaced, stored keys no longer open and saved files cannot be recovered by anyone. The server never replaces a key it fails to open.
+
+**Who is handed the key.** Only the circle's caregiver. `openCircleKeyAction` reads the signed-in actor with `getActor`, counts the request against an hourly limit for that account, and the service checks `can(actor, "circle:rotate_key")` before anything is read. The row is then read through the caregiver's own session, so row security checks the same thing again. People with a link are never handed a key by the server. Key bytes are returned to the browser and are not logged.
+
+**In the browser.** `ensureCircleKey` (`components/circles/circle-key.ts`) returns the key with nothing on screen. It keeps a copy in IndexedDB and uses that copy only while it matches the version the server holds. Signing out clears the copy; the next sign-in, on any device, is handed the key again.
+
+**Files.** Each summary gets its own file key (AES-GCM, 256 bits), made in the browser and wrapped by the circle key. Its row in `visit_documents` stores the wrap, the wrap's IV and `key_version` (migration `0015`). Each page, or the PDF, is encrypted in the browser with the file key and uploaded as a fresh 12-byte IV followed by the ciphertext, to `{circle}/{document}/{n}.enc`. The summary's id and the page number are bound in as additional data, so a page moved to another place does not open. The server refuses a page whose first bytes are a plain JPEG or PDF, and it returns pages still encrypted; the browser unwraps the file key and opens them. A photo or PDF therefore reaches the server only as ciphertext.
 
 A summary saved before `0015` has no key columns. Its files are plain and are served as before.
 
-What this does not cover: the text read from a summary still passes through the server to build the draft (it is not saved), and the confirmed medications, reminders and events are stored unencrypted (decision 0007).
+Only the held form (`av2`) can be stored (migration `0018`). Nothing can move `key_version` or replace a circle's key: the earlier functions for that (`rotate_own_circle_key`, `reset_own_circle_key`, and a `create_circle` that took a key from the browser) were removed.
 
-The browser keeps the circle key in IndexedDB. On a new device, after Google sign-in, the person enters the phrase and the browser unwraps the stored copy.
+**Helper links** are `/i/{token}#k=...`. The server only creates and stores the token hash. The fragment is not sent to the server. The link page reads `#k=` in the browser, keeps it in the tab, and removes it from the address bar. A link without `#k=` still opens the circle, and making a link never fails because the key could not be had. Saved visit summaries are for the caregiver only, so a helper link has no file to open with the key. The PIN protects server access. It does not wrap or hide the key. Anyone who has a helper link therefore has the circle key. Through the app that opens nothing, but together with a copy of both the database and file storage it would open that circle's saved files.
 
-Helper links are `/i/{token}#k=...`. The server only creates and stores the token hash. The fragment is not sent to the server. The link page reads `#k=` in the browser, keeps it in the tab, and removes it from the address bar. The existing PIN and cookie flow is unchanged. A link without `#k=` still opens the circle. Saved visit summaries are for the caregiver only, so a helper link has no file to open with the key today.
+What this does not cover: the text read from a summary passes through the server to build the draft (it is not saved), and the confirmed medications, reminders and events are stored unencrypted (decision 0007).
 
-The PIN protects server access. It does not wrap or hide the key. A forwarded link carries the key in the fragment, which is why the link has a PIN and why the caregiver can revoke it. Revoking the token stops server access. Anyone who already copied the fragment still has the key material, so revocation is not a substitute for the phrase.
+## Considered
 
-Only the owner rotates the key. The database rejects a direct change to `circles.key_version` and a call to `rotate_own_circle_key` from anyone else. Rotation creates a new circle key, moves `key_version` forward by one, rewraps it for the owner, and replaces every active helper token in that same transaction. The screen says every helper needs a new link and shows those links. A helper link carries the key only when the key stored on this device is the circle's current version; otherwise the link is `/i/{token}` alone and opens everything except files.
+Keeping the key only in the browser, wrapped by 12 recovery words, which is how this first worked. The server could not open files at all. In use, nobody kept the words: signing out cleared the key from the device, and the next sign-in could not open saved summaries or keep new ones. Only test data had been saved that way, so it was removed rather than carried over.
 
-## Not decided
-
-Per-caregiver key pairs. Only the owner holds and changes the circle key today. This change does not build a key pair for each caregiver.
+Wrapping the key with a database feature (pgsodium or Supabase Vault). The secret would then sit in the same database as the wrapped keys, so one copy of the database would open everything.
 
 ## Why
 
-Files are the sensitive part of the circle. If the server can read the key, a database copy can read the files. Keeping the key in the browser means a lost phrase is unrecoverable on purpose: All Hands Care has nothing to reset.
+Caregivers here are often older and not technical. A photo they saved has to open when they sign in on a new phone, with nothing to remember. Encrypting in the browser still keeps plain files out of storage and out of the database, and deriving the wrapping key from a secret outside the database means a leak of either one alone exposes no file. The cost is stated plainly: All Hands Care can technically open saved files, so the privacy page no longer says it cannot.

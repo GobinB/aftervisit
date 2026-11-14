@@ -1,36 +1,25 @@
 import { describe, expect, test } from "vitest";
 import { buildHelperLink, helperLinkForServer, parseLinkKey } from "@/lib/crypto/link";
-import { decryptFile, encryptFile, exportKeyBytes, generateCircleKey, generateFileKey, rewrapFileKeys, unwrapCircleKey, unwrapFileKey, wrapCircleKey, wrapFileKey } from "@/lib/crypto/keys";
-import { confirmationIndexes, generatePhrase, phraseEntropy } from "@/lib/crypto/phrase";
-import { AddMemberSchema, CreateCircleSchema, OpenMemberLinkSchema, RotateCircleKeySchema, WRAPPED_CIRCLE_KEY } from "@/lib/schema/circles";
+import { decryptFile, encryptFile, exportKeyBytes, generateFileKey, importCircleKey, unwrapFileKey, wrapFileKey } from "@/lib/crypto/keys";
+import { AddMemberSchema, CreateCircleSchema, HELD_CIRCLE_KEY, OpenMemberLinkSchema } from "@/lib/schema/circles";
 
-const PHRASE = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
-const OTHER = "legal winner thank year wave sausage worth useful legal winner thank yellow";
+const WORDS = "abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about";
+const WORDS_WRAPPED = "av1.600000.BwcHBwcHBwcHBwcHBwcHBw.CQkJCQkJCQkJCQkJ.HjJDlfueDE80z1civaCUlcv2-xAJhJ3UwUMvgeL9stWx0Brhvb0uniVV013hsgWZ";
 const TOKEN = "abcdefghijklmnopqrstuvwx";
 
-describe("circle keys", () => {
-  test("a 12-word phrase matches the BIP39 test vector", async () => {
-    expect(await generatePhrase(new Uint8Array(16))).toBe(PHRASE);
-    const entropy = new Uint8Array(16).fill(0x7f);
-    expect(await generatePhrase(entropy)).toBe(OTHER);
-    expect(await phraseEntropy(PHRASE)).toEqual(new Uint8Array(16));
-    expect(await phraseEntropy("abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon zoo")).toBeNull();
-  });
+const randomCircleKey = () => importCircleKey(crypto.getRandomValues(new Uint8Array(32)));
 
-  test("wrap and unwrap round-trip, and the wrong phrase fails", async () => {
-    const key = await generateCircleKey();
-    const wrapped = await wrapCircleKey(key, PHRASE);
-    expect(WRAPPED_CIRCLE_KEY.test(wrapped)).toBe(true);
-    expect(wrapped).not.toContain("abandon");
-    const opened = await unwrapCircleKey(wrapped, `  ${PHRASE.toUpperCase()}  `);
-    expect(await exportKeyBytes(opened)).toEqual(await exportKeyBytes(key));
-    await expect(unwrapCircleKey(wrapped, OTHER)).rejects.toThrow(/did not open/);
-    await expect(unwrapCircleKey(wrapped, "not a real phrase")).rejects.toThrow(/not a recovery phrase/);
+describe("the stored form of a circle key", () => {
+  test("only the held form is accepted", () => {
+    expect(HELD_CIRCLE_KEY.test(`av2.${"a".repeat(16)}.${"b".repeat(64)}`)).toBe(true);
+    expect(HELD_CIRCLE_KEY.test(WORDS_WRAPPED)).toBe(false);
+    expect(HELD_CIRCLE_KEY.test(WORDS)).toBe(false);
   });
+});
 
-  test("a file encrypts and decrypts, including after the circle key changes", async () => {
-    const circle = await generateCircleKey();
-    const next = await generateCircleKey();
+describe("file keys", () => {
+  test("a file encrypts and decrypts with a file key the circle key wraps", async () => {
+    const circle = await randomCircleKey();
     const fileKey = await generateFileKey();
     const plain = new TextEncoder().encode("Riverbend Pharmacy hours");
     const encrypted = await encryptFile(plain, fileKey);
@@ -38,24 +27,17 @@ describe("circle keys", () => {
     const opened = await unwrapFileKey(stored, circle);
     expect(await decryptFile(encrypted.ciphertext, encrypted.iv, opened)).toEqual(plain);
     await expect(exportKeyBytes(opened)).rejects.toThrow();
-    const rewrapped = await rewrapFileKeys([stored], circle, next, 2);
-    expect(rewrapped[0]?.keyVersion).toBe(2);
-    const again = await unwrapFileKey(rewrapped[0]!, next);
-    expect(await decryptFile(encrypted.ciphertext, encrypted.iv, again)).toEqual(plain);
+    await expect(unwrapFileKey(stored, await randomCircleKey())).rejects.toThrow();
   });
 
-  test("confirmation asks for three different words", () => {
-    const indexes = confirmationIndexes(12, (() => {
-      const values = [3, 3, 7, 10];
-      return () => values.shift() ?? 0;
-    })());
-    expect(indexes).toEqual([3, 7, 10]);
+  test("a circle key is 32 bytes", async () => {
+    await expect(importCircleKey(new Uint8Array(16))).rejects.toThrow(/not valid/);
   });
 });
 
 describe("helper links", () => {
   test("the key is only in the hash", async () => {
-    const raw = await exportKeyBytes(await generateCircleKey());
+    const raw = await exportKeyBytes(await randomCircleKey());
     const link = buildHelperLink("https://aftervisit.example", TOKEN, raw);
     const url = new URL(link);
     expect(url.origin).toBe("https://aftervisit.example");
@@ -69,23 +51,15 @@ describe("helper links", () => {
     expect(parseLinkKey("#k=aaaa")).toBeNull();
   });
 
-  test("server actions accept a token and reject a key or a phrase", () => {
-    const wrapped = `av1.600000.${"a".repeat(22)}.${"b".repeat(16)}.${"c".repeat(64)}`;
+  test("server actions accept only their own fields: no key on a link, no words anywhere", () => {
+    const circleId = "22222222-2222-4222-8222-222222222222";
+    const content = { person_name: "Margaret Ward" };
+    const consents = { authorized_to_share: true as const, terms: true as const, privacy: true as const };
     expect(OpenMemberLinkSchema.safeParse({ token: TOKEN, pin: "1234" }).success).toBe(true);
     expect(OpenMemberLinkSchema.safeParse({ token: TOKEN, k: "secret" }).success).toBe(false);
-    expect(AddMemberSchema.safeParse({ circleId: "22222222-2222-4222-8222-222222222222", name: "Rosa", role: "family", k: "secret" }).success).toBe(false);
-    expect(CreateCircleSchema.safeParse({
-      content: { person_name: "Margaret Ward" },
-      consents: { authorized_to_share: true, terms: true, privacy: true },
-      circleKeyWrapped: wrapped,
-      keyVersion: 1,
-      phrase: PHRASE,
-    }).success).toBe(false);
-    expect(RotateCircleKeySchema.safeParse({
-      circleId: "22222222-2222-4222-8222-222222222222",
-      circleKeyWrapped: wrapped,
-      keyVersion: 2,
-      phrase: PHRASE,
-    }).success).toBe(false);
+    expect(AddMemberSchema.safeParse({ circleId, name: "Rosa", role: "family", k: "secret" }).success).toBe(false);
+    expect(CreateCircleSchema.safeParse({ content, consents }).success).toBe(true);
+    expect(CreateCircleSchema.safeParse({ content, consents, circleKeyWrapped: WORDS_WRAPPED }).success).toBe(false);
+    expect(CreateCircleSchema.safeParse({ content, consents, phrase: WORDS }).success).toBe(false);
   });
 });
