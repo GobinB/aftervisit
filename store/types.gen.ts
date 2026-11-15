@@ -1,4 +1,4 @@
-// The database after migrations 0001-0021, as the Supabase CLI writes it. Regenerate with:
+// The database after migrations 0001-0023, as the Supabase CLI writes it. Regenerate with:
 // supabase gen types typescript --local > store/types.gen.ts
 export type Json =
   | string
@@ -79,18 +79,21 @@ export type Database = {
           circle_id: string
           created_at: string
           created_by: string
+          include_medicines: boolean
           token: string
         }
         Insert: {
           circle_id: string
           created_at?: string
           created_by?: string
+          include_medicines?: boolean
           token: string
         }
         Update: {
           circle_id?: string
           created_at?: string
           created_by?: string
+          include_medicines?: boolean
           token?: string
         }
         Relationships: [
