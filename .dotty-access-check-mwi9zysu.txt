@@ -1,3 +1,0 @@
-Temporary GitHub write-access verification.
-This test branch and draft pull request are intended to be closed without merging.
-No application behavior is changed.
