@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { PhoneInputSchema } from "@/lib/phone";
 
 /** What a caregiver may store about one person. Medical text stays inside this object. */
 const line = z.string().trim().min(1).max(200);
@@ -139,6 +140,7 @@ export const AddMemberSchema = z.object({
   name: z.string().trim().min(1).max(80),
   role: HelperRoleSchema,
   email: optionalEmail,
+  phone: PhoneInputSchema.optional(),
   pin: z.string().regex(/^\d{4}$/).optional(),
   visibility: VisibilitySchema.optional(),
 }).strict();
@@ -154,6 +156,10 @@ export const MemberChangeSchema = z
 
 export const ChangeRoleSchema = MemberChangeSchema.extend({ role: HelperRoleSchema });
 export const SetVisibilitySchema = MemberChangeSchema.extend({ visibility: VisibilitySchema });
+/** The caregiver sets or clears one person's number. Blank clears it. */
+export const SetMemberPhoneSchema = MemberChangeSchema.extend({ phone: PhoneInputSchema });
+/** Anyone sets or clears their own number: the caregiver on their row, a person on their link. */
+export const SetOwnPhoneSchema = z.object({ circleId: z.string().uuid(), phone: PhoneInputSchema }).strict();
 
 /** How long a person's browser stays signed in after it last opened the circle; the link's own limits are in lib/link-life.ts. */
 export const MEMBER_TTL_DAYS = 90;
@@ -169,6 +175,8 @@ export interface PersonView {
   revokedAt?: string | null;
   locked?: boolean;
   email?: string | null;
+  /** Shown to whoever may see this person on the list; never required. */
+  phone?: string | null;
   /** Areas hidden from this person. Only for a viewer who may manage people. */
   hidden?: string[];
 }

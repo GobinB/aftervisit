@@ -1,10 +1,14 @@
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
+import { CallButton } from "@/components/circles/CallButton";
 import { LocalTime } from "@/components/ui/LocalTime";
 import type { PersonView } from "@/lib/schema/circles";
 
-/** Read-only list of the people on a circle. "Last opened" shows only when the viewer may manage people. */
-export function PeopleList({ people, showSeen }: { people: PersonView[]; showSeen: boolean }) {
+/**
+ * Read-only list of the people on a circle. "Last opened" shows only when the viewer may manage people.
+ * With `showPhones`, each number the viewer may see is a button to call it.
+ */
+export function PeopleList({ people, showSeen, showPhones = false }: { people: PersonView[]; showSeen: boolean; showPhones?: boolean }) {
   return (
     <ul className="divide-y divide-border-200">
       {people.map((person) => (
@@ -27,6 +31,7 @@ export function PeopleList({ people, showSeen }: { people: PersonView[]; showSee
             </p>
           </div>
           {person.revokedAt ? <Badge tone="attn">Access removed</Badge> : person.locked ? <Badge tone="attn">Locked</Badge> : null}
+          {showPhones && person.phone && !person.revokedAt ? <CallButton phone={person.phone} name={person.name} size="small" /> : null}
         </li>
       ))}
     </ul>

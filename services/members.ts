@@ -10,6 +10,7 @@ import { memberToken } from "@/lib/member-token";
 import { can } from "@/lib/permissions";
 import { caregiverDisplayName } from "@/lib/caregiver-name";
 import { CAREGIVER_ROLE_LABELS, HELPER_ROLE_LABELS, type AddMemberInput, type HelperRole, type PersonView, type Visibility, VisibilitySchema } from "@/lib/schema/circles";
+import { cleanPhone } from "@/lib/phone";
 import { PinSchema } from "@/lib/schema";
 import { hashPin } from "@/lib/tokens";
 import { whoNeedsUpdate, type PendingUpdate } from "@/lib/updates";
@@ -133,6 +134,8 @@ export async function addMember(
   input: AddMemberInput,
 ): Promise<{ ok: true; token: string; memberId: string; name: string; email: string | null } | { ok: false; error: string }> {
   if (!can(actor, "members:manage", { circleId: input.circleId })) return { ok: false, error: denied };
+  const phone = cleanPhone(input.phone);
+  if (!phone.ok) return { ok: false, error: phone.error };
   const id = randomUUID();
   const token = memberToken(id, 1);
   if (!token) return { ok: false, error: notSetUp };
@@ -143,6 +146,7 @@ export async function addMember(
     name: input.name,
     role: input.role,
     email: input.email?.trim() ? input.email.trim() : null,
+    phone: phone.phone,
     token_hash: hashInvite(token),
     pin_hash: input.pin ? hashPin(id, input.pin) : null,
     visibility: input.visibility ?? {},
@@ -181,6 +185,53 @@ export async function setVisibility(actor: Actor, circleId: string, memberId: st
   if (error || !data) return { ok: false as const, error: generic };
   await log(actor, circleId, "member_visibility", memberId);
   return { ok: true as const };
+}
+
+/** The caregiver sets or clears one person's phone number. */
+export async function setMemberPhone(actor: Actor, circleId: string, memberId: string, input: string) {
+  if (!can(actor, "members:manage", { circleId })) return { ok: false as const, error: denied };
+  const phone = cleanPhone(input);
+  if (!phone.ok) return { ok: false as const, error: phone.error };
+  const { data, error } = await clientFor(actor)
+    .from("members")
+    .update({ phone: phone.phone })
+    .eq("id", memberId)
+    .eq("circle_id", circleId)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return { ok: false as const, error: generic };
+  await log(actor, circleId, "member_phone", memberId);
+  return { ok: true as const, phone: phone.phone };
+}
+
+/**
+ * Your own phone number. The caregiver's is on their caregiver row; a person with a link sets
+ * only the number on their own member row, through the server after the permission check.
+ */
+export async function setOwnPhone(actor: Actor, circleId: string, input: string) {
+  if (!can(actor, "phone:edit:own", { circleId })) return { ok: false as const, error: "You cannot change this number." };
+  const phone = cleanPhone(input);
+  if (!phone.ok) return { ok: false as const, error: phone.error };
+  const db = clientFor(actor);
+  const saved =
+    actor.kind === "helper"
+      ? await db.from("members").update({ phone: phone.phone }).eq("id", actor.memberId).eq("circle_id", circleId).is("revoked_at", null).select("id").maybeSingle()
+      : await db.from("circle_caregivers").update({ phone: phone.phone }).eq("circle_id", circleId).eq("user_id", actor.userId).select("circle_id").maybeSingle();
+  if (saved.error || !saved.data) return { ok: false as const, error: generic };
+  if (actor.kind === "helper") await log(actor, circleId, "member_phone", actor.memberId);
+  return { ok: true as const, phone: phone.phone };
+}
+
+/** Your own phone number, to fill in the form. Null when there is none or it cannot be read. */
+export async function getOwnPhone(actor: Actor, circleId: string): Promise<string | null> {
+  if (!can(actor, "phone:edit:own", { circleId })) return null;
+  const db = clientFor(actor);
+  const { data, error } =
+    actor.kind === "helper"
+      ? await db.from("members").select("phone").eq("id", actor.memberId).eq("circle_id", circleId).maybeSingle()
+      : await db.from("circle_caregivers").select("phone").eq("circle_id", circleId).eq("user_id", actor.userId).maybeSingle();
+  if (error || !data) return null;
+  return (data.phone as string | null) ?? null;
 }
 
 export async function revokeMember(actor: Actor, circleId: string, memberId: string) {
@@ -317,11 +368,11 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
   const people: PersonView[] = [];
   // The caregivers and the helpers are read at once rather than one after the other.
   const [caregiverRows, memberRows] = await Promise.all([
-    db.from("circle_caregivers").select("user_id, role").eq("circle_id", circleId),
+    db.from("circle_caregivers").select("user_id, role, phone").eq("circle_id", circleId),
     names || canManage
       ? db
           .from("members")
-          .select("id, name, role, email, expires_at, revoked_at, last_seen_at, locked_until, visibility")
+          .select("id, name, role, email, phone, expires_at, revoked_at, last_seen_at, locked_until, visibility")
           .eq("circle_id", circleId)
           .order("created_at")
       : Promise.resolve(null),
@@ -341,6 +392,7 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
       role,
       roleLabel,
       kind: "caregiver",
+      phone: (row.phone as string | null) ?? null,
     });
   }
   if (memberRows) {
@@ -353,6 +405,8 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
         role,
         roleLabel: HELPER_ROLE_LABELS[role] ?? role,
         kind: "member",
+        // Someone whose link was turned off is not someone to call; only the caregiver still sees it.
+        phone: canManage || !row.revoked_at ? ((row.phone as string | null) ?? null) : null,
       };
       if (canManage) {
         view.email = (row.email as string | null) ?? null;
