@@ -105,12 +105,15 @@ export default function ReviewPage() {
     set((d) => ({ ...d, [key]: [...d[key], ""] }));
   }
 
-  /** Phones: swap to the original and back, returning to the same place in the draft. */
-  function show(which: "draft" | "original") {
+  /**
+   * Phones: swap to the original and back, returning to the same place in the draft. With `toLine`
+   * the original brings its marked line into view by itself, so the page is not moved here.
+   */
+  function show(which: "draft" | "original", toLine = false) {
     if (which === view) return;
     if (which === "original") draftScroll.current = window.scrollY;
     setView(which);
-    if (isPhone()) {
+    if (isPhone() && !toLine) {
       const top = which === "draft" ? draftScroll.current : 0;
       requestAnimationFrame(() => window.scrollTo({ top }));
     }
@@ -119,7 +122,7 @@ export default function ReviewPage() {
   /** "See it in the original": mark the item's sentence there. On a phone this also swaps to the original. */
   const seeInOriginal = (quote: string, page?: number) => {
     setTarget({ quote, page });
-    if (isPhone()) show("original");
+    if (isPhone()) show("original", true);
   };
   /** A computer follows along as the caregiver moves through the draft; a phone waits to be asked. */
   const follow = (quote: string | undefined, page?: number) => {
@@ -129,7 +132,7 @@ export default function ReviewPage() {
   function confirmMeds() {
     setReviewed("medications", true);
     setMedsOpen(false);
-    requestAnimationFrame(() => document.getElementById("rest-title")?.scrollIntoView({ block: "start", behavior: "smooth" }));
+    requestAnimationFrame(() => document.getElementById("rest-title")?.closest("section")?.scrollIntoView({ block: "start", behavior: "smooth" }));
   }
   function confirmRest() {
     setReviewed("rest", true);
@@ -406,6 +409,7 @@ export default function ReviewPage() {
 
         <aside
           aria-labelledby="original-title"
+          data-scroll-box
           className={`mx-auto w-full max-w-[720px] rounded-2xl border border-border-200 bg-white max-lg:overflow-clip lg:sticky lg:top-[88px] lg:mx-0 lg:max-h-[calc(100dvh-88px-92px)] lg:max-w-none lg:self-start lg:overflow-y-auto ${
             view === "draft" ? "hidden lg:block" : ""
           }`}

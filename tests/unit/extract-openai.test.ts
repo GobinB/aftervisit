@@ -4,7 +4,7 @@ vi.mock("server-only", () => ({}));
 
 import { batchPages, mergeDrafts } from "@/lib/extract/merge";
 import { medNeedsCheck, unreadableFields, unreadableLabel } from "@/lib/extract/flags";
-import { createOpenAiProvider, DEFAULT_OPENAI_MODEL, openAiJsonSchema, toDraft, type OpenAiDraft } from "@/lib/extract/openai";
+import { createOpenAiProvider, DEFAULT_OPENAI_MODEL, OPENAI_PROMPT, openAiJsonSchema, toDraft, type OpenAiDraft } from "@/lib/extract/openai";
 import { providerDisclosure, resolveProviderName } from "@/lib/extract/provider";
 import { parse } from "@/lib/parse";
 import { SAMPLE_SOURCE_TEXT } from "@/lib/sample";
@@ -154,6 +154,13 @@ describe("OpenAI answer", () => {
     expect(draft!.tasks[0]).toMatchObject({ title: "Get a blood test", sourcePage: 2, sourceQuote: "Blood test in 1 week.", confidence: "high" });
     // Without the document's text, the side panel gets the sentences, by page.
     expect(draft!.sourceText).toBe("Page 1\nINCREASE lisinopril to 20 mg once daily.\n\nPage 2\nBlood test in 1 week.");
+  });
+
+  it("puts instructions that are not a medicine or a task under good to know", () => {
+    const draft = toDraft(answer({ goodToKnow: ["Avoid caffeine after noon.", "  ", "Low-salt diet."] }), {});
+    expect(draft.otherNotes).toEqual(["Avoid caffeine after noon.", "Low-salt diet."]);
+    expect(OPENAI_PROMPT).toMatch(/goodToKnow: instructions and advice/);
+    expect(OPENAI_PROMPT).not.toMatch(/otherNotes/);
   });
 
   it("drops a page number outside the pages sent", () => {

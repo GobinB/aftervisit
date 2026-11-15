@@ -7,6 +7,23 @@ import { readPageLines, stopPageLineReader, toImageBlob } from "@/lib/ocr";
 /** The line an item came from: its sentence, and the page it is on when the reader said. */
 export type SourceTarget = { quote: string; page?: number };
 
+/**
+ * Brings the marked line to the middle of what is showing. On a computer the original scrolls in its
+ * own box (marked data-scroll-box), so only that box moves; on a phone the page itself scrolls.
+ */
+function bringIntoView(el: HTMLElement | null, block: "center" | "start" = "center") {
+  if (!el) return;
+  const box = el.closest<HTMLElement>("[data-scroll-box]");
+  if (box && box.scrollHeight > box.clientHeight + 1 && getComputedStyle(box).overflowY !== "visible") {
+    const at = el.getBoundingClientRect();
+    const frame = box.getBoundingClientRect();
+    const offset = block === "center" ? (box.clientHeight - at.height) / 2 : 120;
+    box.scrollBy({ top: at.top - frame.top - offset, behavior: "smooth" });
+    return;
+  }
+  el.scrollIntoView({ block, behavior: "smooth" });
+}
+
 /** Finds the active item's text in the source by simple string search. */
 export function findRange(source: string, query: string): [number, number] | null {
   const q = query.trim();
@@ -30,7 +47,7 @@ export function SourceText({ source, query }: { source: string; query: string })
   const range = useMemo(() => findRange(source, query), [source, query]);
   const markRef = useRef<HTMLElement>(null);
   useEffect(() => {
-    markRef.current?.scrollIntoView({ block: "center", behavior: "smooth" });
+    bringIntoView(markRef.current);
   }, [range]);
   if (!source) return <p className="text-ink-500">No source text for this visit.</p>;
   return (
@@ -83,7 +100,7 @@ function PagePhoto({ file, n, of, box, wide, active }: { file: File; n: number; 
   // Bring the page, and then the marked line, into view when an item points here.
   useEffect(() => {
     if (!active) return;
-    (box ? mark.current : figure.current)?.scrollIntoView({ block: box ? "center" : "start", behavior: "smooth" });
+    bringIntoView(box ? mark.current : figure.current, box ? "center" : "start");
   }, [active, box]);
   return (
     <figure ref={figure} className={`scroll-mt-40 overflow-hidden rounded-lg border bg-white ${active ? "border-med ring-2 ring-med/40" : "border-border-200"}`}>

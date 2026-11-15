@@ -14,7 +14,7 @@ export default async function NewLayout({ children }: { children: React.ReactNod
   return (
     <>
       <AppBar minimal />
-      <main id="main" className="mx-auto w-full max-w-[1100px] px-4 pt-6 pb-32">
+      <main id="main" className="mx-auto w-full max-w-[1280px] px-4 pt-6 pb-32">
         <ReaderProvider readsPages={readsPages}>{children}</ReaderProvider>
       </main>
     </>

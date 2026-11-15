@@ -1,6 +1,6 @@
 import { describe, expect, test } from "vitest";
 import type { PersonView } from "@/lib/schema/circles";
-import { buildAlerts, buildFeed, buildTodayCards, missingDetails, type ActivityRow } from "@/lib/today";
+import { buildAlerts, buildFeed, buildTodayActions, buildTodayCards, missingDetails, type ActivityRow } from "@/lib/today";
 
 const NOW = Date.UTC(2026, 10, 3, 12, 0);
 const ago = (days: number) => new Date(NOW - days * 86_400_000).toISOString();
@@ -15,7 +15,17 @@ const people: PersonView[] = [
 ];
 
 describe("Today", () => {
-  test("cards put scanning first, then medications, reminders and allergies", () => {
+  test("scanning, adding a medication and adding a reminder sit together at the top", () => {
+    const actions = buildTodayActions(CIRCLE);
+    expect(actions.map((a) => a.key)).toEqual(["scan", "add-med", "add-reminder"]);
+    expect(actions.map((a) => a.label)).toEqual(["Scan after-visit summary", "Add a medication", "Add a reminder"]);
+    expect(actions[0].href).toBe(`/new?circle=${CIRCLE}`);
+    // Each "Add" goes straight to the form, not to a list to hunt through.
+    expect(actions[1].href).toBe(`/circles/${CIRCLE}/medications/new`);
+    expect(actions[2].href).toBe(`/circles/${CIRCLE}/todos?add=1`);
+  });
+
+  test("the number cards are medications, reminders and allergies", () => {
     const content = { person_name: "M", allergies: ["Penicillin"], doctors: [], emergency_contacts: [] };
     const meds = [
       { name: "Lisinopril", status: "active" },
@@ -23,10 +33,8 @@ describe("Today", () => {
       { name: "Warfarin", status: "stopped" },
     ];
     const cards = buildTodayCards(CIRCLE, content, meds, []);
-    expect(cards.map((c) => c.key)).toEqual(["scan", "meds", "reminders", "allergies"]);
+    expect(cards.map((c) => c.key)).toEqual(["meds", "reminders", "allergies"]);
     const byKey = Object.fromEntries(cards.map((c) => [c.key, c]));
-    expect(byKey.scan.label).toBe("Scan after-visit summary");
-    expect(byKey.scan.href).toBe(`/new?circle=${CIRCLE}`);
     expect(byKey.meds.value).toBe(2);
     expect(byKey.meds.detail).toBe("Lisinopril, Metformin");
     expect(byKey.allergies.value).toBe(1);
