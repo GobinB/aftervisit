@@ -36,6 +36,7 @@ export default function ReviewPage() {
   // Phones show one at a time: the draft, or the original.
   const [view, setView] = useState<"draft" | "original">("draft");
   const draftScroll = useRef(0);
+  const medsConfirmedAt = useRef(0);
   const [newItem, setNewItem] = useState<string | null>(null);
   const [editVisit, setEditVisit] = useState(false);
   const [medsOpen, setMedsOpen] = useState(true);
@@ -130,11 +131,14 @@ export default function ReviewPage() {
   };
 
   function confirmMeds() {
+    medsConfirmedAt.current = Date.now();
     setReviewed("medications", true);
     setMedsOpen(false);
     requestAnimationFrame(() => document.getElementById("rest-title")?.closest("section")?.scrollIntoView({ block: "start", behavior: "smooth" }));
   }
   function confirmRest() {
+    // The same button holds both confirms. A double tap on the first must not give the second.
+    if (Date.now() - medsConfirmedAt.current < 900) return;
     setReviewed("rest", true);
     router.push(next);
   }
@@ -410,6 +414,8 @@ export default function ReviewPage() {
         <aside
           aria-labelledby="original-title"
           data-scroll-box
+          // The original scrolls in its own box on a computer, so the keyboard must be able to reach it.
+          tabIndex={0}
           className={`mx-auto w-full max-w-[720px] rounded-2xl border border-border-200 bg-white max-lg:overflow-clip lg:sticky lg:top-[88px] lg:mx-0 lg:max-h-[calc(100dvh-88px-92px)] lg:max-w-none lg:self-start lg:overflow-y-auto ${
             view === "draft" ? "hidden lg:block" : ""
           }`}
