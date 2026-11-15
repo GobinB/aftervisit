@@ -10,6 +10,8 @@ export type VisitDocument = {
   pageCount: number;
   saved: number;
   createdAt: string;
+  /** The visit these pages belong to, when its notes were saved. */
+  visitId: string | null;
   /**
    * The summary's file key, wrapped by the circle key in the caregiver's browser.
    * Null only for a summary saved before pages were encrypted.
@@ -40,6 +42,8 @@ export const CreateDocumentSchema = z
     clinic: z.string().trim().max(300).optional(),
     kind: z.enum(["photos", "pdf"]),
     pageCount: z.number().int().min(1).max(MAX_DOCUMENT_PAGES),
+    /** The visit whose notes were just saved, so the pages are kept with it. */
+    visitId: z.string().uuid().optional(),
     // Required: a summary is only kept encrypted. The raw file key and the circle key are not fields.
     keyVersion: z.number().int().min(1).max(1000),
     fileKeyWrapped: z.string().regex(WRAPPED_FILE_KEY),

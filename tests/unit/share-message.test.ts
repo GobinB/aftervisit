@@ -44,7 +44,7 @@ describe("share message", () => {
 
   it("matches what a person sees to a preset", () => {
     expect(presetFor([])).toBe("everything");
-    expect(presetFor(["summary", "medications"])).toBe("calendar");
+    expect(presetFor(["summary", "medications", "handoff"])).toBe("calendar");
     expect(presetFor(["medications"])).toBe("custom");
   });
 });

@@ -15,7 +15,7 @@ export function linkExpiry(issuedAt: Date, now: Date = new Date()): Date {
 }
 
 /** The areas a change can be in, as the database records them (circle_updates.area). */
-export const UPDATE_AREAS = ["medications", "calendar", "tasks", "summary"] as const;
+export const UPDATE_AREAS = ["medications", "calendar", "tasks", "summary", "visits"] as const;
 export type UpdateArea = (typeof UPDATE_AREAS)[number];
 
 export const UPDATE_AREA_WORDS: Record<UpdateArea, string> = {
@@ -23,6 +23,7 @@ export const UPDATE_AREA_WORDS: Record<UpdateArea, string> = {
   calendar: "the calendar",
   tasks: "reminders",
   summary: "the care summary",
+  visits: "the visit notes",
 };
 
 /** "medicines", "medicines and the calendar", "medicines, reminders and the calendar". */

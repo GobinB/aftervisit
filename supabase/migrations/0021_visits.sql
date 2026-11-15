@@ -14,6 +14,10 @@
 --
 -- circle_updates takes a new area, 'visits', so the caregiver is asked to tell people about new
 -- visit notes the same way as a change to medicines.
+--
+-- members.visibility: visit notes are a new thing a person with a link can see. Anyone the caregiver
+-- already hid medicines or the care summary from has visit notes hidden too, so nobody sees more
+-- than before without the caregiver choosing it.
 -- Runs after 0020. 0001-0020 are not modified. Safe to re-run.
 
 create table if not exists public.visits (
@@ -115,3 +119,10 @@ drop trigger if exists circle_updates_visits on public.visits;
 create trigger circle_updates_visits
   after insert or update or delete on public.visits
   for each row execute function public.circle_updates_touch('visits');
+
+-- Nobody who was kept from medicines or the care summary starts seeing visit notes by default.
+update public.members
+   set visibility = jsonb_set(visibility, '{hidden}', (visibility -> 'hidden') || '["handoff"]'::jsonb)
+ where jsonb_typeof(visibility -> 'hidden') = 'array'
+   and (visibility -> 'hidden') ?| array['medications', 'summary']
+   and not (visibility -> 'hidden') ? 'handoff';
