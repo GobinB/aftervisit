@@ -427,13 +427,13 @@ export default function ReviewPage() {
             target={target}
             onClear={() => setTarget(null)}
             visible={view === "original" || !isPhone()}
-            stickyClass="top-[135px] sm:top-[143px] lg:top-0"
+            stickyClass="max-lg:top-[143px] max-sm:top-[135px]"
           />
         </aside>
       </div>
 
       {/* The bar: one button for the step the caregiver is on. On a phone looking at the original, the way back. */}
-      <div className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-border-200 bg-white">
+      <div data-review-bar className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-border-200 bg-white">
         <div className="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className={`text-sm text-ink-500 ${view === "original" ? "max-lg:hidden" : ""}`} aria-live="polite">
             <span className="font-semibold text-ink-900">{bar.label}</span>

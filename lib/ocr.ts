@@ -110,7 +110,8 @@ async function readLines(file: File): Promise<PageLine[]> {
       for (const line of paragraph.lines) {
         const text = line.text.trim();
         if (!text) continue;
-        lines.push({ text, x0: line.bbox.x0 / width, y0: line.bbox.y0 / height, x1: line.bbox.x1 / width, y1: line.bbox.y1 / height });
+        const box = (b: { x0: number; y0: number; x1: number; y1: number }) => ({ x0: b.x0 / width, y0: b.y0 / height, x1: b.x1 / width, y1: b.y1 / height });
+        lines.push({ text, ...box(line.bbox), words: line.words.filter((word) => word.text.trim()).map((word) => box(word.bbox)) });
       }
     }
   }

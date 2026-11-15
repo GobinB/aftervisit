@@ -14,10 +14,18 @@ export default function ApplyVisitPage() {
   const router = useRouter();
   const { draft, circleId, reviewed } = useFlow();
   const [context, setContext] = useState<VisitContext | null>(null);
+  const [hydrated, setHydrated] = useState(false);
   // Nothing reaches the circle until both review steps are confirmed, however this page was opened.
   const checked = reviewComplete(draft, reviewed);
 
   useEffect(() => {
+    // The draft comes back from this tab's storage after the page loads (a reload, or the address typed in).
+    if (useFlow.persist.hasHydrated()) setHydrated(true);
+    return useFlow.persist.onFinishHydration(() => setHydrated(true));
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
     if (!draft || !circleId) {
       router.replace("/new");
       return;
@@ -29,9 +37,9 @@ export default function ApplyVisitPage() {
     visitContextAction(circleId)
       .then(setContext)
       .catch(() => setContext({ ok: false, error: "The circle could not be loaded. Try again." }));
-  }, [draft, circleId, checked, router]);
+  }, [hydrated, draft, circleId, checked, router]);
 
-  if (!draft || !circleId || !checked) return null;
+  if (!hydrated || !draft || !circleId || !checked) return null;
   if (!context) {
     return (
       <p className="mx-auto mt-16 flex max-w-[720px] items-center gap-2 text-ink-500">

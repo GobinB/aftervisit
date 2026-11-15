@@ -1,7 +1,7 @@
 "use client";
 import { FileText, Images, Loader2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { findLine, type LineBox } from "@/lib/find-line";
+import { findLine, type LineMark } from "@/lib/find-line";
 import { readPageLines, stopPageLineReader, toImageBlob } from "@/lib/ocr";
 
 /** The line an item came from: its sentence, and the page it is on when the reader said. */
@@ -13,15 +13,20 @@ export type SourceTarget = { quote: string; page?: number };
  */
 function bringIntoView(el: HTMLElement | null, block: "center" | "start" = "center") {
   if (!el) return;
+  const at = el.getBoundingClientRect();
   const box = el.closest<HTMLElement>("[data-scroll-box]");
   if (box && box.scrollHeight > box.clientHeight + 1 && getComputedStyle(box).overflowY !== "visible") {
-    const at = el.getBoundingClientRect();
     const frame = box.getBoundingClientRect();
-    const offset = block === "center" ? (box.clientHeight - at.height) / 2 : 120;
+    const head = box.querySelector<HTMLElement>("[data-original-head]")?.getBoundingClientRect().height ?? 0;
+    const offset = block === "center" ? head + Math.max(0, (box.clientHeight - head - at.height) / 2) : head + 8;
     box.scrollBy({ top: at.top - frame.top - offset, behavior: "smooth" });
     return;
   }
-  el.scrollIntoView({ block, behavior: "smooth" });
+  // A phone: the page scrolls under the bars that stay put (the pinned sentence above, the button bar below).
+  const top = document.querySelector("[data-original-strip]")?.getBoundingClientRect().bottom ?? 0;
+  const bottom = document.querySelector("[data-review-bar]")?.getBoundingClientRect().top ?? window.innerHeight;
+  const offset = block === "center" ? top + Math.max(0, (bottom - top - at.height) / 2) : top + 8;
+  window.scrollBy({ top: at.top - offset, behavior: "smooth" });
 }
 
 /** Finds the active item's text in the source by simple string search. */
@@ -71,7 +76,7 @@ export function SourceText({ source, query }: { source: string; query: string })
  * One photographed page, drawn large from the phone's own copy (it was never uploaded to be shown
  * here). `box` marks the line an item came from; `wide` makes the page twice as wide to read small print.
  */
-function PagePhoto({ file, n, of, box, wide, active }: { file: File; n: number; of: number; box: LineBox | null; wide: boolean; active: boolean }) {
+function PagePhoto({ file, n, of, box, wide, active }: { file: File; n: number; of: number; box: LineMark | null; wide: boolean; active: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
   const figure = useRef<HTMLElement>(null);
   const mark = useRef<HTMLDivElement>(null);
@@ -118,10 +123,19 @@ function PagePhoto({ file, n, of, box, wide, active }: { file: File; n: number; 
                 ref={mark}
                 data-testid="line-mark"
                 aria-hidden="true"
-                className="pointer-events-none absolute rounded-sm bg-[#fde68a]/45 ring-2 ring-med"
+                className="pointer-events-none absolute"
                 style={{ left: `${box.x * 100}%`, top: `${box.y * 100}%`, width: `${box.w * 100}%`, height: `${box.h * 100}%` }}
               />
             ) : null}
+            {/* Marked like a highlighter pen, word by word, so the mark follows a line that slopes on the photo. */}
+            {box?.parts.map((part, i) => (
+              <div
+                key={i}
+                aria-hidden="true"
+                className="pointer-events-none absolute rounded-[2px] bg-[#fbbf24]/50 mix-blend-multiply"
+                style={{ left: `${part.x * 100}%`, top: `${part.y * 100}%`, width: `${part.w * 100}%`, height: `${part.h * 100}%` }}
+              />
+            ))}
           </div>
         </div>
       )}
@@ -129,7 +143,7 @@ function PagePhoto({ file, n, of, box, wide, active }: { file: File; n: number; 
   );
 }
 
-type Found = { quote: string; page: number; box: LineBox } | { quote: string; page: number | null; box: null };
+type Found = { quote: string; page: number; box: LineMark } | { quote: string; page: number | null; box: null };
 
 /**
  * Looks for the sentence on the photos, on this device. With a page from the reader, only that page
@@ -185,7 +199,7 @@ export function OriginalView({
   onClear,
   visible = true,
   headingId,
-  stickyClass = "top-0",
+  stickyClass = "max-lg:top-0",
 }: {
   source: string;
   pages: File[];
@@ -194,7 +208,7 @@ export function OriginalView({
   /** False while the original is not on screen (the draft is showing on a phone), so nothing is read for nothing. */
   visible?: boolean;
   headingId: string;
-  /** Where the heading sticks: the top of its own scrolling box on a computer, under the app bar on a phone. */
+  /** Where the pinned sentence sticks on a phone: under the app bar and the Draft / Original switch. */
   stickyClass?: string;
 }) {
   const photos = useMemo(() => pages.filter((file) => !/pdf/i.test(file.type) && !/\.pdf$/i.test(file.name)), [pages]);
@@ -223,13 +237,15 @@ export function OriginalView({
 
   return (
     <div>
-      <div className={`sticky z-10 border-b border-border-200 bg-white ${stickyClass}`}>
-        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+      {/* On a computer the heading and the pinned sentence stay at the top of the original's own box.
+          On a phone only the sentence stays, under the Draft / Original switch, so the page keeps most of the screen. */}
+      <div data-original-head className="max-lg:contents lg:sticky lg:top-0 lg:z-10 lg:bg-white">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border-200 bg-white px-4 py-2.5">
           <h2 id={headingId} className="flex items-center gap-2 font-semibold text-primary-700">
             <FileText size={20} aria-hidden="true" /> Original summary
           </h2>
           {photos.length ? (
-            <div className="flex items-center gap-1.5">
+            <div className="flex flex-wrap items-center gap-1.5">
               <div role="tablist" aria-label="How to show the original" className="flex gap-1.5">
                 {(["photos", "text"] as const).map((key) => (
                   <button
@@ -238,7 +254,7 @@ export function OriginalView({
                     role="tab"
                     aria-selected={tab === key}
                     onClick={() => setTab(key)}
-                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-[14px] font-semibold ${
+                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3 text-[14px] font-semibold whitespace-nowrap ${
                       tab === key ? "border-primary-700 bg-primary-700 text-white" : "border-border-200 bg-white text-ink-900"
                     }`}
                   >
@@ -252,7 +268,7 @@ export function OriginalView({
                   type="button"
                   onClick={() => setWide(!wide)}
                   aria-pressed={wide}
-                  className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border-200 bg-white px-3 text-[14px] font-semibold text-ink-900"
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border-200 bg-white px-3 text-[14px] font-semibold whitespace-nowrap text-ink-900"
                 >
                   {wide ? <ZoomOut className="size-4" aria-hidden="true" /> : <ZoomIn className="size-4" aria-hidden="true" />}
                   {wide ? "Smaller" : "Bigger"}
@@ -262,10 +278,10 @@ export function OriginalView({
           ) : null}
         </div>
         {target ? (
-          <div className="flex items-start gap-2 border-t border-med/30 bg-med-bg px-4 py-2.5">
+          <div data-original-strip className={`z-10 flex items-start gap-2 border-b border-med/30 bg-med-bg px-4 py-2 max-lg:sticky ${stickyClass}`}>
             <p className="min-w-0 flex-1 text-[15px] text-ink-900">
               <span className="block text-[12px] font-bold tracking-[0.06em] text-med-ink uppercase">Look for this line{page ? ` · page ${page}` : ""}</span>
-              <span className="block font-medium break-words">{target.quote}</span>
+              <span className="line-clamp-3 font-medium break-words">{target.quote}</span>
               {status ? (
                 <span role="status" className="mt-0.5 flex items-center gap-1.5 text-[13px] text-ink-500">
                   {looking ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : null}

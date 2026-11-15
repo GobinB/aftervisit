@@ -7,11 +7,18 @@
  * no line matches well enough: a wrong mark is worse than none.
  */
 
-/** One line of text read from a page photo. Positions are fractions of the page (0 to 1). */
-export type PageLine = { text: string; x0: number; y0: number; x1: number; y1: number };
-
 /** A rectangle on the page, as fractions of its width and height. */
 export type LineBox = { x: number; y: number; w: number; h: number };
+
+/**
+ * One line of text read from a page photo. Positions are fractions of the page (0 to 1). `words`
+ * are the boxes of its words: a photographed page is rarely square to the camera, so a line of text
+ * slopes, and its words follow the slope where one box around the whole line would not.
+ */
+export type PageLine = { text: string; x0: number; y0: number; x1: number; y1: number; words?: { x0: number; y0: number; x1: number; y1: number }[] };
+
+/** Where a sentence is: the area to bring into view, and the pieces to mark (one per word, or per line). */
+export type LineMark = LineBox & { parts: LineBox[] };
 
 /** Words that matter for matching: lower case, numbers kept, single letters dropped. */
 export function lineTokens(text: string): string[] {
@@ -51,7 +58,14 @@ const MAX_LINES = 3;
 /** At least this share of the sentence's words must be on the marked lines. */
 const MIN_FOUND = 0.6;
 
-export function findLine(lines: readonly PageLine[], quote: string): LineBox | null {
+const PAD = 0.003;
+const padded = (r: { x0: number; y0: number; x1: number; y1: number }): LineBox => {
+  const x = Math.max(0, r.x0 - PAD);
+  const y = Math.max(0, r.y0 - PAD / 2);
+  return { x, y, w: Math.min(1, r.x1 + PAD) - x, h: Math.min(1, r.y1 + PAD / 2) - y };
+};
+
+export function findLine(lines: readonly PageLine[], quote: string): LineMark | null {
   const want = lineTokens(quote);
   if (want.length < 2) return null;
   const tokens = lines.map((line) => lineTokens(line.text));
@@ -84,8 +98,6 @@ export function findLine(lines: readonly PageLine[], quote: string): LineBox | n
   const y0 = Math.min(...picked.map((line) => line.y0));
   const x1 = Math.max(...picked.map((line) => line.x1));
   const y1 = Math.max(...picked.map((line) => line.y1));
-  const pad = 0.006;
-  const x = Math.max(0, x0 - pad);
-  const y = Math.max(0, y0 - pad);
-  return { x, y, w: Math.min(1, x1 + pad) - x, h: Math.min(1, y1 + pad) - y };
+  const all = padded({ x0, y0, x1, y1 });
+  return { ...all, parts: picked.flatMap((line) => (line.words?.length ? line.words : [line])).map(padded) };
 }
