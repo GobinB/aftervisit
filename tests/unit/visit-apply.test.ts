@@ -121,12 +121,76 @@ describe("applying a visit", () => {
       }),
     });
     const result = await applyVisit(owner, input);
-    expect(result).toEqual({ ok: true, added: 1, changed: 0, stopped: 1, todos: 1, events: 0, failed: 0 });
+    expect(result).toEqual({ ok: true, added: 1, changed: 0, stopped: 1, todos: 1, events: 0, failed: 0, visitId: null, notes: 0 });
+    // No notes were sent, so no visit row is written.
+    expect(inserts.some((i) => i.table === "visits")).toBe(false);
     expect(inserts.find((i) => i.table === "medications")?.row).toMatchObject({ circle_id: circleId, source: "handoff", start_date: "2026-11-03" });
     expect(updates[0]).toMatchObject({ status: "stopped", stop_date: "2026-11-03", source: "handoff" });
     expect(eqs).toContainEqual(["circle_id", circleId]);
     expect(inserts.find((i) => i.table === "todos")?.row).toMatchObject({ assigned_to_caregiver: true, source: "handoff", note: "From the visit at Riverbend Clinic" });
     expect(inserts.find((i) => i.table === "activity")?.row).toMatchObject({ action: "visit_applied" });
+  });
+
+  test("the visit's notes are kept with the visit: summary, watch for, good to know and questions", async () => {
+    const inserts: { table: string; row: Record<string, unknown> }[] = [];
+    clientFor.mockReturnValue({
+      from: (table: string) => ({
+        insert: (row: Record<string, unknown>) => {
+          inserts.push({ table, row });
+          return Object.assign(Promise.resolve({ error: null }), { select: () => ({ single: async () => ({ data: { id: "v1" }, error: null }) }) });
+        },
+      }),
+    });
+    const withNotes = ApplyVisitSchema.parse({
+      circleId,
+      visitDate: "2026-11-03",
+      clinic: "Riverbend Clinic",
+      meds: [],
+      todos: [],
+      notes: {
+        provider: "Dr. Anita Patel",
+        summary: "Blood pressure is still high.",
+        watchFor: ["Any fall", "Fainting"],
+        goodToKnow: ["Avoid caffeine"],
+        questions: ["Is the new dose working?"],
+      },
+    });
+    const result = await applyVisit(owner, withNotes);
+    expect(result).toMatchObject({ ok: true, visitId: "v1", notes: 4, failed: 0 });
+    // The visit is written first, so its notes survive a later write failing.
+    expect(inserts[0].table).toBe("visits");
+    expect(inserts[0].row).toMatchObject({
+      circle_id: circleId,
+      visit_date: "2026-11-03",
+      content: {
+        clinic: "Riverbend Clinic",
+        provider: "Dr. Anita Patel",
+        summary: "Blood pressure is still high.",
+        watchFor: ["Any fall", "Fainting"],
+        goodToKnow: ["Avoid caffeine"],
+        questions: ["Is the new dose working?"],
+      },
+    });
+  });
+
+  test("notes that cannot be saved are counted as a failure, and the rest still goes through", async () => {
+    clientFor.mockReturnValue({
+      from: (table: string) => ({
+        insert: () =>
+          Object.assign(Promise.resolve({ error: null }), {
+            select: () => ({ single: async () => (table === "visits" ? { data: null, error: { message: "no" } } : { data: { id: "x" }, error: null }) }),
+          }),
+      }),
+    });
+    const result = await applyVisit(owner, ApplyVisitSchema.parse({ circleId, meds: [], todos: [{ title: "Call the clinic", assignee: "none" }], notes: { summary: "", watchFor: ["Any fall"] } }));
+    expect(result).toMatchObject({ ok: true, todos: 1, failed: 1, visitId: null, notes: 0 });
+  });
+
+  test("the notes are checked before they are saved", () => {
+    expect(ApplyVisitSchema.safeParse({ circleId, meds: [], todos: [], notes: { summary: "ok", watchFor: [""] } }).success).toBe(false);
+    expect(ApplyVisitSchema.safeParse({ circleId, meds: [], todos: [], notes: { summary: "ok", extra: true } }).success).toBe(false);
+    // The clinic comes from the visit's own field, never from the notes.
+    expect(ApplyVisitSchema.safeParse({ circleId, meds: [], todos: [], notes: { summary: "ok", clinic: "Other Clinic" } }).success).toBe(false);
   });
 
   test("follow-up appointments go on the calendar with who is going", async () => {

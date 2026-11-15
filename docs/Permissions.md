@@ -10,6 +10,8 @@ To-dos: the owner adds, edits, assigns and deletes. Family and care managers see
 
 Medications: every helper role can read and print the list unless the caregiver hides it for that person; only the owner adds, edits, stops or restarts, and only the owner sees the change history (`medication_changes`, written by a database trigger).
 
+Visit notes (`visits`, what an after-visit summary says besides medicines, reminders and appointments): every helper role reads what to watch for and good to know (`visits:read`); the short summary, the reason for the visit and the questions for the next visit reach only the owner, family and care managers (`visits:read:summary`), and are left out of what a home aide or day program is sent, not just hidden on the screen. Only the owner changes or deletes them (`visits:edit`), and only the owner sees the kept photos. The caregiver can hide visit notes from one person (the `handoff` area); a person who already had medicines or the care summary hidden had visit notes hidden when they were introduced.
+
 Only the owner is handed the circle's key for files (`circle:rotate_key`). The key is stored, wrapped, only on the owner's row, and nothing can replace it. The server never hands it to a helper. Family can read and post updates, including family-only ones. A care manager can read updates that are not family-only. Home aides and day programs do not see updates. They can read and print medications, see their own tasks, read the calendar, and open the care folder of documents. Handoff sections for helpers are only the ones chosen on their member row. Per-member `visibility` can hide an area. It cannot grant manage, export, or delete.
 
 ## Who is locked by what

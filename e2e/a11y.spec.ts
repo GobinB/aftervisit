@@ -24,9 +24,14 @@ test("no WCAG 2.1 AA violations on any screen", async ({ page }, info) => {
   await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   await audit(page, "review");
-  const boxes = page.getByRole("checkbox", { name: "I've reviewed this section" });
-  for (let i = 0; i < (await boxes.count()); i++) await boxes.nth(i).check();
-  await page.getByRole("link", { name: "Confirm and create handoff" }).click();
+  await page.getByRole("region", { name: /Next steps/ }).getByRole("button", { name: "See it in the original" }).first().click();
+  await expect(page.getByText("Look for this line")).toBeVisible();
+  await audit(page, "review, original marked");
+  if (await page.getByRole("button", { name: "Back to the draft" }).isVisible()) await page.getByRole("button", { name: "Back to the draft" }).click();
+  await page.getByRole("button", { name: "Medicines look right" }).click();
+  await audit(page, "review, second step");
+  await page.waitForTimeout(1000);
+  await page.getByRole("button", { name: "The rest looks right" }).click();
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
   await page.getByRole("switch", { name: "Protect with a 4-digit PIN" }).click();
   await audit(page, "share");
@@ -44,24 +49,19 @@ test("keyboard only: sample visit reaches Share", async ({ page }, info) => {
   }
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
-  let checked = 0;
-  for (let i = 0; i < 200 && checked < 5; i++) {
-    await page.keyboard.press("Tab");
-    const isBox = await page.evaluate(() => (document.activeElement as HTMLInputElement | null)?.type === "checkbox");
-    if (isBox) {
-      await page.keyboard.press("Space");
-      checked++;
+  // Two confirms, both reachable by keyboard. The same button holds each in turn.
+  for (const label of ["Medicines look right", "The rest looks right"]) {
+    for (let i = 0; i < 300; i++) {
+      if ((await page.evaluate(() => document.activeElement?.textContent)) === label) break;
+      await page.keyboard.press("Tab");
     }
+    expect(await page.evaluate(() => document.activeElement?.textContent)).toBe(label);
+    // Focus ring is visible on the focused element.
+    const outline = await page.evaluate(() => getComputedStyle(document.activeElement!).outlineStyle);
+    expect(outline).not.toBe("none");
+    await page.waitForTimeout(1000);
+    await page.keyboard.press("Enter");
   }
-  expect(checked).toBe(5);
-  // Focus ring is visible on the focused element.
-  const outline = await page.evaluate(() => getComputedStyle(document.activeElement!).outlineStyle);
-  expect(outline).not.toBe("none");
-  for (let i = 0; i < 20; i++) {
-    await page.keyboard.press("Tab");
-    if ((await page.evaluate(() => document.activeElement?.textContent)) === "Confirm and create handoff") break;
-  }
-  await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
 });
 

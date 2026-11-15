@@ -39,8 +39,8 @@ export function smsHref(details: ShareDetails): string {
 
 /** Simple choices for what a person sees, instead of a row of bare checkboxes. */
 export const SEE_PRESETS = [
-  { key: "everything", label: "Everything", detail: "Calendar, reminders, medications and the care summary", hidden: [] as VisibilityArea[] },
-  { key: "calendar", label: "Calendar and reminders only", detail: "Good for neighbors, friends and aides", hidden: ["medications", "summary"] as VisibilityArea[] },
+  { key: "everything", label: "Everything", detail: "Calendar, reminders, medications, the care summary and visit notes", hidden: [] as VisibilityArea[] },
+  { key: "calendar", label: "Calendar and reminders only", detail: "Good for neighbors, friends and aides", hidden: ["medications", "summary", "handoff"] as VisibilityArea[] },
 ] as const;
 
 export const AREA_DETAILS: Partial<Record<VisibilityArea, string>> = {
@@ -48,6 +48,7 @@ export const AREA_DETAILS: Partial<Record<VisibilityArea, string>> = {
   tasks: "Things to do, and taking one on",
   medications: "What is taken, and when",
   summary: "Allergies, doctors and who to call",
+  handoff: "What to watch for and good to know after a visit",
 };
 
 /** Which preset matches a hidden list, or "custom". */

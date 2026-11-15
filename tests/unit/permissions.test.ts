@@ -109,4 +109,22 @@ describe("permissions grid", () => {
     expect(can(helper("family"), "tasks:claim", { circleId: CIRCLE })).toBe(true);
     expect(can(helper("care_manager"), "tasks:claim", { circleId: CIRCLE })).toBe(false);
   });
+
+  test("visit notes: everyone reads what to watch for; the summary and questions stop at family and care managers", () => {
+    for (const role of ["family", "care_manager", "home_aide", "day_program"] as const) {
+      expect(can(helper(role), "visits:read", { circleId: CIRCLE }), role).toBe(true);
+      expect(can(helper(role), "visits:edit", { circleId: CIRCLE }), role).toBe(false);
+    }
+    expect(can(helper("family"), "visits:read:summary", { circleId: CIRCLE })).toBe(true);
+    expect(can(helper("care_manager"), "visits:read:summary", { circleId: CIRCLE })).toBe(true);
+    expect(can(helper("home_aide"), "visits:read:summary", { circleId: CIRCLE })).toBe(false);
+    expect(can(helper("day_program"), "visits:read:summary", { circleId: CIRCLE })).toBe(false);
+    expect(can(caregiver("owner"), "visits:edit", { circleId: CIRCLE })).toBe(true);
+    expect(can(stranger, "visits:read", { circleId: CIRCLE })).toBe(false);
+    // The caregiver can hide visit notes from one person; that takes away all of it.
+    const hidden = helper("family", { hidden: ["handoff"] });
+    expect(can(hidden, "visits:read", { circleId: CIRCLE })).toBe(false);
+    expect(can(hidden, "visits:read:summary", { circleId: CIRCLE })).toBe(false);
+    expect(can(hidden, "medications:read", { circleId: CIRCLE })).toBe(true);
+  });
 });

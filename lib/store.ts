@@ -1,11 +1,8 @@
 "use client";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import type { Reviewed, ReviewStep } from "./review";
 import type { HandoffDraft, RecipientShare, Role } from "./schema";
-
-export type SectionKey = "visit" | "medications" | "tasks" | "watchFor" | "questions" | "otherNotes";
-
-export const SECTION_ORDER: SectionKey[] = ["visit", "medications", "tasks", "watchFor", "questions", "otherNotes"];
 
 export interface CreatedHandoff {
   token: string;
@@ -22,7 +19,8 @@ interface FlowState {
   isSample: boolean;
   /** Set when the parser could not place anything (shows the "Nothing parsed" message). */
   unsorted: boolean;
-  reviewed: Partial<Record<SectionKey, boolean>>;
+  /** The two confirms on Review: the medicines, then everything else (lib/review.ts). */
+  reviewed: Reviewed;
   caregiverFirstName: string;
   recipients: RecipientShare[];
   created: CreatedHandoff | null;
@@ -35,7 +33,7 @@ interface FlowState {
     opts: { isSample: boolean; unsorted?: boolean; caregiverFirstName?: string; recipients?: RecipientShare[]; circleId?: string | null },
   ) => void;
   updateDraft: (fn: (d: HandoffDraft) => HandoffDraft) => void;
-  setReviewed: (key: SectionKey, value: boolean) => void;
+  setReviewed: (step: ReviewStep, value: boolean) => void;
   setRecipients: (r: RecipientShare[]) => void;
   setCaregiver: (name: string) => void;
   setCreated: (c: CreatedHandoff | null) => void;
@@ -72,7 +70,7 @@ export const useFlow = create<FlowState>()(
           circleId: opts.circleId ?? null,
         }),
       updateDraft: (fn) => set((s) => (s.draft ? { draft: fn(s.draft) } : s)),
-      setReviewed: (key, value) => set((s) => ({ reviewed: { ...s.reviewed, [key]: value } })),
+      setReviewed: (step, value) => set((s) => ({ reviewed: { ...s.reviewed, [step]: value } })),
       setRecipients: (recipients) => set({ recipients }),
       setCaregiver: (caregiverFirstName) => set({ caregiverFirstName }),
       setCreated: (created) => set({ created }),
@@ -86,7 +84,9 @@ export const useFlow = create<FlowState>()(
     {
       name: "aftervisit-flow",
       storage: createJSONStorage(() => sessionStorage),
-      version: 2,
+      version: 3,
+      // Version 2 kept one tick per section. A draft from before starts its two confirms again.
+      migrate: (persisted, version) => (version < 3 ? { ...(persisted as object), reviewed: {} } : persisted) as FlowState,
     },
   ),
 );
@@ -108,8 +108,3 @@ export const setOriginalPages = (files: File[]) => {
   originalPages = files;
 };
 export const getOriginalPages = () => originalPages;
-
-/** Sections shown on Review: Other notes only when it has something in it. */
-export function activeSections(draft: HandoffDraft | null): SectionKey[] {
-  return SECTION_ORDER.filter((k) => k !== "otherNotes" || (draft?.otherNotes.length ?? 0) > 0);
-}

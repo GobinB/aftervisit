@@ -4,14 +4,16 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { GettingStarted } from "@/components/circles/GettingStarted";
 import { Agenda } from "@/components/calendar/Agenda";
-import { ActivityFeed, AddDetails, Alerts, AtAGlance, Card, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayHeader, TodosGlance } from "@/components/circles/Today";
+import { ActivityFeed, AddDetails, Alerts, AtAGlance, Card, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayActions, TodayHeader, TodosGlance } from "@/components/circles/Today";
+import { LastVisitCard } from "@/components/visits/VisitNotes";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isMine, sortTodos } from "@/lib/schema/todos";
 import { calendarItems } from "@/lib/calendar-rows";
 import { addDays } from "@/lib/schema/events";
-import { buildAlerts, buildFeed, buildTodayCards, missingDetails } from "@/lib/today";
+import { hasNotes } from "@/lib/schema/visits";
+import { buildAlerts, buildFeed, buildTodayActions, buildTodayCards, missingDetails } from "@/lib/today";
 import { todoRows, viewerOf } from "@/lib/todo-rows";
 import { listActivity } from "@/services/activity";
 import { getCircle } from "@/services/circles";
@@ -19,6 +21,7 @@ import { listEvents } from "@/services/events";
 import { listMedications } from "@/services/medications";
 import { listPeople } from "@/services/members";
 import { listTodos } from "@/services/todos";
+import { listVisits } from "@/services/visits";
 
 export const metadata: Metadata = { title: "Today", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -30,7 +33,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
   if (!actor) redirect(`/login?next=/circles/${id}`);
   const today = new Date().toISOString().slice(0, 10);
   // Everything Today shows is read at once rather than one after another.
-  const [content, listed, medications, todos, events, activity] = await Promise.all([
+  const [content, listed, medications, todos, events, activity, visits] = await Promise.all([
     getCircle(actor, id),
     listPeople(actor, id),
     listMedications(actor, id),
@@ -38,6 +41,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
     // A wide window, so the activity list can name events added for far-off dates.
     listEvents(actor, id, addDays(today, -90), addDays(today, 365)),
     listActivity(actor, id),
+    listVisits(actor, id, 20),
   ]);
   if (!content && actor.kind === "caregiver") notFound();
   const personName = content?.person_name ?? "Your care circle";
@@ -83,6 +87,16 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
       />
     </section>
   ) : null;
+  // What the newest visit said, cut down to what this viewer's role allows. Older visits are a tap away.
+  const lastVisit = (visits ?? []).find(hasNotes);
+  const fromVisit = lastVisit ? (
+    <section aria-labelledby="visit-title">
+      <SectionLabel>
+        <span id="visit-title">From the last visit</span>
+      </SectionLabel>
+      <LastVisitCard visit={lastVisit} circleId={id} more={(visits ?? []).length - 1} />
+    </section>
+  ) : null;
   const meds = medications ? (
     <section aria-labelledby="meds-title">
       <SectionLabel>
@@ -118,11 +132,15 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
       {header}
       {canManage && people ? (
         <>
-          <StatCards stats={buildTodayCards(id, content, medications, todos)} />
-          {/* After the scan card, so scanning stays the first thing on the screen. */}
+          <TodayActions actions={buildTodayActions(id)} />
+          <div className="mt-3">
+            <StatCards stats={buildTodayCards(id, content, medications, todos)} />
+          </div>
+          {/* After the cards, so scanning and adding stay the first things on the screen. */}
           <div className="mt-5 empty:hidden">
             <InstallApp />
           </div>
+          {fromVisit ? <div className="mt-5">{fromVisit}</div> : null}
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="min-w-0 space-y-5">
               {comingUp}
@@ -179,6 +197,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
       ) : (
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-5">
+            {fromVisit}
             <InstallApp />
             {comingUp}
             {todoSection}

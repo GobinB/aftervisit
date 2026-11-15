@@ -14,7 +14,7 @@ const field = "block h-12 w-full rounded-lg border border-border-200 bg-white px
 export type AssigneeOption = { value: string; label: string };
 
 /** Quick add on the list (one line, more on demand), or the full form when editing. */
-export function TodoForm({ circleId, people, todo }: { circleId: string; people: AssigneeOption[]; todo?: Todo }) {
+export function TodoForm({ circleId, people, todo, autoFocus }: { circleId: string; people: AssigneeOption[]; todo?: Todo; autoFocus?: boolean }) {
   const id = useId();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -71,6 +71,8 @@ export function TodoForm({ circleId, people, todo }: { circleId: string; people:
           value={title}
           onChange={(event) => setTitle(event.target.value)}
           onFocus={() => setExpanded(true)}
+          // Arriving from "Add a reminder" on Today: ready to type.
+          autoFocus={autoFocus}
           maxLength={200}
           placeholder="e.g. Pick up prescription"
         />

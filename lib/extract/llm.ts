@@ -29,7 +29,8 @@ Rules:
   source wording.
 - questions: only questions the document itself raises (e.g. "discuss at next visit"). Empty is fine.
 - visit.summary: at most 60 words on why the visit happened and the main outcome.
-- otherNotes: anything else in the document you could not place. Do not drop lines.
+- otherNotes: instructions and advice that are neither a medicine nor a task (what to avoid, diet,
+  activity limits). Do not drop instructions. Leave out letterhead, addresses and page numbers.
 - sourceQuote: for every medication and task, copy the exact sentence from the document it comes from.
 - If the document is not an after-visit summary or is unreadable, return empty arrays and set
   visit.summary to a one-sentence explanation.`;

@@ -33,6 +33,12 @@ describe("who has not heard about a change", () => {
     expect(whoNeedsUpdate([{ area: "tasks", changedAt: at(10) }], [helper({ role: "day_program" })])).toHaveLength(1);
   });
 
+  test("new visit notes count for everyone who can read them, and not for a person they are hidden from", () => {
+    const updates = [{ area: "visits" as const, changedAt: at(10) }];
+    expect(whoNeedsUpdate(updates, [helper({ role: "home_aide" })])).toEqual([{ memberId: "m1", name: "Rosa Diaz", areas: ["visits"] }]);
+    expect(whoNeedsUpdate(updates, [helper({ visibility: { hidden: ["handoff"] } })])).toEqual([]);
+  });
+
   test("nothing changed, nobody listed", () => {
     expect(whoNeedsUpdate([], [helper({})])).toEqual([]);
   });

@@ -35,7 +35,7 @@ export default function HealthDataPage() {
           <ul>
             <li>Allergies, medicines (with doses, schedules and changes), and what each one is for.</li>
             <li>Doctors, pharmacy, emergency contacts and appointments.</li>
-            <li>What an after-visit summary says: medicine changes, next steps, warning signs, follow-up visits.</li>
+            <li>What an after-visit summary says: medicine changes, next steps, warning signs, other instructions, questions for the next visit, follow-up visits and a short summary of the visit.</li>
             <li>Photos or PDFs of after-visit summaries, if you choose to keep them.</li>
             <li>Reminders and calendar entries about care.</li>
           </ul>

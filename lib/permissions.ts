@@ -10,6 +10,9 @@ import type { HelperRole, VisibilityArea } from "@/lib/schema/circles";
  * - not-owner: can, except when the subject is the circle owner
  * - own: a helper can, only when subject.assigneeId is their member id
  * - sections: a helper can read a handoff section only when it was chosen for them
+ *
+ * Visit notes: "visits:read" is what to watch for and good to know; "visits:read:summary" adds the
+ * short summary, the reason and the questions for the next visit.
  */
 export const ACTIONS = [
   "members:manage",
@@ -42,6 +45,9 @@ export const ACTIONS = [
   "export:download",
   "circle:delete",
   "circle:rotate_key",
+  "visits:read",
+  "visits:read:summary",
+  "visits:edit",
 ] as const;
 
 export type Action = (typeof ACTIONS)[number];
@@ -80,6 +86,7 @@ const OWNER: Cell[] = [
   "allow",
   "allow",
   "allow",
+  "allow", "allow", "allow",
 ];
 
 const FAMILY: Cell[] = [
@@ -94,6 +101,7 @@ const FAMILY: Cell[] = [
   "deny",
   "deny",
   "deny",
+  "allow", "allow", "deny",
 ];
 
 const CARE_MANAGER: Cell[] = [
@@ -108,6 +116,7 @@ const CARE_MANAGER: Cell[] = [
   "deny",
   "deny",
   "deny",
+  "allow", "allow", "deny",
 ];
 
 const AIDE: Cell[] = [
@@ -122,6 +131,7 @@ const AIDE: Cell[] = [
   "deny",
   "deny",
   "deny",
+  "allow", "deny", "deny",
 ];
 
 export const GRID: Record<Role, Record<Action, Cell>> = {
@@ -156,6 +166,9 @@ const AREA_OF: Partial<Record<Action, VisibilityArea>> = {
   "summary:read": "summary",
   "summary:print": "summary",
   "summary:edit": "summary",
+  "visits:read": "handoff",
+  "visits:read:summary": "handoff",
+  "visits:edit": "handoff",
 };
 
 function inCircle(actor: Actor, circleId: string): boolean {

@@ -74,7 +74,7 @@ export const HandoffDraftSchema = z.object({
   tasks: z.array(TaskSchema).max(100),
   watchFor: z.array(listItem).max(100), // symptoms the clinician said to report, verbatim-ish
   questions: z.array(listItem).max(100), // suggested questions for next visit, from source only
-  otherNotes: z.array(listItem).max(300), // lines the parser could not place; caregiver sorts or deletes
+  otherNotes: z.array(listItem).max(300), // "Good to know": instructions that are neither a medicine nor a task (older field name kept for saved handoffs)
   sourceText: z.string().max(100_000), // extracted text, shown in the side panel on review
 });
 export type HandoffDraft = z.infer<typeof HandoffDraftSchema>;
@@ -98,7 +98,7 @@ export const SHARE_SECTION_LABELS: Record<ShareSection, string> = {
   watchFor: "Watch for",
   questions: "Questions for next visit",
   summary: "Visit summary",
-  otherNotes: "Other notes",
+  otherNotes: "Good to know",
   original: "The original summary (if attached)",
 };
 

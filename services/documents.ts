@@ -17,9 +17,10 @@ type Row = {
   key_version: number | null;
   file_key_wrapped: string | null;
   file_key_iv: string | null;
+  visit_id: string | null;
 };
 
-const COLUMNS = "id, circle_id, visit_date, clinic, kind, page_count, paths, created_at, key_version, file_key_wrapped, file_key_iv";
+const COLUMNS = "id, circle_id, visit_date, clinic, kind, page_count, paths, created_at, key_version, file_key_wrapped, file_key_iv, visit_id";
 
 function fileKeyOf(row: Row): StoredDocumentKey | null {
   if (!row.file_key_wrapped || !row.file_key_iv || row.key_version == null) return null;
@@ -36,6 +37,7 @@ function toDocument(row: Row): VisitDocument {
     pageCount: row.page_count,
     saved: row.paths.length,
     createdAt: row.created_at,
+    visitId: row.visit_id ?? null,
     fileKey: fileKeyOf(row),
   };
 }
@@ -83,6 +85,7 @@ export async function createDocument(actor: Actor, input: CreateDocumentInput): 
       key_version: input.keyVersion,
       file_key_wrapped: input.fileKeyWrapped,
       file_key_iv: input.fileKeyIv,
+      ...(input.visitId ? { visit_id: input.visitId } : {}),
     })
     .select("id")
     .single();

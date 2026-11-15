@@ -8,11 +8,12 @@ import { can } from "@/lib/permissions";
 import type { CircleKeyState } from "@/lib/schema/circles";
 import type { Medication } from "@/lib/schema/medications";
 import { ApplyVisitSchema } from "@/lib/schema/visit";
+import { VisitChangeSchema, VisitUpdateSchema } from "@/lib/schema/visits";
 import { getCircleKeyState } from "@/services/circle-keys";
 import { getCircle } from "@/services/circles";
 import { listMedications } from "@/services/medications";
 import { listPeople } from "@/services/members";
-import { applyVisit } from "@/services/visits";
+import { applyVisit, deleteVisit, updateVisit } from "@/services/visits";
 
 export type VisitContext =
   | {
@@ -51,7 +52,33 @@ export async function applyVisitAction(input: unknown) {
   if (!actor) return { ok: false as const, error: "Sign in to update the circle." };
   const result = await applyVisit(actor, parsed.data);
   if (result.ok) {
-    for (const path of ["", "/medications", "/todos", "/calendar"]) revalidatePath(`/circles/${parsed.data.circleId}${path}`);
+    for (const path of ["", "/medications", "/todos", "/calendar", "/visits"]) revalidatePath(`/circles/${parsed.data.circleId}${path}`);
   }
+  return result;
+}
+
+function revalidateVisits(circleId: string) {
+  revalidatePath(`/circles/${circleId}`);
+  revalidatePath(`/circles/${circleId}/visits`, "layout");
+}
+
+/** The caregiver fixes a line, or the summary, of a saved visit. */
+export async function updateVisitAction(input: unknown) {
+  const parsed = VisitUpdateSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Check the notes and try again." };
+  const actor = await getActor(parsed.data.circleId);
+  if (!actor) return { ok: false as const, error: "Sign in to continue." };
+  const result = await updateVisit(actor, parsed.data);
+  if (result.ok) revalidateVisits(parsed.data.circleId);
+  return result;
+}
+
+export async function deleteVisitAction(input: unknown) {
+  const parsed = VisitChangeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "That visit was not found." };
+  const actor = await getActor(parsed.data.circleId);
+  if (!actor) return { ok: false as const, error: "Sign in to continue." };
+  const result = await deleteVisit(actor, parsed.data.circleId, parsed.data.id);
+  if (result.ok) revalidateVisits(parsed.data.circleId);
   return result;
 }

@@ -9,17 +9,16 @@ export const COPY = {
   uploadType: "That file type is not supported yet. Please upload a PDF or a photo (JPG, PNG, HEIC).",
   uploadSize: (mb: number) => `That file is larger than ${mb} MB. Try a photo of each page instead.`,
   nothingParsed:
-    "We could not sort that summary into sections automatically. Everything we read is under Other notes below so you can place it, or try a clearer photo.",
+    "We could not sort that summary into a draft. Look at the original and add what matters with the Add buttons, or go back and try a clearer photo.",
   scannedPdf: "This PDF looks like a scan. Take a photo of each page instead and we will read it on your phone.",
   lowConfidenceBadge: "Please check this",
-  lowConfidenceHelper: "The summary was not clear here. Edit it, or tap Accept if it is right.",
+  lowConfidenceHelper: "The summary was not clear here. Fix it, or say it is right.",
   unreadableHelper: (what: string, noName: boolean) =>
     noName
-      ? `We could not read ${what}, so we left it blank. Tap the medicine to type it from the paper, or delete it.`
-      : `We could not read ${what}, so we left it blank. Tap the medicine to type it from the paper, or tap Accept to leave it blank.`,
+      ? `We could not read ${what}, so we left it blank. Type it in from the paper, or delete this medicine.`
+      : `We could not read ${what}, so we left it blank. Type it in from the paper, or say it is right to leave it blank.`,
+  medNameNeeded: "Type the medicine's name from the paper, or delete this medicine.",
   removed: "Removed.",
-  sectionReviewed: "I've reviewed this section",
-  confirmIncomplete: (n: number) => `Review all ${n} sections to continue`,
   shareSuccess: "Your handoff is ready. Only people with this link can see it.",
   pinHelper: "Share the PIN separately, by voice or a different message.",
   pinWrong: (left: number) => `That PIN does not match. ${left} ${left === 1 ? "attempt" : "attempts"} left.`,

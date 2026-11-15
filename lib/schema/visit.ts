@@ -2,6 +2,7 @@ import { z } from "zod";
 import { MED_SCHEDULES } from "@/lib/schema/medications";
 import { GoingSchema } from "@/lib/schema/events";
 import { AssigneeSchema } from "@/lib/schema/todos";
+import { VisitContentSchema } from "@/lib/schema/visits";
 
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 
@@ -58,6 +59,11 @@ export const ApplyVisitSchema = z
       )
       .max(50)
       .default([]),
+    /**
+     * What is kept with the visit besides the changes above: the short summary, what to watch for,
+     * good to know and questions for the next visit. The clinic and the date come from the fields above.
+     */
+    notes: VisitContentSchema.omit({ clinic: true }).optional(),
   })
   .strict();
 export type ApplyVisitInput = z.infer<typeof ApplyVisitSchema>;

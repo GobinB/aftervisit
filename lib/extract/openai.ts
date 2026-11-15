@@ -42,7 +42,10 @@ Fields:
 - questions: only questions the document itself raises. Empty is fine.
 - visit.summary: at most 60 words on why the visit happened and the main outcome. visit.date only if
   stated (yyyy-mm-dd).
-- otherNotes: anything else the caregiver may need that you could not place. Do not drop instructions.
+- goodToKnow: instructions and advice that are neither a medicine nor something to do once: what to
+  avoid, diet, activity limits, how to care for a wound, what is normal to expect. Keep the wording.
+  Do not drop instructions. Never put letterhead, addresses, phone numbers, vital signs, page numbers
+  or sign-offs here; leave those out.
 - sourcePage: the page number the item is on, as labelled before each page ("Page 2"). Null for pasted
   text.
 - sourceQuote: the exact sentence or line from the document the item comes from, copied as written.
@@ -86,7 +89,7 @@ export const OpenAiDraftSchema = z.object({
   ),
   watchFor: z.array(z.string()),
   questions: z.array(z.string()),
-  otherNotes: z.array(z.string()),
+  goodToKnow: z.array(z.string()).describe("instructions that are not a medicine and not a one-time task"),
 });
 export type OpenAiDraft = z.infer<typeof OpenAiDraftSchema>;
 
@@ -169,7 +172,8 @@ export function toDraft(out: OpenAiDraft, opts: { sourceText?: string; patientFi
     tasks: tasks.slice(0, 100),
     watchFor: list(out.watchFor, 100),
     questions: list(out.questions, 100),
-    otherNotes: list(out.otherNotes, 300),
+    // The draft keeps its older field name; the screens call this list "Good to know".
+    otherNotes: list(out.goodToKnow, 300),
     sourceText: (opts.sourceText ?? quotesByPage(medications, tasks)).slice(0, 100_000),
   });
 }

@@ -8,9 +8,9 @@ import { TodayDate } from "@/components/circles/TodayDate";
 import { LocalDay } from "@/components/LocalDay";
 import type { CircleContent, PersonView } from "@/lib/schema/circles";
 import { doseText, scheduleText, type Medication } from "@/lib/schema/medications";
-import type { Alert, FeedItem, Stat, Tone } from "@/lib/today";
+import type { Alert, FeedItem, Stat, TodayAction, Tone } from "@/lib/today";
 
-const STAT_ICONS: Record<string, LucideIcon> = { helpers: Users, opened: Eye, todos: ListChecks, reminders: ListChecks, waiting: Clock3, allergies: HeartPulse, meds: Pill, scan: Camera };
+const STAT_ICONS: Record<string, LucideIcon> = { helpers: Users, opened: Eye, todos: ListChecks, reminders: ListChecks, waiting: Clock3, allergies: HeartPulse, meds: Pill };
 
 const VALUE_TONE: Record<Tone, string> = {
   blue: "text-primary-700",
@@ -54,28 +54,55 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
   return <div className={`rounded-lg border border-border-200 bg-white ${className}`}>{children}</div>;
 }
 
+const ACTION_ICONS: Record<TodayAction["key"], LucideIcon> = { scan: Camera, "add-med": Pill, "add-reminder": ListChecks };
+
 /**
- * The cards at the top of Today. A "primary" card (scanning a visit summary) is the main action:
- * navy, wider on phones, with a large camera icon.
+ * The top of the caregiver's Today: scan a visit summary, add a medication, add a reminder. Scanning
+ * is the navy card; the two "Add" cards are the same size beside it (under it on a phone), so adding
+ * by hand is as easy to find as scanning.
  */
+export function TodayActions({ actions }: { actions: TodayAction[] }) {
+  return (
+    <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3">
+      {actions.map((action) => {
+        const Icon = ACTION_ICONS[action.key];
+        const scan = action.key === "scan";
+        return (
+          <li key={action.key} className={scan ? "col-span-2 lg:col-span-1" : ""}>
+            <Link
+              href={action.href}
+              className={`flex h-full min-h-[92px] items-center gap-3 rounded-lg p-4 shadow-sm transition-colors ${
+                scan ? "bg-primary-700 hover:bg-primary-900" : "border border-border-200 bg-white hover:border-primary-700/40 hover:bg-sky-100/40 max-lg:flex-col max-lg:items-start max-lg:gap-2"
+              }`}
+            >
+              <span className={`relative flex size-12 shrink-0 items-center justify-center rounded-xl ${scan ? "bg-heart-500 text-white" : "bg-sky-100 text-primary-700"}`}>
+                <Icon className="size-6" strokeWidth={2.25} aria-hidden="true" />
+                {scan ? null : (
+                  <span className="absolute -right-1 -bottom-1 flex size-5 items-center justify-center rounded-full bg-primary-700 text-white ring-2 ring-white">
+                    <Plus className="size-3.5" strokeWidth={3} aria-hidden="true" />
+                  </span>
+                )}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className={`block text-[17px] leading-snug font-bold ${scan ? "text-white" : "text-primary-900"}`}>{action.label}</span>
+                <span className={`mt-0.5 block text-[13px] ${scan ? "text-white/80" : "text-ink-500"}`}>{action.detail}</span>
+              </span>
+              <ChevronRight className={`size-5 shrink-0 ${scan ? "text-white/80" : "text-ink-500 max-lg:hidden"}`} aria-hidden="true" />
+            </Link>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+/** The number cards on Today: medications, reminders and allergies. */
 export function StatCards({ stats }: { stats: Stat[] }) {
   return (
-    <ul className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <ul className="grid grid-cols-2 gap-3 lg:grid-cols-3">
       {stats.map((stat) => {
         const Icon = STAT_ICONS[stat.key] ?? Users;
-        const primary = stat.tone === "primary";
-        const body = primary ? (
-          <>
-            <span className="flex size-12 items-center justify-center rounded-xl bg-heart-500 text-white">
-              <Icon className="size-6" strokeWidth={2.25} aria-hidden="true" />
-            </span>
-            <span className="min-w-0 flex-1">
-              <span className="block text-[17px] leading-snug font-bold text-white">{stat.label}</span>
-              <span className="mt-0.5 block text-[13px] text-white/80">{stat.detail}</span>
-            </span>
-            <ChevronRight className="size-5 shrink-0 text-white/80" aria-hidden="true" />
-          </>
-        ) : (
+        const body = (
           <>
             <span className="flex items-start justify-between gap-2">
               <span className="text-[12px] font-bold tracking-[0.08em] text-ink-500 uppercase">{stat.label}</span>
@@ -87,11 +114,9 @@ export function StatCards({ stats }: { stats: Stat[] }) {
             <span className="mt-2 block truncate text-[13px] text-ink-500">{stat.detail}</span>
           </>
         );
-        const box = primary
-          ? "flex h-full min-h-[92px] items-center gap-3 rounded-lg bg-primary-700 p-4 shadow-sm transition-colors hover:bg-primary-900"
-          : "block h-full rounded-lg border border-border-200 bg-white p-4 transition-colors hover:border-primary-700/40";
+        const box = "block h-full rounded-lg border border-border-200 bg-white p-4 transition-colors hover:border-primary-700/40";
         return (
-          <li key={stat.key} className={primary ? "col-span-2 lg:col-span-1" : ""}>
+          <li key={stat.key}>
             {stat.href ? (
               <Link href={stat.href} className={box}>
                 {body}

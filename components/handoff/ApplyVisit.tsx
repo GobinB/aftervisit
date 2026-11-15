@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Eye, HelpCircle, Lightbulb, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { applyVisitAction, type VisitContext } from "@/app/actions/visits";
@@ -14,13 +14,14 @@ import { createDocumentAction } from "@/app/actions/documents";
 import { Switch } from "@/components/ui/Switch";
 import { keepPages } from "@/lib/page-image";
 import { MAX_PAGE_BYTES } from "@/lib/schema/documents";
+import { visitLines } from "@/lib/schema/visits";
 import { getOriginalPages } from "@/lib/store";
 import { WhoChips } from "@/components/todos/TodoForm";
 import { ShareUpdates } from "@/components/circles/ShareUpdates";
 import { ensureCircleKey } from "@/components/circles/circle-key";
 import { generateFileKey, sealPage, wrapFileKey } from "@/lib/crypto";
 
-type Done = { added: number; changed: number; stopped: number; todos: number; events: number; failed: number };
+type Done = { added: number; changed: number; stopped: number; todos: number; events: number; failed: number; visitId: string | null; notes: number };
 
 type Appointment = { id: string; title: string; date: string; time: string; location?: string };
 
@@ -106,6 +107,24 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
     }
     return { appointments, tasks };
   }, [draft]);
+  // Kept with the visit and shown on Today: nothing here is thrown away.
+  const notes = useMemo(
+    () => ({
+      provider: draft.visit.provider,
+      specialty: draft.visit.specialty,
+      reason: draft.visit.reason,
+      summary: draft.visit.summary.trim(),
+      watchFor: visitLines(draft.watchFor),
+      goodToKnow: visitLines(draft.otherNotes),
+      questions: visitLines(draft.questions),
+    }),
+    [draft],
+  );
+  const noteLists = [
+    { key: "watch", title: "Watch for", icon: Eye, lines: notes.watchFor },
+    { key: "know", title: "Good to know", icon: Lightbulb, lines: notes.goodToKnow },
+    { key: "ask", title: "Questions for the next visit", icon: HelpCircle, lines: notes.questions },
+  ].filter((list) => list.lines.length);
   const [dates, setDates] = useState<Record<string, { date: string; time: string }>>({});
   const [going, setGoing] = useState<Record<string, string>>({});
   const when = (appt: Appointment) => dates[appt.id] ?? { date: appt.date, time: appt.time };
@@ -147,13 +166,14 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         meds,
         todos,
         events,
+        notes,
       });
       if (!result.ok) {
         setError(result.error);
         return;
       }
       setDone(result);
-      if (keep && pages.length && canKeep) await keepTheSummary();
+      if (keep && pages.length && canKeep) await keepTheSummary(result.visitId);
     });
   };
 
@@ -162,7 +182,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
    * Each summary gets its own file key, made here and wrapped by the circle key; the pages are
    * encrypted with it on this device, so only encrypted pages are ever sent or stored.
    */
-  async function keepTheSummary() {
+  async function keepTheSummary(visitId: string | null) {
     setKept({ status: "saving", done: 0 });
     let fileKey: CryptoKey;
     let stored: Awaited<ReturnType<typeof wrapFileKey>>;
@@ -186,6 +206,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
       ...(draft.visit.clinic ? { clinic: draft.visit.clinic.slice(0, 300) } : {}),
       kind: pdf ? "pdf" : "photos",
       pageCount: pages.length,
+      ...(visitId ? { visitId } : {}),
     }).catch(() => ({ ok: false as const, error: "The photos could not be kept." }));
     if (!created.ok) {
       setKept({ status: "failed", error: created.error });
@@ -202,6 +223,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
       done.stopped ? `${done.stopped} medication${done.stopped === 1 ? "" : "s"} stopped` : null,
       done.todos ? `${done.todos} reminder${done.todos === 1 ? "" : "s"} added` : null,
       done.events ? `${done.events} appointment${done.events === 1 ? "" : "s"} on the calendar` : null,
+      done.visitId && (done.notes || notes.summary) ? "the visit notes kept" : null,
     ].filter(Boolean);
     return (
       <div className="mx-auto max-w-[720px]">
@@ -244,6 +266,11 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
             <Link href={`/circles/${circleId}/medications`} className="inline-flex h-10 items-center rounded-md border border-border-200 bg-white px-4 text-[14px] font-medium text-ink-900 hover:bg-paper-100">
               See medications
             </Link>
+            {done.visitId ? (
+              <Link href={`/circles/${circleId}/visits/notes/${done.visitId}`} className="inline-flex h-10 items-center rounded-md border border-border-200 bg-white px-4 text-[14px] font-medium text-ink-900 hover:bg-paper-100">
+                See the visit notes
+              </Link>
+            ) : null}
           </div>
         </div>
       </div>
@@ -393,6 +420,36 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
             </ul>
           ) : (
             <p className="px-4 py-3 text-[13px] text-ink-500">No other next steps in this visit.</p>
+          )}
+        </div>
+      </section>
+
+      <section aria-labelledby="notes-title" className="mt-6">
+        <h2 id="notes-title" className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-500 uppercase">
+          Kept with this visit
+        </h2>
+        <div className="rounded-lg border border-border-200 bg-white px-4 py-3 text-[14px] text-ink-900">
+          {notes.summary || noteLists.length ? (
+            <>
+              {notes.summary ? <p>{notes.summary}</p> : null}
+              {noteLists.map((list) => (
+                <div key={list.key} className="mt-3 first:mt-0">
+                  <p className="flex items-center gap-1.5 text-[13px] font-semibold text-primary-900">
+                    <list.icon className="size-4 text-primary-700" aria-hidden="true" /> {list.title}
+                  </p>
+                  <ul className="mt-1 list-disc space-y-0.5 pl-6">
+                    {list.lines.map((line) => (
+                      <li key={line}>{line}</li>
+                    ))}
+                  </ul>
+                </div>
+              ))}
+              <p className="mt-3 border-t border-border-200 pt-2.5 text-[12px] text-ink-500">
+                Shown on Today. Family and care managers see all of it; home aides and day programs see what to watch for and good to know.
+              </p>
+            </>
+          ) : (
+            <p className="text-[13px] text-ink-500">This visit has no notes to keep beyond the changes above.</p>
           )}
         </div>
       </section>

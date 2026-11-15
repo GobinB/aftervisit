@@ -9,6 +9,7 @@ const READ: Record<UpdateArea, Action[]> = {
   calendar: ["calendar:read"],
   tasks: ["tasks:read", "tasks:read:own"],
   summary: ["summary:read"],
+  visits: ["visits:read"],
 };
 
 export type UpdateRow = { area: UpdateArea; changedAt: string };

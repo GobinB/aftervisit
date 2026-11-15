@@ -1,32 +1,30 @@
 "use client";
-import { CalendarCheck, Eye, FileText, HelpCircle, Images, Info, NotebookPen, Pill, Stethoscope } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Eye, FileText, HelpCircle, Images, Info, Lightbulb, ListChecks, Pencil, Pill, Stethoscope } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useId, useMemo, useState } from "react";
-import { ButtonLink } from "@/components/Button";
-import { EmptyNote, inputClass, MedRow, SectionCard, TaskRow, TextItemRow } from "@/components/review/parts";
-import { SourceRail, SourceSheet } from "@/components/review/SourcePanel";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { AddButton, EmptyNote, inputClass, MedRow, ReviewCard, SubSection, TaskRow, TextItemRow } from "@/components/review/parts";
+import { OriginalView, type SourceTarget } from "@/components/review/SourcePanel";
 import { BackLink } from "@/components/circles/PageHead";
 import { StepHeader } from "@/components/StepHeader";
 import { useToast } from "@/components/Toast";
 import { COPY } from "@/lib/copy";
-import { classifyMedication } from "@/lib/parse/medications";
-import { makeTask } from "@/lib/parse/tasks";
+import { shortDate } from "@/lib/format";
 import { itemId } from "@/lib/parse/util";
+import { medNeedsLook, reviewState, waitingText } from "@/lib/review";
 import type { HandoffDraft, MedicationChange, Task } from "@/lib/schema";
-import { activeSections, getOriginalPages, useFlow, type SectionKey } from "@/lib/store";
+import { getOriginalPages, useFlow } from "@/lib/store";
 
 type ListKey = "medications" | "tasks" | "watchFor" | "questions" | "otherNotes";
+type TextKey = "watchFor" | "questions" | "otherNotes";
 
-const SECTION_NAMES: Record<SectionKey, string> = {
-  visit: "Visit",
-  medications: "Medication changes",
-  tasks: "What needs to happen next",
-  watchFor: "Watch for",
-  questions: "Questions for next visit",
-  otherNotes: "Other notes",
-};
+const isPhone = () => window.matchMedia("(max-width: 1023px)").matches;
 
+/**
+ * The draft, checked in two steps before anything is saved: the medicines, then everything else.
+ * The original sits beside the draft on a computer; on a phone the two swap. The rules (what must be
+ * looked at before each confirm) are in lib/review.ts.
+ */
 export default function ReviewPage() {
   const router = useRouter();
   const toast = useToast();
@@ -34,9 +32,14 @@ export default function ReviewPage() {
   // The photos taken on the first step, still in this tab's memory (gone after a reload).
   const [pages] = useState(() => getOriginalPages());
   const [hydrated, setHydrated] = useState(false);
-  const [query, setQuery] = useState("");
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [target, setTarget] = useState<SourceTarget | null>(null);
+  // Phones show one at a time: the draft, or the original.
+  const [view, setView] = useState<"draft" | "original">("draft");
+  const draftScroll = useRef(0);
+  const medsConfirmedAt = useRef(0);
   const [newItem, setNewItem] = useState<string | null>(null);
+  const [editVisit, setEditVisit] = useState(false);
+  const [medsOpen, setMedsOpen] = useState(true);
   const nameListId = useId();
   const visitIds = { name: useId(), date: useId(), provider: useId(), specialty: useId(), reason: useId(), summary: useId() };
 
@@ -51,10 +54,6 @@ export default function ReviewPage() {
     if (hydrated && !draft) router.replace("/new");
   }, [hydrated, draft, router]);
 
-  const sections = useMemo(() => activeSections(draft), [draft]);
-  const doneCount = sections.filter((k) => reviewed[k]).length;
-  const allDone = doneCount === sections.length;
-
   const names = useMemo(() => {
     const set = new Set<string>();
     recipients.forEach((r) => r.name && set.add(r.name));
@@ -67,6 +66,8 @@ export default function ReviewPage() {
   }
 
   const set = (fn: (d: HandoffDraft) => HandoffDraft) => updateDraft(fn);
+  const state = reviewState(draft, reviewed);
+  const next = circleId ? "/new/apply" : "/new/share";
 
   /** Delete with a 4-second Undo toast. */
   function remove<K extends ListKey>(key: K, index: number) {
@@ -78,9 +79,9 @@ export default function ReviewPage() {
       actionLabel: "Undo",
       onAction: () =>
         set((d) => {
-          const next = (d[key] as unknown[]).slice();
-          next.splice(Math.min(index, next.length), 0, item);
-          return { ...d, [key]: next };
+          const restored = (d[key] as unknown[]).slice();
+          restored.splice(Math.min(index, restored.length), 0, item);
+          return { ...d, [key]: restored };
         }),
     });
   }
@@ -92,6 +93,7 @@ export default function ReviewPage() {
   function addMed() {
     const m: MedicationChange = { id: itemId("med"), kind: "new", name: "", detail: "", origin: "caregiver", confidence: "high" };
     setNewItem(m.id);
+    setMedsOpen(true);
     set((d) => ({ ...d, medications: [...d.medications, m] }));
   }
   function addTask() {
@@ -99,94 +101,159 @@ export default function ReviewPage() {
     setNewItem(t.id);
     set((d) => ({ ...d, tasks: [...d.tasks, t] }));
   }
-  function addText(key: "watchFor" | "questions") {
+  function addText(key: TextKey) {
     setNewItem(`${key}-${draft![key].length}`);
     set((d) => ({ ...d, [key]: [...d[key], ""] }));
   }
 
-  /** Other notes: "Move to..." Medications, Next steps, Watch for, Questions. */
-  function moveNote(index: number, to: "medications" | "tasks" | "watchFor" | "questions") {
-    const note = draft!.otherNotes[index];
-    set((d) => {
-      const otherNotes = d.otherNotes.filter((_, i) => i !== index);
-      if (to === "medications") {
-        const parsed = classifyMedication(note, true);
-        const med: MedicationChange = parsed
-          ? { ...parsed, sourceQuote: note, confidence: "high" }
-          : { id: itemId("med"), kind: "continue", name: note.slice(0, 60), detail: note, sourceQuote: note, confidence: "high" };
-        return { ...d, otherNotes, medications: [...d.medications, med] };
-      }
-      if (to === "tasks") return { ...d, otherNotes, tasks: [...d.tasks, makeTask(note, true, note)] };
-      return { ...d, otherNotes, [to]: [...d[to], note] };
-    });
-    setReviewed(to, false);
-    toast({ message: `Moved to ${SECTION_NAMES[to]}.` });
+  /**
+   * Phones: swap to the original and back, returning to the same place in the draft. With `toLine`
+   * the original brings its marked line into view by itself, so the page is not moved here.
+   */
+  function show(which: "draft" | "original", toLine = false) {
+    if (which === view) return;
+    if (which === "original") draftScroll.current = window.scrollY;
+    setView(which);
+    if (isPhone() && !toLine) {
+      const top = which === "draft" ? draftScroll.current : 0;
+      requestAnimationFrame(() => window.scrollTo({ top }));
+    }
   }
 
-  /** Highlight the item's sentence in the original summary (rail on desktop, sheet on phones). */
-  const showSource = (quote: string) => {
-    setQuery(quote);
-    if (window.matchMedia("(max-width: 1023px)").matches) setSheetOpen(true);
+  /** "See it in the original": mark the item's sentence there. On a phone this also swaps to the original. */
+  const seeInOriginal = (quote: string, page?: number) => {
+    setTarget({ quote, page });
+    if (isPhone()) show("original", true);
+  };
+  /** A computer follows along as the caregiver moves through the draft; a phone waits to be asked. */
+  const follow = (quote: string | undefined, page?: number) => {
+    if (quote && !isPhone()) setTarget((now) => (now?.quote === quote && now.page === page ? now : { quote, page }));
   };
 
-  const lowMeds = draft.medications.some((m) => m.confidence === "low");
-  const lowCount = draft.medications.filter((m) => m.confidence === "low").length + draft.tasks.filter((t) => t.confidence === "low").length;
-  const photoCount = pages.filter((file) => !/pdf/i.test(file.type)).length;
-  const lowTasks = draft.tasks.some((t) => t.confidence === "low");
-  const blocked = "Accept or edit the items marked Please check this first.";
+  function confirmMeds() {
+    medsConfirmedAt.current = Date.now();
+    setReviewed("medications", true);
+    setMedsOpen(false);
+    requestAnimationFrame(() => document.getElementById("rest-title")?.closest("section")?.scrollIntoView({ block: "start", behavior: "smooth" }));
+  }
+  function confirmRest() {
+    // The same button holds both confirms. A double tap on the first must not give the second.
+    if (Date.now() - medsConfirmedAt.current < 900) return;
+    setReviewed("rest", true);
+    router.push(next);
+  }
+
+  const photoCount = pages.filter((file) => !/pdf/i.test(file.type) && !/\.pdf$/i.test(file.name)).length;
   const v = draft.visit;
+  const waiting = draft.medications.filter(medNeedsLook);
+  const settled = draft.medications.filter((m) => !medNeedsLook(m));
+  const medRow = (m: MedicationChange) => {
+    const i = draft.medications.indexOf(m);
+    return (
+      <MedRow
+        key={m.id}
+        med={m}
+        autoEdit={newItem === m.id}
+        onFocusItem={() => follow(m.sourceQuote, m.sourcePage)}
+        onShowSource={seeInOriginal}
+        onChange={(value) => replaceAt("medications", i, value)}
+        onDelete={() => remove("medications", i)}
+      />
+    );
+  };
+  const textList = (key: TextKey, label: string) =>
+    draft[key].length ? (
+      <ul>
+        {draft[key].map((value, i) => (
+          <TextItemRow
+            key={`${i}-${value}`}
+            value={value}
+            label={label}
+            autoEdit={newItem === `${key}-${i}` && !value}
+            onFocusItem={() => follow(value)}
+            onSave={(x) => replaceAt(key, i, x)}
+            onDelete={() => (value ? remove(key, i) : set((d) => ({ ...d, [key]: d[key].filter((_, j) => j !== i) })))}
+          />
+        ))}
+      </ul>
+    ) : (
+      <EmptyNote />
+    );
+  const visitLine = [shortDate(v.date), v.provider, v.specialty].filter(Boolean).join(" · ");
+
+  // The bar at the bottom holds the one button for the step the caregiver is on.
+  const bar =
+    state.step === "medications"
+      ? {
+          label: "Step 1 of 2",
+          hint: state.medsWaiting ? waitingText(state.medsWaiting, "medicine", "medicines") : "Check each medicine against the original.",
+          blocked: state.medsWaiting > 0,
+          button: "Medicines look right",
+          onClick: confirmMeds,
+        }
+      : state.step === "rest"
+        ? {
+            label: "Step 2 of 2",
+            hint: state.tasksWaiting ? waitingText(state.tasksWaiting, "next step", "next steps") : "Check the rest, then continue.",
+            blocked: state.tasksWaiting > 0,
+            button: "The rest looks right",
+            onClick: confirmRest,
+          }
+        : { label: "Both steps checked", hint: circleId ? "Next: choose what goes into the circle." : "Next: choose who sees it.", blocked: false, button: "Continue", onClick: () => router.push(next) };
 
   return (
     <div>
       <div className="mx-auto max-w-[720px] lg:mx-0 lg:max-w-none">
         <BackLink href={circleId ? `/circles/${circleId}` : "/"} label={circleId ? "Today" : "Home"} />
         <StepHeader current="Review" circle={Boolean(circleId)} />
+        <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Review the draft</h1>
+        <p className="mt-2 text-ink-500">Two steps: check the medicines, then check the rest. Nothing is saved until you finish.</p>
       </div>
-      <div className="flex gap-6">
-        <div className="mx-auto w-full max-w-[720px] min-w-0 lg:mx-0 lg:flex-1">
-          <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Review the draft</h1>
-          <p className="mt-2 text-ink-500">Nothing is saved until you confirm each section. Edit anything that looks wrong.</p>
-          {!isSample ? (
-            <div className="mt-4 rounded-xl border border-sky-100 bg-sky-100/60 px-4 py-3 text-[15px] text-primary-900">
-              <p className="font-semibold">The app read this summary, and it can make mistakes.</p>
-              <ul className="mt-1 list-disc space-y-0.5 pl-5">
-                <li>{photoCount ? "Compare each medicine and date with the photos." : "Compare each medicine and date with the original."}</li>
-                {lowCount ? (
-                  <li>
-                    {lowCount} {lowCount === 1 ? "item was" : "items were"} hard to read and {lowCount === 1 ? "is" : "are"} marked <strong>Please check this</strong>.
-                  </li>
-                ) : null}
-                <li>Tap &ldquo;View original instruction&rdquo; on any item to see where it came from.</li>
-              </ul>
-            </div>
-          ) : null}
 
-          {isSample ? (
-            <div className="mt-4 flex gap-3 rounded-xl bg-sky-100 px-4 py-3 text-primary-900">
+      {/* Phones: one at a time. The switch stays under the app bar while the page scrolls. */}
+      <div className="sticky top-16 z-20 -mx-4 mt-3 border-b border-border-200 bg-surface-50 px-4 py-2 sm:top-[72px] lg:hidden">
+        <div role="group" aria-label="What to show" className="mx-auto grid max-w-[720px] grid-cols-2 gap-1 rounded-xl border border-border-200 bg-white p-1">
+          {(["draft", "original"] as const).map((key) => (
+            <button
+              key={key}
+              type="button"
+              aria-pressed={view === key}
+              onClick={() => show(key)}
+              className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-lg text-[15px] font-semibold ${view === key ? "bg-primary-700 text-white" : "text-ink-900"}`}
+            >
+              {key === "draft" ? <ListChecks size={18} aria-hidden="true" /> : photoCount ? <Images size={18} aria-hidden="true" /> : <FileText size={18} aria-hidden="true" />}
+              {key === "draft" ? "Draft" : "Original"}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-6">
+        <div className={`mx-auto w-full max-w-[720px] min-w-0 lg:mx-0 lg:max-w-none ${view === "original" ? "hidden lg:block" : ""}`}>
+          {!isSample ? (
+            <div className="rounded-xl border border-sky-100 bg-sky-100/60 px-4 py-3 text-[15px] text-primary-900">
+              <p className="font-semibold">The app read this summary, and it can make mistakes.</p>
+              <p className="mt-1">
+                Compare each medicine and date with the {photoCount ? "photos" : "original"}. Tap &ldquo;See it in the original&rdquo; on an item to see where it came from.
+              </p>
+            </div>
+          ) : (
+            <div className="flex gap-3 rounded-xl bg-sky-100 px-4 py-3 text-primary-900">
               <Info size={20} className="mt-0.5 shrink-0" aria-hidden="true" />
               <p>
-                This is a sample visit for Margaret, who is fictional. Check each section to continue, or{" "}
+                This is a sample visit for Margaret, who is fictional. Check both steps to continue, or{" "}
                 <Link href="/h/demo" className="font-medium text-primary-700 underline underline-offset-4">
                   see the finished handoff page
                 </Link>
                 .
               </p>
             </div>
-          ) : null}
+          )}
           {unsorted ? (
             <p role="status" className="mt-4 rounded-xl bg-med-bg px-4 py-3 text-med-ink">
               {COPY.nothingParsed}
             </p>
           ) : null}
-
-          <button
-            type="button"
-            onClick={() => setSheetOpen(true)}
-            className="mt-4 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border-200 bg-white px-3 font-medium text-primary-700 lg:hidden"
-          >
-            {photoCount ? <Images size={18} aria-hidden="true" /> : <FileText size={18} aria-hidden="true" />}
-            {photoCount ? `Look at the ${photoCount === 1 ? "photo" : `${photoCount} photos`}` : "Show the original summary"}
-          </button>
 
           <datalist id={nameListId}>
             {names.map((n) => (
@@ -194,260 +261,208 @@ export default function ReviewPage() {
             ))}
           </datalist>
 
-          <div className="mt-6 space-y-5">
-            <SectionCard
-              id="visit"
-              icon={<Stethoscope size={20} />}
-              title="Visit"
-              tone="sky"
-              reviewed={!!reviewed.visit}
-              onReviewed={(x) => setReviewed("visit", x)}
-              canReview
-            >
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Field id={visitIds.name} label="Who the visit was for (first name)">
-                  <input
-                    id={visitIds.name}
-                    value={v.patientFirstName ?? ""}
-                    maxLength={60}
-                    onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, patientFirstName: e.target.value || undefined } }))}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field id={visitIds.date} label="Visit date">
-                  <input
-                    id={visitIds.date}
-                    type="date"
-                    value={v.date ?? ""}
-                    onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, date: e.target.value || undefined } }))}
-                    className={`h-[2.75rem] ${inputClass}`}
-                  />
-                </Field>
-                <Field id={visitIds.provider} label="Clinician">
-                  <input
-                    id={visitIds.provider}
-                    value={v.provider ?? ""}
-                    maxLength={120}
-                    onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, provider: e.target.value || undefined } }))}
-                    className={inputClass}
-                  />
-                </Field>
-                <Field id={visitIds.specialty} label="Specialty">
-                  <input
-                    id={visitIds.specialty}
-                    value={v.specialty ?? ""}
-                    maxLength={120}
-                    onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, specialty: e.target.value || undefined } }))}
-                    className={inputClass}
-                  />
-                </Field>
-                <div className="sm:col-span-2">
-                  <Field id={visitIds.reason} label="Reason for the visit">
-                    <input
-                      id={visitIds.reason}
-                      value={v.reason ?? ""}
-                      maxLength={300}
-                      onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, reason: e.target.value || undefined } }))}
-                      className={inputClass}
-                    />
-                  </Field>
+          <div className="mt-5 space-y-5">
+            <ReviewCard id="medications" icon={<Pill size={20} />} title="Medicines" count={draft.medications.length} step="Step 1 of 2" done={state.medsDone}>
+              {state.medsDone && !medsOpen ? (
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="min-w-0 flex-1 text-ink-900">{draft.medications.length ? draft.medications.map((m) => m.name).join(", ") : "No medicines in this visit."}</p>
+                  <button type="button" onClick={() => setMedsOpen(true)} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100">
+                    <Pencil size={16} aria-hidden="true" /> Look again
+                  </button>
                 </div>
-                <div className="sm:col-span-2">
-                  <Field id={visitIds.summary} label="Short summary">
-                    <textarea
-                      id={visitIds.summary}
-                      rows={4}
-                      value={v.summary}
-                      maxLength={2000}
-                      placeholder="In one or two sentences: why the visit happened and what the clinic decided."
-                      onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, summary: e.target.value } }))}
-                      className={inputClass}
-                    />
-                  </Field>
-                  <p className="mt-1 text-sm text-ink-500">
-                    {wordCount(v.summary)} of 60 words{wordCount(v.summary) > 60 ? ". Try to keep it short." : ""}
-                  </p>
-                </div>
+              ) : (
+                <>
+                  {waiting.length ? (
+                    <div className="mb-3 rounded-xl border border-med/40 bg-med-bg/30 px-3 pt-2.5">
+                      <h3 className="text-[15px] font-bold text-med-ink">
+                        Check {waiting.length === 1 ? "this" : "these"} first ({waiting.length})
+                      </h3>
+                      <ul>{waiting.map(medRow)}</ul>
+                    </div>
+                  ) : null}
+                  {settled.length ? <ul>{settled.map(medRow)}</ul> : waiting.length ? null : <EmptyNote />}
+                  <AddButton label="Add a medicine" onAdd={addMed} />
+                </>
+              )}
+            </ReviewCard>
+
+            <ReviewCard id="rest" icon={<ListChecks size={20} />} title="Everything else" step="Step 2 of 2" done={state.restDone}>
+              <div className="space-y-4">
+                <SubSection id="visit" icon={<Stethoscope size={18} />} title="The visit">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <p className="min-w-0 flex-1 text-ink-900">{visitLine || <span className="text-ink-500">No date or clinician was read.</span>}</p>
+                    <button
+                      type="button"
+                      onClick={() => setEditVisit(!editVisit)}
+                      aria-expanded={editVisit}
+                      className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100"
+                    >
+                      <Pencil size={16} aria-hidden="true" /> {editVisit ? "Done" : "Change the details"}
+                    </button>
+                  </div>
+                  {editVisit ? (
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                      <Field id={visitIds.name} label="Who the visit was for (first name)">
+                        <input
+                          id={visitIds.name}
+                          value={v.patientFirstName ?? ""}
+                          maxLength={60}
+                          onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, patientFirstName: e.target.value || undefined } }))}
+                          className={inputClass}
+                        />
+                      </Field>
+                      <Field id={visitIds.date} label="Visit date">
+                        <input
+                          id={visitIds.date}
+                          type="date"
+                          value={v.date ?? ""}
+                          onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, date: e.target.value || undefined } }))}
+                          className={`h-[2.75rem] ${inputClass}`}
+                        />
+                      </Field>
+                      <Field id={visitIds.provider} label="Clinician">
+                        <input
+                          id={visitIds.provider}
+                          value={v.provider ?? ""}
+                          maxLength={120}
+                          onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, provider: e.target.value || undefined } }))}
+                          className={inputClass}
+                        />
+                      </Field>
+                      <Field id={visitIds.specialty} label="Specialty">
+                        <input
+                          id={visitIds.specialty}
+                          value={v.specialty ?? ""}
+                          maxLength={120}
+                          onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, specialty: e.target.value || undefined } }))}
+                          className={inputClass}
+                        />
+                      </Field>
+                      <div className="sm:col-span-2">
+                        <Field id={visitIds.reason} label="Reason for the visit">
+                          <input
+                            id={visitIds.reason}
+                            value={v.reason ?? ""}
+                            maxLength={300}
+                            onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, reason: e.target.value || undefined } }))}
+                            className={inputClass}
+                          />
+                        </Field>
+                      </div>
+                    </div>
+                  ) : null}
+                  <div className="mt-3">
+                    <Field id={visitIds.summary} label="Short summary">
+                      <textarea
+                        id={visitIds.summary}
+                        rows={3}
+                        value={v.summary}
+                        maxLength={2000}
+                        placeholder="In one or two sentences: why the visit happened and what the clinic decided."
+                        onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, summary: e.target.value } }))}
+                        className={inputClass}
+                      />
+                    </Field>
+                    {wordCount(v.summary) > 60 ? <p className="mt-1 text-sm text-ink-500">{wordCount(v.summary)} words. Try to keep it under 60.</p> : null}
+                  </div>
+                </SubSection>
+
+                <SubSection id="tasks" icon={<CalendarCheck size={18} />} title="Next steps" count={draft.tasks.length} onAdd={addTask} addLabel="Add a next step">
+                  {draft.tasks.length ? (
+                    <ul>
+                      {draft.tasks.map((t, i) => (
+                        <TaskRow
+                          key={t.id}
+                          task={t}
+                          nameListId={nameListId}
+                          autoEdit={newItem === t.id}
+                          onFocusItem={() => follow(t.sourceQuote, t.sourcePage)}
+                          onShowSource={seeInOriginal}
+                          onChange={(value) => replaceAt("tasks", i, value)}
+                          onDelete={() => remove("tasks", i)}
+                        />
+                      ))}
+                    </ul>
+                  ) : (
+                    <EmptyNote />
+                  )}
+                </SubSection>
+
+                <SubSection id="watchFor" icon={<Eye size={18} />} title="Watch for" count={draft.watchFor.length} onAdd={() => addText("watchFor")}>
+                  {textList("watchFor", "Watch-for item")}
+                </SubSection>
+
+                <SubSection
+                  id="otherNotes"
+                  icon={<Lightbulb size={18} />}
+                  title="Good to know"
+                  count={draft.otherNotes.length}
+                  help="Instructions that are not a medicine or something to do once, like what to avoid."
+                  onAdd={() => addText("otherNotes")}
+                >
+                  {textList("otherNotes", "Good-to-know item")}
+                </SubSection>
+
+                <SubSection id="questions" icon={<HelpCircle size={18} />} title="Questions for the next visit" count={draft.questions.length} onAdd={() => addText("questions")}>
+                  {textList("questions", "Question")}
+                </SubSection>
               </div>
-            </SectionCard>
-
-            <SectionCard
-              id="medications"
-              icon={<Pill size={20} />}
-              title="Medication changes"
-              count={draft.medications.length}
-              reviewed={!!reviewed.medications}
-              onReviewed={(x) => setReviewed("medications", x)}
-              canReview={!lowMeds}
-              blockedReason={blocked}
-              onAdd={addMed}
-              addLabel="Add a medicine"
-            >
-              {draft.medications.length ? (
-                <ul>
-                  {draft.medications.map((m, i) => (
-                    <MedRow
-                      key={m.id}
-                      med={m}
-                      autoEdit={newItem === m.id}
-                      onFocusItem={() => setQuery(m.sourceQuote ?? m.name)}
-                      onShowSource={showSource}
-                      onChange={(next) => replaceAt("medications", i, next)}
-                      onDelete={() => remove("medications", i)}
-                    />
-                  ))}
-                </ul>
-              ) : (
-                <EmptyNote />
-              )}
-            </SectionCard>
-
-            <SectionCard
-              id="tasks"
-              icon={<CalendarCheck size={20} />}
-              title="What needs to happen next"
-              count={draft.tasks.length}
-              reviewed={!!reviewed.tasks}
-              onReviewed={(x) => setReviewed("tasks", x)}
-              canReview={!lowTasks}
-              blockedReason={blocked}
-              onAdd={addTask}
-              addLabel="Add a task"
-            >
-              {draft.tasks.length ? (
-                <ul>
-                  {draft.tasks.map((t, i) => (
-                    <TaskRow
-                      key={t.id}
-                      task={t}
-                      nameListId={nameListId}
-                      autoEdit={newItem === t.id}
-                      onFocusItem={() => setQuery(t.sourceQuote ?? t.title)}
-                      onShowSource={showSource}
-                      onChange={(next) => replaceAt("tasks", i, next)}
-                      onDelete={() => remove("tasks", i)}
-                    />
-                  ))}
-                </ul>
-              ) : (
-                <EmptyNote />
-              )}
-            </SectionCard>
-
-            <SectionCard
-              id="watchFor"
-              icon={<Eye size={20} />}
-              title="Watch for"
-              count={draft.watchFor.length}
-              reviewed={!!reviewed.watchFor}
-              onReviewed={(x) => setReviewed("watchFor", x)}
-              canReview
-              onAdd={() => addText("watchFor")}
-            >
-              {draft.watchFor.length ? (
-                <ul>
-                  {draft.watchFor.map((w, i) => (
-                    <TextItemRow
-                      key={`${i}-${w}`}
-                      value={w}
-                      label="Watch-for item"
-                      autoEdit={newItem === `watchFor-${i}` && !w}
-                      onFocusItem={() => setQuery(w)}
-                      onSave={(x) => replaceAt("watchFor", i, x)}
-                      onDelete={() => (w ? remove("watchFor", i) : set((d) => ({ ...d, watchFor: d.watchFor.filter((_, j) => j !== i) })))}
-                    />
-                  ))}
-                </ul>
-              ) : (
-                <EmptyNote />
-              )}
-            </SectionCard>
-
-            <SectionCard
-              id="questions"
-              icon={<HelpCircle size={20} />}
-              title="Questions for next visit"
-              count={draft.questions.length}
-              reviewed={!!reviewed.questions}
-              onReviewed={(x) => setReviewed("questions", x)}
-              canReview
-              onAdd={() => addText("questions")}
-            >
-              {draft.questions.length ? (
-                <ul>
-                  {draft.questions.map((q, i) => (
-                    <TextItemRow
-                      key={`${i}-${q}`}
-                      value={q}
-                      label="Question"
-                      autoEdit={newItem === `questions-${i}` && !q}
-                      onFocusItem={() => setQuery(q)}
-                      onSave={(x) => replaceAt("questions", i, x)}
-                      onDelete={() => (q ? remove("questions", i) : set((d) => ({ ...d, questions: d.questions.filter((_, j) => j !== i) })))}
-                    />
-                  ))}
-                </ul>
-              ) : (
-                <EmptyNote />
-              )}
-            </SectionCard>
-
-            {draft.otherNotes.length ? (
-              <SectionCard
-                id="otherNotes"
-                icon={<NotebookPen size={20} />}
-                title="Other notes"
-                count={draft.otherNotes.length}
-                reviewed={!!reviewed.otherNotes}
-                onReviewed={(x) => setReviewed("otherNotes", x)}
-                canReview
-              >
-                <p className="mb-2 text-sm text-ink-500">
-                  Lines we could not place. Move each one to a section, delete it, or leave it here and it will be shown under Other notes.
-                </p>
-                <ul>
-                  {draft.otherNotes.map((n, i) => (
-                    <TextItemRow
-                      key={`${i}-${n}`}
-                      value={n}
-                      label="Note"
-                      onFocusItem={() => setQuery(n)}
-                      onSave={(x) => replaceAt("otherNotes", i, x)}
-                      onDelete={() => remove("otherNotes", i)}
-                      extra={<MoveTo onMove={(to) => moveNote(i, to)} />}
-                    />
-                  ))}
-                </ul>
-              </SectionCard>
-            ) : null}
+            </ReviewCard>
           </div>
         </div>
-        <SourceRail source={draft.sourceText} query={query} pages={pages} />
+
+        <aside
+          aria-labelledby="original-title"
+          data-scroll-box
+          // The original scrolls in its own box on a computer, so the keyboard must be able to reach it.
+          tabIndex={0}
+          className={`mx-auto w-full max-w-[720px] rounded-2xl border border-border-200 bg-white max-lg:overflow-clip lg:sticky lg:top-[88px] lg:mx-0 lg:max-h-[calc(100dvh-88px-92px)] lg:max-w-none lg:self-start lg:overflow-y-auto ${
+            view === "draft" ? "hidden lg:block" : ""
+          }`}
+        >
+          <OriginalView
+            headingId="original-title"
+            source={draft.sourceText}
+            pages={pages}
+            target={target}
+            onClear={() => setTarget(null)}
+            visible={view === "original" || !isPhone()}
+            stickyClass="max-lg:top-[143px] max-sm:top-[135px]"
+          />
+        </aside>
       </div>
 
-      <SourceSheet open={sheetOpen} onClose={() => setSheetOpen(false)} source={draft.sourceText} query={query} pages={pages} />
-
-      {/* ConfirmBar */}
-      <div
-        key={allDone ? "done" : "pending"}
-        className={`no-print fixed inset-x-0 bottom-0 z-20 border-t border-border-200 bg-white ${allDone ? "animate-slide-up" : ""}`}
-      >
-        <div className="mx-auto flex max-w-[1100px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className="text-sm text-ink-500" aria-live="polite">
-            <span className="font-semibold text-ink-900">
-              {doneCount} of {sections.length}
-            </span>{" "}
-            sections reviewed{allDone ? "" : `. ${COPY.confirmIncomplete(sections.length)}.`}
+      {/* The bar: one button for the step the caregiver is on. On a phone looking at the original, the way back. */}
+      <div data-review-bar className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-border-200 bg-white">
+        <div className="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
+          <p className={`text-sm text-ink-500 ${view === "original" ? "max-lg:hidden" : ""}`} aria-live="polite">
+            <span className="font-semibold text-ink-900">{bar.label}</span>
+            <span id="confirm-hint" className={bar.blocked ? "font-medium text-med-ink" : ""}>
+              {" · "}
+              {bar.hint}
+              {bar.blocked ? "." : ""}
+            </span>
           </p>
-          {allDone ? (
-            <ButtonLink href={circleId ? "/new/apply" : "/new/share"} className="w-full sm:w-auto">
-              {circleId ? "Confirm and update the circle" : "Confirm and create handoff"}
-            </ButtonLink>
-          ) : (
-            <button type="button" disabled className="min-h-[48px] w-full cursor-not-allowed rounded-xl bg-primary-700 px-5 font-semibold text-white opacity-50 sm:w-auto">
-              {circleId ? "Confirm and update the circle" : "Confirm and create handoff"}
+          {view === "original" ? (
+            <button
+              type="button"
+              onClick={() => show("draft")}
+              className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-primary-700 px-5 font-semibold text-white hover:bg-primary-900 lg:hidden"
+            >
+              <ArrowLeft size={18} aria-hidden="true" /> Back to the draft
             </button>
-          )}
+          ) : null}
+          <button
+            type="button"
+            disabled={bar.blocked}
+            aria-describedby="confirm-hint"
+            onClick={bar.onClick}
+            className={`min-h-[48px] w-full rounded-xl bg-primary-700 px-5 font-semibold text-white hover:bg-primary-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-primary-700 sm:w-auto ${
+              view === "original" ? "max-lg:hidden" : ""
+            }`}
+          >
+            {bar.button}
+          </button>
         </div>
       </div>
     </div>
@@ -461,31 +476,6 @@ function Field({ id, label, children }: { id: string; label: string; children: R
         {label}
       </label>
       {children}
-    </div>
-  );
-}
-
-function MoveTo({ onMove }: { onMove: (to: "medications" | "tasks" | "watchFor" | "questions") => void }) {
-  const id = useId();
-  return (
-    <div className="mt-1.5">
-      <label htmlFor={id} className="sr-only">
-        Move this note to a section
-      </label>
-      <select
-        id={id}
-        value=""
-        onChange={(e) => {
-          if (e.target.value) onMove(e.target.value as "medications" | "tasks" | "watchFor" | "questions");
-        }}
-        className="h-9 rounded-lg border border-border-200 bg-white px-2 text-sm text-primary-700"
-      >
-        <option value="">Move to…</option>
-        <option value="medications">Medications</option>
-        <option value="tasks">Next steps</option>
-        <option value="watchFor">Watch for</option>
-        <option value="questions">Questions</option>
-      </select>
     </div>
   );
 }

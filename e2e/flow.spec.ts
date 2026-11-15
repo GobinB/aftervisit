@@ -10,11 +10,19 @@ async function isolateIp(page: Page) {
 }
 const rand = () => Math.floor(Math.random() * 250) + 1;
 
-async function checkAllSections(page: Page) {
-  const boxes = page.getByRole("checkbox", { name: "I've reviewed this section" });
-  const n = await boxes.count();
-  for (let i = 0; i < n; i++) await boxes.nth(i).check();
-  return n;
+/** Review's two confirms: the medicines, then everything else. The second one moves on to the next page. */
+async function confirmBoth(page: Page) {
+  await page.getByRole("button", { name: "Medicines look right" }).click();
+  await expect(page.getByRole("region", { name: /Medicines/ }).getByText("Checked")).toBeVisible();
+  // A double tap on the first confirm is not taken as the second, so the second waits a moment.
+  await page.waitForTimeout(1000);
+  await page.getByRole("button", { name: "The rest looks right" }).click();
+}
+
+/** Says "It's right" to every item marked "Please check this". */
+async function acceptAll(page: Page) {
+  const right = page.getByRole("button", { name: "It's right" });
+  while (await right.count()) await right.first().click();
 }
 
 type Created = { token: string; manageKey: string; manageUrl: string; invites: { id: string; name: string; role: string; url: string }[] };
@@ -38,10 +46,11 @@ test("sample visit: personal links, task update, acknowledgment, dashboard, revo
   await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
 
-  const confirm = page.getByRole("link", { name: "Confirm and create handoff" });
-  await expect(page.getByRole("button", { name: "Confirm and create handoff" })).toBeDisabled();
-  expect(await checkAllSections(page)).toBe(5);
-  await confirm.click();
+  // Two confirms, one at a time: the second is not offered until the medicines are confirmed.
+  await expect(page.getByText("Step 1 of 2").first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "The rest looks right" })).toHaveCount(0);
+  await expect(page.getByRole("checkbox")).toHaveCount(0);
+  await confirmBoth(page);
 
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
   await expect(page.getByLabel("Name", { exact: true }).first()).toHaveValue("Lisa");
@@ -141,7 +150,7 @@ test("pasted text reaches Review in under 3 seconds", async ({ page }) => {
   await page.getByRole("button", { name: "Build the handoff" }).click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   expect(Date.now() - t0).toBeLessThan(3500);
-  const meds = page.getByRole("region", { name: /Medication changes/ });
+  const meds = page.getByRole("region", { name: /Medicines/ });
   await expect(meds.getByText("Furosemide")).toBeVisible();
   await expect(meds.getByText("Potassium Chloride")).toBeVisible();
 });
@@ -153,7 +162,7 @@ test("text-based PDF upload produces a draft", async ({ page }) => {
   await expect(page.getByText("sample-avs.pdf")).toBeVisible();
   await page.getByRole("button", { name: "Build the handoff" }).click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
-  const meds = page.getByRole("region", { name: /Medication changes/ });
+  const meds = page.getByRole("region", { name: /Medicines/ });
   await expect(meds.getByText("Lisinopril")).toBeVisible();
   await expect(meds.getByText("Meclizine")).toBeVisible();
 });
@@ -207,7 +216,7 @@ test("photo is read in the browser; only text is sent", async ({ page }, info) =
   await page.getByRole("button", { name: "Done: read 1 page" }).click();
   await expect(page.getByRole("progressbar", { name: "Reading the photo" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible({ timeout: 120_000 });
-  await expect(page.getByRole("region", { name: /Medication changes/ }).getByText("Lisinopril")).toBeVisible();
+  await expect(page.getByRole("region", { name: /Medicines/ }).getByText("Lisinopril")).toBeVisible();
   expect(bodies.length).toBe(1);
   expect(bodies[0]).toContain("application/json");
 });
@@ -229,24 +238,63 @@ test("several photos: pages can be added, moved and removed before Done", async 
   await expect(page.getByRole("button", { name: "Add a page" })).toBeVisible();
 });
 
-test("low-confidence items block the section until accepted", async ({ page }) => {
+test("a medicine marked Please check this holds the medicines confirm until it is looked at", async ({ page }) => {
   await isolateIp(page);
   await page.goto("/new");
   await page.getByRole("button", { name: "Paste the text instead" }).click();
   await page.getByLabel("Paste the summary text").fill(readFileSync("tests/fixtures/urgent-care.txt", "utf8"));
   await page.getByRole("button", { name: "Build the handoff" }).click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
-  const meds = page.getByRole("region", { name: /Medication changes/ });
-  await expect(meds.getByText("Please check this", { exact: true })).toBeVisible();
-  await expect(meds.getByRole("checkbox")).toBeDisabled();
-  await meds.getByRole("button", { name: "Accept" }).click();
-  await expect(meds.getByRole("checkbox")).toBeEnabled();
+  const meds = page.getByRole("region", { name: /Medicines/ });
+  // Flagged medicines sit first, under their own heading.
+  await expect(meds.getByRole("heading", { name: /Check th(is|ese) first/ })).toBeVisible();
+  await expect(meds.getByText("Please check this", { exact: true }).first()).toBeVisible();
+  const confirm = page.getByRole("button", { name: "Medicines look right" });
+  await expect(confirm).toBeDisabled();
+  await expect(page.getByText(/medicines? still needs? a look/)).toBeVisible();
+  // Nothing can be saved or shared around the review.
+  await page.goto("/new/share");
+  await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Medicines look right" })).toBeDisabled();
+  const right = page.getByRole("region", { name: /Medicines/ }).getByRole("button", { name: "It's right" });
+  while (await right.count()) await right.first().click();
+  await expect(page.getByRole("region", { name: /Medicines/ }).getByRole("heading", { name: /Check th(is|ese) first/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Medicines look right" })).toBeEnabled();
+});
+
+test("a medicine with no name cannot be accepted, or saved without one", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Try a sample visit" }).first().click();
+  await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
+  // As the reader returns it when it could not read a name: blank, and marked.
+  await page.evaluate(() => {
+    const saved = JSON.parse(sessionStorage.getItem("aftervisit-flow")!);
+    saved.state.draft.medications[0] = { ...saved.state.draft.medications[0], name: "", unreadable: ["name"], confidence: "low" };
+    sessionStorage.setItem("aftervisit-flow", JSON.stringify(saved));
+  });
+  await page.reload();
+  const meds = page.getByRole("region", { name: /Medicines/ });
+  await expect(meds.getByRole("heading", { name: "Check this first (1)" })).toBeVisible();
+  await expect(meds.getByText("Name not read")).toBeVisible();
+  await expect(meds.getByText(/We could not read the name, so we left it blank/)).toBeVisible();
+  await expect(meds.getByRole("button", { name: "It's right" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Medicines look right" })).toBeDisabled();
+  await expect(page.getByText("1 medicine still needs a look")).toBeVisible();
+
+  await meds.getByRole("button", { name: "Type it in" }).click();
+  await meds.getByRole("button", { name: "Save" }).click();
+  await expect(meds.getByRole("alert")).toHaveText("Type the medicine's name from the paper, or delete this medicine.");
+  await expect(page.getByRole("button", { name: "Medicines look right" })).toBeDisabled();
+  await meds.getByLabel("Medicine", { exact: true }).fill("Lisinopril");
+  await meds.getByRole("button", { name: "Save" }).click();
+  await expect(meds.getByRole("heading", { name: /Check th(is|ese) first/ })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Medicines look right" })).toBeEnabled();
 });
 
 test("delete with undo, and edits persist across sections", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Try a sample visit" }).first().click();
-  const meds = page.getByRole("region", { name: /Medication changes/ });
+  const meds = page.getByRole("region", { name: /Medicines/ });
   await meds.getByRole("button", { name: "Delete Meclizine" }).click();
   await expect(meds.getByText("Meclizine")).toHaveCount(0);
   await page.getByRole("button", { name: "Undo" }).click();
@@ -259,7 +307,7 @@ test("delete with undo, and edits persist across sections", async ({ page }) => 
   await page.keyboard.press("Escape");
   await expect(meds.getByText("40 mg at bedtime")).toBeVisible();
   await page.reload();
-  await expect(page.getByRole("region", { name: /Medication changes/ }).getByText("40 mg at bedtime")).toBeVisible();
+  await expect(page.getByRole("region", { name: /Medicines/ }).getByText("40 mg at bedtime")).toBeVisible();
 });
 
 test("PIN: wrong attempts count down, correct PIN opens, PIN never in URL", async ({ page }) => {
@@ -324,7 +372,7 @@ test("no horizontal scroll at 360 px; buttons at least 48 px", async ({ page }, 
   await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
-  const box = await page.getByRole("button", { name: "Confirm and create handoff" }).boundingBox();
+  const box = await page.getByRole("button", { name: "Medicines look right" }).boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(48);
 });
 
@@ -407,10 +455,9 @@ test("attached original: served through a checked link, gone the moment the hand
   await page.getByLabel("Your first name").fill("Jordan");
   await page.getByRole("button", { name: "Build the handoff" }).click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
-  // The PDF path flags nothing low-confidence for the sample; check every section.
-  for (const accept of await page.getByRole("button", { name: "Accept" }).all()) await accept.click();
-  await checkAllSections(page);
-  await page.getByRole("link", { name: "Confirm and create handoff" }).click();
+  // The PDF path flags nothing low-confidence for the sample; give both confirms.
+  await acceptAll(page);
+  await confirmBoth(page);
   await page.getByLabel("Name", { exact: true }).first().fill("Rosa");
   await page.getByRole("radio", { name: "Home aide" }).click();
   await page.getByRole("switch", { name: "Attach the original summary" }).click();
@@ -459,8 +506,7 @@ test("attach switch is hidden when the summary was pasted", async ({ page }) => 
   await page.goto("/");
   await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
-  await checkAllSections(page);
-  await page.getByRole("link", { name: "Confirm and create handoff" }).click();
+  await confirmBoth(page);
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
   await expect(page.getByRole("switch", { name: "Attach the original summary" })).toHaveCount(0);
 });
@@ -491,11 +537,49 @@ test("privacy page describes access honestly", async ({ page }, info) => {
   expect(body).not.toMatch(/no (third-party )?ai/);
 });
 
-test("review: 'View original instruction' highlights the clinic's sentence", async ({ page }) => {
+test("review: 'See it in the original' marks the clinic's sentence; a phone swaps to the original and back", async ({ page }, info) => {
   await page.goto("/");
   await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
-  const tasks = page.getByRole("region", { name: /What needs to happen next/ });
-  await tasks.getByRole("button", { name: "View original instruction" }).nth(1).click();
-  await expect(page.locator("mark", { hasText: "Please call to schedule within 2 weeks." }).first()).toBeAttached();
+  const phone = info.project.name !== "desktop-chrome";
+  const original = page.getByRole("complementary", { name: "Original summary" });
+  if (phone) {
+    // One at a time on a phone: the draft first.
+    await expect(page.getByRole("button", { name: "Draft" })).toHaveAttribute("aria-pressed", "true");
+    await expect(original).toBeHidden();
+  } else {
+    await expect(original).toBeVisible();
+  }
+  const tasks = page.getByRole("region", { name: /Next steps/ });
+  await tasks.getByRole("button", { name: "See it in the original" }).nth(1).click();
+  await expect(original).toBeVisible();
+  await expect(original.getByText("Look for this line")).toBeVisible();
+  await expect(original.locator("mark", { hasText: "Please call to schedule within 2 weeks." })).toBeVisible();
+  if (phone) {
+    await expect(page.getByRole("button", { name: "Original" })).toHaveAttribute("aria-pressed", "true");
+    await expect(tasks).toBeHidden();
+    await expect(page.getByRole("button", { name: "Medicines look right" })).toBeHidden();
+    await page.getByRole("button", { name: "Back to the draft" }).click();
+    await expect(original).toBeHidden();
+    // Back where the caregiver was.
+    await expect(tasks.getByRole("button", { name: "See it in the original" }).nth(1)).toBeInViewport();
+    await expect(page.getByRole("button", { name: "Medicines look right" })).toBeVisible();
+  }
+});
+
+test("review: Good to know replaces Other notes, and nothing asks for lines to be placed", async ({ page }) => {
+  await isolateIp(page);
+  await page.goto("/new");
+  await page.getByRole("button", { name: "Paste the text instead" }).click();
+  await page.getByLabel("Paste the summary text").fill(`${readFileSync("tests/fixtures/cerner.txt", "utf8")}\nOther instructions:\nLow-salt diet.\nMaplewood Clinic, 44 Orchard Lane, Maple Falls, OH 44000\n`);
+  await page.getByRole("button", { name: "Build the handoff" }).click();
+  await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
+  const know = page.getByRole("region", { name: /Good to know/ });
+  await expect(know.getByText("Low-salt diet.")).toBeVisible();
+  await expect(know.getByText(/44 Orchard Lane/)).toHaveCount(0);
+  await expect(page.getByText("Other notes")).toHaveCount(0);
+  await expect(page.getByText(/Lines we could not place/)).toHaveCount(0);
+  await expect(page.getByLabel("Move this note to a section")).toHaveCount(0);
+  // The address is still in the original, beside the draft (behind the Original switch on a phone).
+  await expect(page.locator('aside[aria-labelledby="original-title"]').getByText(/44 Orchard Lane/)).toBeAttached();
 });

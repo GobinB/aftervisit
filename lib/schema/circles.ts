@@ -57,11 +57,11 @@ export const AREA_LABELS: Record<VisibilityArea, string> = {
   calendar: "Calendar",
   documents: "Documents",
   summary: "Care summary",
-  handoff: "Handoff",
+  handoff: "Visit notes",
 };
 
 /** Areas a helper can see today. The picker lists only these. Add an area here in the PR that ships it. */
-export const READY_AREAS: readonly VisibilityArea[] = ["calendar", "tasks", "medications", "summary"];
+export const READY_AREAS: readonly VisibilityArea[] = ["calendar", "tasks", "medications", "summary", "handoff"];
 
 export const HANDOFF_SECTION_KEYS = ["medications", "tasks", "watchFor", "questions", "summary", "otherNotes", "original"] as const;
 

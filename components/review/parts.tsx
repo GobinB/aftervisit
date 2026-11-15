@@ -1,93 +1,104 @@
 "use client";
-import { Check, FileSearch, Pencil, Plus, Trash2 } from "lucide-react";
+import { CheckCircle2, FileSearch, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge, MED_KIND_LABEL } from "@/components/Badge";
 import { COPY } from "@/lib/copy";
 import { unreadableLabel, type MedField } from "@/lib/extract/flags";
+import { canAcceptMed, medNeedsLook, taskNeedsLook } from "@/lib/review";
 import { MED_KINDS, type MedicationChange, type Task } from "@/lib/schema";
 
 export const inputClass =
   "w-full rounded-lg border border-border-200 bg-white px-3 py-2 text-base outline-none focus:border-action-500 focus:ring-2 focus:ring-action-500/30";
 
-/** White card, 16 px radius, 20 px padding. Border turns green once reviewed. */
-export function SectionCard({
+/**
+ * One of the two cards on Review: the medicines, and everything else. Each is confirmed once, with
+ * the button in the bar at the bottom of the screen. The border turns green once it is.
+ */
+export function ReviewCard({
   id,
   icon,
   title,
   count,
-  reviewed,
-  onReviewed,
-  canReview,
-  blockedReason,
-  onAdd,
-  addLabel = "Add item",
-  tone = "default",
+  step,
+  done,
   children,
 }: {
   id: string;
   icon: ReactNode;
   title: string;
   count?: number;
-  reviewed: boolean;
-  onReviewed: (v: boolean) => void;
-  canReview: boolean;
-  blockedReason?: string;
-  onAdd?: () => void;
-  addLabel?: string;
-  tone?: "default" | "sky";
+  /** "Step 1 of 2" */
+  step: string;
+  done: boolean;
   children: ReactNode;
 }) {
-  const checkId = useId();
   return (
-    <section
-      aria-labelledby={`${id}-title`}
-      className={`animate-fade-in rounded-2xl border-2 p-5 transition-colors ${
-        reviewed ? "border-ok" : "border-border-200"
-      } ${tone === "sky" ? "bg-sky-100" : "bg-white"}`}
-    >
-      <h2 id={`${id}-title`} className="flex items-center gap-2 text-xl font-semibold text-primary-700">
+    <section aria-labelledby={`${id}-title`} className={`animate-fade-in scroll-mt-36 rounded-2xl border-2 bg-white p-5 transition-colors ${done ? "border-ok" : "border-border-200"}`}>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <h2 id={`${id}-title`} className="flex items-center gap-2 text-xl font-semibold text-primary-700">
+          <span aria-hidden="true">{icon}</span>
+          {title}
+          {count !== undefined ? <span className="text-base font-normal text-ink-500">({count})</span> : null}
+        </h2>
+        {done ? (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-ok-bg px-2.5 py-1 text-sm font-semibold text-ok-ink">
+            <CheckCircle2 size={16} aria-hidden="true" /> Checked
+          </span>
+        ) : (
+          <span className="text-sm font-medium text-ink-500">{step}</span>
+        )}
+      </div>
+      <div className="mt-3">{children}</div>
+    </section>
+  );
+}
+
+/** A named list inside "Everything else": next steps, watch for, good to know, questions. */
+export function SubSection({
+  id,
+  icon,
+  title,
+  count,
+  help,
+  onAdd,
+  addLabel = "Add one",
+  children,
+}: {
+  id: string;
+  icon: ReactNode;
+  title: string;
+  count?: number;
+  help?: string;
+  onAdd?: () => void;
+  addLabel?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section aria-labelledby={`${id}-title`} className="border-t border-border-200 pt-4 first:border-0 first:pt-0">
+      <h3 id={`${id}-title`} className="flex items-center gap-2 text-[17px] font-semibold text-primary-900">
         <span className="text-primary-700" aria-hidden="true">
           {icon}
         </span>
         {title}
-        {count !== undefined ? <span className="text-base font-normal text-ink-500">({count})</span> : null}
-      </h2>
-      <div className="mt-3">{children}</div>
-      <div className="mt-4 flex flex-col gap-3 border-t border-border-200 pt-4 sm:flex-row sm:items-center sm:justify-between">
-        {onAdd ? (
-          <button type="button" onClick={onAdd} className="inline-flex min-h-10 items-center gap-1.5 self-start rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100">
-            <Plus size={18} aria-hidden="true" /> {addLabel}
-          </button>
-        ) : (
-          <span />
-        )}
-        <div>
-          <label
-            htmlFor={checkId}
-            className={`flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-1 font-medium ${canReview ? "text-ink-900" : "cursor-not-allowed text-ink-500"}`}
-          >
-            <span className="relative inline-flex h-7 w-7 shrink-0">
-              <input
-                id={checkId}
-                type="checkbox"
-                checked={reviewed}
-                disabled={!canReview && !reviewed}
-                onChange={(e) => onReviewed(e.target.checked)}
-                aria-describedby={!canReview && blockedReason ? `${checkId}-why` : undefined}
-                className="peer h-7 w-7 cursor-pointer appearance-none rounded-md border-2 border-border-200 bg-white checked:border-ok checked:bg-ok disabled:cursor-not-allowed"
-              />
-              <Check size={18} strokeWidth={3} className="pointer-events-none absolute top-1/2 left-1/2 hidden -translate-x-1/2 -translate-y-1/2 text-white peer-checked:block" aria-hidden="true" />
-            </span>
-            {COPY.sectionReviewed}
-          </label>
-          {!canReview && blockedReason ? (
-            <p id={`${checkId}-why`} className="text-sm text-med-ink sm:text-right">
-              {blockedReason}
-            </p>
-          ) : null}
-        </div>
-      </div>
+        {count !== undefined ? <span className="text-[15px] font-normal text-ink-500">({count})</span> : null}
+      </h3>
+      {help ? <p className="mt-1 text-sm text-ink-500">{help}</p> : null}
+      <div className="mt-1.5">{children}</div>
+      {onAdd ? (
+        <button type="button" onClick={onAdd} className="mt-1 inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100">
+          <Plus size={18} aria-hidden="true" /> {addLabel}
+        </button>
+      ) : null}
     </section>
+  );
+}
+
+/** The "Add a medicine" style button at the foot of a card. */
+export function AddButton({ label, onAdd }: { label: string; onAdd: () => void }) {
+  return (
+    <button type="button" onClick={onAdd} className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100">
+      <Plus size={18} aria-hidden="true" /> {label}
+    </button>
   );
 }
 
@@ -108,8 +119,8 @@ function RowActions({ label, onEdit, onDelete }: { label: string; onEdit: () => 
   );
 }
 
-/** "View original instruction" for items from the summary; a label for items the caregiver added. */
-export function SourceLink({ quote, added, onShow, page }: { quote?: string; added?: boolean; onShow?: (q: string) => void; page?: number }) {
+/** "See it in the original" for items from the summary; a label for items the caregiver added. */
+export function SourceLink({ quote, added, onShow, page }: { quote?: string; added?: boolean; onShow?: (quote: string, page?: number) => void; page?: number }) {
   if (added) return <p className="mt-1.5 text-xs font-semibold tracking-wide text-ink-500 uppercase">Added by you, not in the summary</p>;
   if (!quote || !onShow) return null;
   return (
@@ -117,32 +128,55 @@ export function SourceLink({ quote, added, onShow, page }: { quote?: string; add
       type="button"
       onClick={(e) => {
         e.stopPropagation();
-        onShow(quote);
+        onShow(quote, page);
       }}
       className="mt-1.5 inline-flex min-h-9 items-center gap-1.5 rounded-lg px-1 text-sm font-medium text-primary-700 underline decoration-primary-700/30 underline-offset-4 hover:decoration-primary-700"
     >
-      <FileSearch size={16} aria-hidden="true" /> View original instruction{page ? ` (page ${page})` : ""}
+      <FileSearch size={16} aria-hidden="true" /> See it in the original{page ? ` (page ${page})` : ""}
     </button>
   );
 }
 
 /**
- * "Please check this", with Accept. When the reader could not read part of a medicine, it says which
- * part; when it could not read the name, there is no Accept: the caregiver types it or deletes the item.
+ * "Please check this", on an item the reader was unsure of. The caregiver looks at it by fixing it,
+ * saying it is right, or deleting it. When the reader could not read part of a medicine, it says
+ * which part; a medicine with no name cannot be accepted as it is, so "It's right" is not offered.
  */
-function LowConfidence({ onAccept, unreadable }: { onAccept: () => void; unreadable?: MedField[] }) {
-  const noName = unreadable?.includes("name");
+function NeedsLook({
+  helper,
+  canAccept,
+  onAccept,
+  onFix,
+  onDelete,
+  fixLabel,
+}: {
+  helper: string;
+  canAccept: boolean;
+  onAccept: () => void;
+  onFix: () => void;
+  onDelete: () => void;
+  fixLabel: string;
+}) {
+  const button = "min-h-10 rounded-lg border px-3 text-sm font-semibold";
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">
-      <Badge tone="med">{COPY.lowConfidenceBadge}</Badge>
-      <span className="text-sm text-ink-500">
-        {unreadable?.length ? COPY.unreadableHelper(unreadableLabel(unreadable), !!noName) : COPY.lowConfidenceHelper}
-      </span>
-      {noName ? null : (
-        <button type="button" onClick={onAccept} className="min-h-9 rounded-lg border border-med px-3 text-sm font-semibold text-med-ink hover:bg-med-bg">
-          Accept
+    <div className="mt-2 rounded-xl bg-med-bg/60 px-3 py-2.5">
+      <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+        <Badge tone="med">{COPY.lowConfidenceBadge}</Badge>
+        <span className="text-sm text-ink-900">{helper}</span>
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <button type="button" onClick={onFix} className={`${button} border-primary-700 bg-primary-700 text-white hover:bg-primary-900`}>
+          {fixLabel}
         </button>
-      )}
+        {canAccept ? (
+          <button type="button" onClick={onAccept} className={`${button} border-med bg-white text-med-ink hover:bg-med-bg`}>
+            It&apos;s right
+          </button>
+        ) : null}
+        <button type="button" onClick={onDelete} className={`${button} border-border-200 bg-white text-ink-900 hover:bg-attn-bg hover:text-attn-ink`}>
+          Delete
+        </button>
+      </div>
     </div>
   );
 }
@@ -226,17 +260,21 @@ export function MedRow({
   onChange: (m: MedicationChange) => void;
   onDelete: () => void;
   onFocusItem?: () => void;
-  onShowSource?: (quote: string) => void;
+  onShowSource?: (quote: string, page?: number) => void;
   autoEdit?: boolean;
 }) {
   const [editing, setEditing] = useState(!!autoEdit);
   const [form, setForm] = useState(med);
-  const ids = { name: useId(), kind: useId(), detail: useId() };
+  const [nameError, setNameError] = useState(false);
+  const ids = { name: useId(), kind: useId(), detail: useId(), error: useId() };
   useEffect(() => setForm(med), [med]);
 
   const save = () => {
     if (!form.name.trim() && !form.detail.trim()) return onDelete();
-    onChange({ ...form, name: form.name.trim() || "Medicine", detail: form.detail.trim(), unreadable: undefined, confidence: "high" });
+    // A medicine is never saved without its name: the caregiver types it from the paper, or deletes the item.
+    if (!canAcceptMed(form)) return setNameError(true);
+    setNameError(false);
+    onChange({ ...form, name: form.name.trim(), detail: form.detail.trim(), unreadable: undefined, confidence: "high" });
     setEditing(false);
   };
 
@@ -252,6 +290,7 @@ export function MedRow({
             if (e.key === "Escape") {
               if (!med.name && !med.detail) onDelete();
               setForm(med);
+              setNameError(false);
               setEditing(false);
             }
           }}
@@ -261,7 +300,24 @@ export function MedRow({
             <label htmlFor={ids.name} className="text-sm font-medium">
               Medicine
             </label>
-            <input id={ids.name} autoFocus value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} className={`mt-1 ${inputClass}`} />
+            <input
+              id={ids.name}
+              autoFocus={!form.name.trim() || !!form.detail.trim()}
+              value={form.name}
+              maxLength={300}
+              aria-invalid={nameError || undefined}
+              aria-describedby={nameError ? ids.error : undefined}
+              onChange={(e) => {
+                setForm({ ...form, name: e.target.value });
+                if (e.target.value.trim()) setNameError(false);
+              }}
+              className={`mt-1 ${inputClass}`}
+            />
+            {nameError ? (
+              <p id={ids.error} role="alert" className="mt-1 text-sm font-medium text-attn-ink">
+                {COPY.medNameNeeded}
+              </p>
+            ) : null}
           </div>
           <div>
             <label htmlFor={ids.kind} className="text-sm font-medium">
@@ -284,7 +340,14 @@ export function MedRow({
             <label htmlFor={ids.detail} className="text-sm font-medium">
               How to take it
             </label>
-            <input id={ids.detail} value={form.detail} onChange={(e) => setForm({ ...form, detail: e.target.value })} className={`mt-1 ${inputClass}`} />
+            <input
+              id={ids.detail}
+              autoFocus={!!form.name.trim() && !form.detail.trim()}
+              value={form.detail}
+              maxLength={1000}
+              onChange={(e) => setForm({ ...form, detail: e.target.value })}
+              className={`mt-1 ${inputClass}`}
+            />
           </div>
           <div className="flex gap-2 sm:col-span-2">
             <button type="submit" className="min-h-11 rounded-lg bg-primary-700 px-4 font-semibold text-white">
@@ -296,6 +359,7 @@ export function MedRow({
               onClick={() => {
                 if (!med.name && !med.detail) onDelete();
                 setForm(med);
+                setNameError(false);
                 setEditing(false);
               }}
             >
@@ -321,9 +385,22 @@ export function MedRow({
       <div className="basis-full">
         <SourceLink quote={med.sourceQuote} added={med.origin === "caregiver"} onShow={onShowSource} page={med.sourcePage} />
       </div>
-      {med.confidence === "low" ? (
+      {medNeedsLook(med) ? (
         <div className="basis-full">
-          <LowConfidence unreadable={med.unreadable} onAccept={() => onChange({ ...med, unreadable: undefined, confidence: "high" })} />
+          <NeedsLook
+            helper={
+              med.unreadable?.length
+                ? COPY.unreadableHelper(unreadableLabel(med.unreadable), !canAcceptMed(med))
+                : canAcceptMed(med)
+                  ? COPY.lowConfidenceHelper
+                  : COPY.unreadableHelper(unreadableLabel(["name"] satisfies MedField[]), true)
+            }
+            canAccept={canAcceptMed(med)}
+            onAccept={() => onChange({ ...med, unreadable: undefined, confidence: "high" })}
+            onFix={() => setEditing(true)}
+            onDelete={onDelete}
+            fixLabel={med.unreadable?.length || !canAcceptMed(med) ? "Type it in" : "Fix it"}
+          />
         </div>
       ) : null}
     </li>
@@ -353,7 +430,7 @@ export function TaskRow({
   onChange: (t: Task) => void;
   onDelete: () => void;
   onFocusItem?: () => void;
-  onShowSource?: (quote: string) => void;
+  onShowSource?: (quote: string, page?: number) => void;
   autoEdit?: boolean;
   nameListId: string;
 }) {
@@ -432,7 +509,16 @@ export function TaskRow({
           />
         </div>
       </div>
-      {task.confidence === "low" ? <LowConfidence onAccept={() => onChange({ ...task, confidence: "high" })} /> : null}
+      {taskNeedsLook(task) ? (
+        <NeedsLook
+          helper={COPY.lowConfidenceHelper}
+          canAccept
+          onAccept={() => onChange({ ...task, confidence: "high" })}
+          onFix={() => setEditing(true)}
+          onDelete={onDelete}
+          fixLabel="Fix it"
+        />
+      ) : null}
     </li>
   );
 }
