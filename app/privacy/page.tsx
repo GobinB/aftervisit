@@ -15,6 +15,8 @@ const TTL_DAYS = Number(process.env.HANDOFF_TTL_DAYS || 30);
 const EFFECTIVE = "November 13, 2026";
 /** The policy changed when OpenAI started reading visit summaries. Shown only while it does. */
 const READER_EFFECTIVE = "November 14, 2026";
+/** The policy changed when a visit's notes started being kept with the circle and shown to people by role. */
+const NOTES_EFFECTIVE = "November 15, 2026";
 
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
@@ -48,7 +50,7 @@ export default function PrivacyPage() {
   const provider = providerDisclosure();
   // OpenAI reads the photos, PDF or text of a visit summary itself; otherwise photos are read on the phone.
   const reads = provider.readsPages;
-  const effective = reads ? READER_EFFECTIVE : EFFECTIVE;
+  const effective = NOTES_EFFECTIVE;
   return (
     <PageShell>
       <main id="main" className="flex-1 overflow-x-clip">
@@ -129,7 +131,8 @@ export default function PrivacyPage() {
                     </li>
                     <li>
                       <strong>What you enter for the person you look after:</strong> the care summary (allergies, doctors, pharmacy, emergency
-                      contacts), the calendar, reminders and medication list, with each medication change and when it was made.
+                      contacts), the calendar, reminders and medication list, with each medication change and when it was made, and the notes
+                      of each visit you add (a short summary, what to watch for, good to know, and questions for the next visit).
                     </li>
                     <li>
                       <strong>The people you add:</strong> their name, role, which parts they can see, an optional email for your own mail app,
@@ -144,15 +147,15 @@ export default function PrivacyPage() {
                         <>
                           <strong>Visit summaries.</strong> To build a draft, the photos, PDF or pasted text of a visit summary are sent
                           through our server to {provider.label}, which reads them. We do not store them or the text on the way, and we keep
-                          only the items you confirm. This is for caregivers who are signed in, for up to {env.extractionDailyLimit} summaries a
+                          only what you confirm: medicine changes, reminders, appointments and the visit&apos;s notes. This is for caregivers who are signed in, for up to {env.extractionDailyLimit} summaries a
                           day each. Beyond that, when you are not signed in, or if {provider.label} cannot read them, the photos are read in
                           your browser instead and only the text is sent to our server.
                         </>
                       ) : (
                         <>
                           <strong>Visit summaries.</strong> Photos are read in your browser; only the text is sent to our server. Pasted text
-                          and PDFs are read on our server. Either way the text is used to build a draft and is not saved: we keep only the
-                          items you confirm.
+                          and PDFs are read on our server. Either way the text is used to build a draft and is not saved: we keep only what
+                          you confirm: medicine changes, reminders, appointments and the visit&apos;s notes.
                         </>
                       )}{" "}
                       The photos (or PDF) are kept only if you leave &ldquo;Keep the photos&rdquo; on. They are encrypted on your device before
@@ -195,7 +198,7 @@ export default function PrivacyPage() {
                       people you add cannot see them from their links.
                     </li>
                     <li>
-                      <strong>The rest of a circle</strong> (the care summary, medications, reminders, calendar, and the names and roles of the
+                      <strong>The rest of a circle</strong> (the care summary, medications, reminders, calendar, visit notes, and the names and roles of the
                       people you add) is read by our server to show each person their part. We do not look through it either, except to fix a
                       problem you ask us about or when the law requires it.
                     </li>
@@ -228,7 +231,9 @@ export default function PrivacyPage() {
                     </li>
                     <li>
                       The people you add, through their own link, and only the parts their role and your choices allow. Home aides and day
-                      programs see only the reminders given to them.
+                      programs see only the reminders given to them. From a visit&apos;s notes, family and care managers see all of it; home
+                      aides and day programs see what to watch for and good to know, not the summary or the questions. You can hide visit
+                      notes from any one person.
                     </li>
                     <li>
                       Anyone who has a person&apos;s link can open it, because a link can be forwarded. Add a PIN for a second step. Every link
@@ -313,7 +318,7 @@ export default function PrivacyPage() {
                       whole list and searches it itself, so what you type is not sent to the Library.
                     </li>
                     <li>
-                      To read photos in your browser{reads ? ` (only when ${provider.label} cannot)` : ""}, it downloads the reading engine from jsDelivr and Project Naptha. They see that a browser
+                      To read photos in your browser{reads ? ` (when ${provider.label} cannot, and to mark a line on a photo while you check the draft)` : ", and to mark a line on a photo while you check the draft"}, it downloads the reading engine from jsDelivr and Project Naptha. They see that a browser
                       asked for the engine (its IP address), never your photos or their text.
                     </li>
                     <li>
@@ -446,15 +451,21 @@ export default function PrivacyPage() {
                     If this policy changes, we will update the date above and say what changed. Before a big change, we will show a notice in
                     the app. All Hands Care organizes what you and the clinician wrote; it does not give medical advice.
                   </p>
+                  <p>
+                    <strong>Latest change, {NOTES_EFFECTIVE}:</strong> the notes of a visit you add are now kept with the circle: a short
+                    summary, what to watch for, good to know, and questions for the next visit. They show on Today, and the people you add
+                    see them by role (family and care managers all of it; home aides and day programs what to watch for and good to know).
+                    Before, only medicine changes, reminders and appointments were kept from a visit.
+                  </p>
                   {reads ? (
                     <p>
-                      <strong>Latest change, {READER_EFFECTIVE}:</strong> visit summaries are now read by {provider.label}. The photos, PDF
+                      <strong>Before that, {READER_EFFECTIVE}:</strong> visit summaries are now read by {provider.label}. The photos, PDF
                       or pasted text go through our server to {provider.label} to be read, and are not stored by us on the way. Before, photos
                       were read in your browser and only the text was sent.
                     </p>
                   ) : null}
                   <p>
-                    <strong>{reads ? "Before that" : "Latest change"}, {EFFECTIVE}:</strong> saved photos and PDFs of visit summaries no longer need 12 recovery words.
+                    <strong>Before that, {EFFECTIVE}:</strong> saved photos and PDFs of visit summaries no longer need 12 recovery words.
                     They are still locked on your device before they are sent. All Hands Care now keeps the key, so they open on any device
                     after you sign in and nobody is locked out. Before, only the 12 words could open them; now we are able to, and we have
                     written down that we do not, under{" "}
