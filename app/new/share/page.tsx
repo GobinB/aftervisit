@@ -14,7 +14,8 @@ import { Switch } from "@/components/Switch";
 import { COPY, emailBody, emailSubject, smsBody } from "@/lib/copy";
 import { longDate } from "@/lib/format";
 import { ROLE_LABELS, SHARE_SECTION_LABELS, SHARE_SECTIONS, type RecipientShare, type Role, type ShareSection } from "@/lib/schema";
-import { activeSections, getOriginalFile, useFlow } from "@/lib/store";
+import { reviewComplete } from "@/lib/review";
+import { getOriginalFile, useFlow } from "@/lib/store";
 
 async function copyText(text: string): Promise<boolean> {
   try {
@@ -61,7 +62,7 @@ export default function SharePage() {
   useEffect(() => {
     if (!hydrated) return;
     if (!draft) return router.replace("/new");
-    const allReviewed = activeSections(draft).every((k) => reviewed[k]);
+    const allReviewed = reviewComplete(draft, reviewed);
     if (!allReviewed && !created) return router.replace("/new/review");
     setRows(recipients.length ? recipients : [{ name: "", role: "family" }]);
     setHasFile(!!getOriginalFile());

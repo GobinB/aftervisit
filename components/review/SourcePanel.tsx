@@ -1,10 +1,14 @@
 "use client";
-import { FileText, Images, X } from "lucide-react";
+import { FileText, Images, Loader2, X, ZoomIn, ZoomOut } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { toImageBlob } from "@/lib/ocr";
+import { findLine, type LineBox } from "@/lib/find-line";
+import { readPageLines, stopPageLineReader, toImageBlob } from "@/lib/ocr";
+
+/** The line an item came from: its sentence, and the page it is on when the reader said. */
+export type SourceTarget = { quote: string; page?: number };
 
 /** Finds the active item's text in the source by simple string search. */
-function findRange(source: string, query: string): [number, number] | null {
+export function findRange(source: string, query: string): [number, number] | null {
   const q = query.trim();
   if (q.length < 3) return null;
   // Exact sentence, ignoring line breaks and bullets the PDF or portal added.
@@ -21,6 +25,7 @@ function findRange(source: string, query: string): [number, number] | null {
   return null;
 }
 
+/** The text of the summary, large, with the matching line marked and scrolled into view. */
 export function SourceText({ source, query }: { source: string; query: string }) {
   const range = useMemo(() => findRange(source, query), [source, query]);
   const markRef = useRef<HTMLElement>(null);
@@ -29,11 +34,11 @@ export function SourceText({ source, query }: { source: string; query: string })
   }, [range]);
   if (!source) return <p className="text-ink-500">No source text for this visit.</p>;
   return (
-    <div className="text-[0.95rem] leading-relaxed whitespace-pre-wrap text-ink-900/90">
+    <div className="text-[17px] leading-relaxed whitespace-pre-wrap text-ink-900">
       {range ? (
         <>
           {source.slice(0, range[0])}
-          <mark ref={markRef} className="rounded bg-med-bg px-0.5 text-ink-900">
+          <mark ref={markRef} className="rounded bg-med-bg px-0.5 text-ink-900 ring-2 ring-med/60">
             {source.slice(range[0], range[1])}
           </mark>
           {source.slice(range[1])}
@@ -45,9 +50,14 @@ export function SourceText({ source, query }: { source: string; query: string })
   );
 }
 
-/** One photographed page, drawn from the phone's own copy (it was never uploaded to be shown here). */
-function PagePhoto({ file, n, of }: { file: File; n: number; of: number }) {
+/**
+ * One photographed page, drawn large from the phone's own copy (it was never uploaded to be shown
+ * here). `box` marks the line an item came from; `wide` makes the page twice as wide to read small print.
+ */
+function PagePhoto({ file, n, of, box, wide, active }: { file: File; n: number; of: number; box: LineBox | null; wide: boolean; active: boolean }) {
   const canvas = useRef<HTMLCanvasElement>(null);
+  const figure = useRef<HTMLElement>(null);
+  const mark = useRef<HTMLDivElement>(null);
   const [failed, setFailed] = useState(false);
   useEffect(() => {
     let cancelled = false;
@@ -57,7 +67,7 @@ function PagePhoto({ file, n, of }: { file: File; n: number; of: number }) {
         const el = canvas.current;
         const ctx = el?.getContext("2d");
         if (cancelled || !el || !ctx) return bitmap.close();
-        const scale = Math.min(1, 1400 / bitmap.width);
+        const scale = Math.min(1, 2000 / bitmap.width);
         el.width = Math.round(bitmap.width * scale);
         el.height = Math.round(bitmap.height * scale);
         ctx.drawImage(bitmap, 0, 0, el.width, el.height);
@@ -70,111 +80,207 @@ function PagePhoto({ file, n, of }: { file: File; n: number; of: number }) {
       cancelled = true;
     };
   }, [file]);
+  // Bring the page, and then the marked line, into view when an item points here.
+  useEffect(() => {
+    if (!active) return;
+    (box ? mark.current : figure.current)?.scrollIntoView({ block: box ? "center" : "start", behavior: "smooth" });
+  }, [active, box]);
   return (
-    <figure className="overflow-hidden rounded-lg border border-border-200">
+    <figure ref={figure} className={`scroll-mt-40 overflow-hidden rounded-lg border bg-white ${active ? "border-med ring-2 ring-med/40" : "border-border-200"}`}>
       <figcaption className="border-b border-border-200 bg-paper-100 px-3 py-1.5 text-[13px] font-semibold text-ink-500">
         Page {n} of {of}
       </figcaption>
       {failed ? (
         <p className="px-3 py-6 text-center text-[14px] text-ink-500">This photo cannot be shown in this browser.</p>
       ) : (
-        <canvas ref={canvas} role="img" aria-label={`Page ${n} of the summary`} className="block h-auto w-full" />
+        <div className="overflow-x-auto">
+          <div className="relative" style={{ width: wide ? "200%" : "100%" }}>
+            <canvas ref={canvas} role="img" aria-label={`Page ${n} of the summary`} className="block h-auto w-full" />
+            {box ? (
+              <div
+                ref={mark}
+                data-testid="line-mark"
+                aria-hidden="true"
+                className="pointer-events-none absolute rounded-sm bg-[#fde68a]/45 ring-2 ring-med"
+                style={{ left: `${box.x * 100}%`, top: `${box.y * 100}%`, width: `${box.w * 100}%`, height: `${box.h * 100}%` }}
+              />
+            ) : null}
+          </div>
+        </div>
       )}
     </figure>
   );
 }
 
+type Found = { quote: string; page: number; box: LineBox } | { quote: string; page: number | null; box: null };
+
 /**
- * The summary as it was given: the photos, when it was photographed, and the text that was read
- * from it. Tapping "View original instruction" on an item switches to the text with that line
- * highlighted; the photos are there to check that the reading was right.
+ * Looks for the sentence on the photos, on this device. With a page from the reader, only that page
+ * is read; without one, the pages are read in order until the sentence turns up.
  */
-function SourceBody({ source, query, pages }: { source: string; query: string; pages: File[] }) {
-  const photos = pages.filter((file) => !/pdf/i.test(file.type) && !/\.pdf$/i.test(file.name));
-  const [tab, setTab] = useState<"photos" | "text">(photos.length ? "photos" : "text");
+function useLineOnPhoto(photos: File[], target: SourceTarget | null, enabled: boolean): { found: Found | null; looking: boolean } {
+  const [found, setFound] = useState<Found | null>(null);
+  const [looking, setLooking] = useState(false);
   useEffect(() => {
-    if (query) setTab("text");
-  }, [query]);
+    if (!enabled || !target || !photos.length) {
+      setFound(null);
+      setLooking(false);
+      return;
+    }
+    let cancelled = false;
+    const known = target.page && target.page <= photos.length ? target.page : null;
+    setFound(null);
+    setLooking(true);
+    (async () => {
+      const order = known ? [known] : photos.map((_, i) => i + 1);
+      for (const page of order) {
+        const lines = await readPageLines(photos[page - 1]);
+        if (cancelled) return;
+        const box = findLine(lines, target.quote);
+        if (box) {
+          setFound({ quote: target.quote, page, box });
+          setLooking(false);
+          return;
+        }
+      }
+      if (!cancelled) {
+        setFound({ quote: target.quote, page: known, box: null });
+        setLooking(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [photos, target, enabled]);
+  return { found: found && target && found.quote === target.quote ? found : null, looking };
+}
+
+/**
+ * The summary as it was given, large: the photos, when it was photographed, and the text read from
+ * it. When an item points here ("See it in the original"), its sentence is pinned at the top, the
+ * right page comes into view, and the line is marked: in the text always, and on the photo when this
+ * device can find it there.
+ */
+export function OriginalView({
+  source,
+  pages,
+  target,
+  onClear,
+  visible = true,
+  headingId,
+  stickyClass = "top-0",
+}: {
+  source: string;
+  pages: File[];
+  target: SourceTarget | null;
+  onClear: () => void;
+  /** False while the original is not on screen (the draft is showing on a phone), so nothing is read for nothing. */
+  visible?: boolean;
+  headingId: string;
+  /** Where the heading sticks: the top of its own scrolling box on a computer, under the app bar on a phone. */
+  stickyClass?: string;
+}) {
+  const photos = useMemo(() => pages.filter((file) => !/pdf/i.test(file.type) && !/\.pdf$/i.test(file.name)), [pages]);
+  const [tab, setTab] = useState<"photos" | "text">(photos.length ? "photos" : "text");
+  const [wide, setWide] = useState(false);
+  const onPhotos = tab === "photos" && photos.length > 0;
+  const { found, looking } = useLineOnPhoto(photos, target, visible && onPhotos);
+  useEffect(() => () => stopPageLineReader(), []);
+  // A new item to look at shows the photos again, where the paper itself can be checked.
+  useEffect(() => {
+    if (target && photos.length) setTab("photos");
+  }, [target, photos.length]);
+
+  const page = found?.page ?? (target?.page && target.page <= photos.length ? target.page : null);
+  const status = !target
+    ? null
+    : !onPhotos
+      ? null
+      : looking
+        ? "Finding the line on the photo"
+        : found?.box
+          ? `Marked on page ${found.page}.`
+          : page
+            ? `We could not mark it on the photo. Look for it on page ${page}.`
+            : "We could not mark it on the photo. Look for it on the pages below.";
+
   return (
-    <>
-      {photos.length ? (
-        <div role="tablist" aria-label="Original summary" className="sticky top-0 z-10 flex gap-1.5 border-b border-border-200 bg-white px-4 py-2">
-          {(["photos", "text"] as const).map((key) => (
-            <button
-              key={key}
-              type="button"
-              role="tab"
-              aria-selected={tab === key}
-              onClick={() => setTab(key)}
-              className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-[14px] font-semibold ${
-                tab === key ? "border-primary-700 bg-primary-700 text-white" : "border-border-200 bg-white text-ink-900"
-              }`}
-            >
-              {key === "photos" ? <Images className="size-4" aria-hidden="true" /> : <FileText className="size-4" aria-hidden="true" />}
-              {key === "photos" ? "Photos" : "What was read"}
-            </button>
-          ))}
+    <div>
+      <div className={`sticky z-10 border-b border-border-200 bg-white ${stickyClass}`}>
+        <div className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5">
+          <h2 id={headingId} className="flex items-center gap-2 font-semibold text-primary-700">
+            <FileText size={20} aria-hidden="true" /> Original summary
+          </h2>
+          {photos.length ? (
+            <div className="flex items-center gap-1.5">
+              <div role="tablist" aria-label="How to show the original" className="flex gap-1.5">
+                {(["photos", "text"] as const).map((key) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={tab === key}
+                    onClick={() => setTab(key)}
+                    className={`inline-flex min-h-10 items-center gap-1.5 rounded-full border px-3.5 text-[14px] font-semibold ${
+                      tab === key ? "border-primary-700 bg-primary-700 text-white" : "border-border-200 bg-white text-ink-900"
+                    }`}
+                  >
+                    {key === "photos" ? <Images className="size-4" aria-hidden="true" /> : <FileText className="size-4" aria-hidden="true" />}
+                    {key === "photos" ? "Photos" : "What was read"}
+                  </button>
+                ))}
+              </div>
+              {onPhotos ? (
+                <button
+                  type="button"
+                  onClick={() => setWide(!wide)}
+                  aria-pressed={wide}
+                  className="inline-flex min-h-10 items-center gap-1.5 rounded-full border border-border-200 bg-white px-3 text-[14px] font-semibold text-ink-900"
+                >
+                  {wide ? <ZoomOut className="size-4" aria-hidden="true" /> : <ZoomIn className="size-4" aria-hidden="true" />}
+                  {wide ? "Smaller" : "Bigger"}
+                </button>
+              ) : null}
+            </div>
+          ) : null}
         </div>
-      ) : null}
+        {target ? (
+          <div className="flex items-start gap-2 border-t border-med/30 bg-med-bg px-4 py-2.5">
+            <p className="min-w-0 flex-1 text-[15px] text-ink-900">
+              <span className="block text-[12px] font-bold tracking-[0.06em] text-med-ink uppercase">Look for this line{page ? ` · page ${page}` : ""}</span>
+              <span className="block font-medium break-words">{target.quote}</span>
+              {status ? (
+                <span role="status" className="mt-0.5 flex items-center gap-1.5 text-[13px] text-ink-500">
+                  {looking ? <Loader2 className="size-3.5 animate-spin" aria-hidden="true" /> : null}
+                  {status}
+                </span>
+              ) : null}
+            </p>
+            <button type="button" onClick={onClear} className="inline-flex size-10 shrink-0 items-center justify-center rounded-lg text-med-ink hover:bg-white/60" aria-label="Stop marking this line">
+              <X size={20} aria-hidden="true" />
+            </button>
+          </div>
+        ) : null}
+      </div>
       <div className="px-4 py-3">
-        {tab === "photos" && photos.length ? (
+        {onPhotos ? (
           <div className="space-y-3">
             {photos.map((file, i) => (
-              <PagePhoto key={`${file.name}-${i}`} file={file} n={i + 1} of={photos.length} />
+              <PagePhoto
+                key={`${file.name}-${i}`}
+                file={file}
+                n={i + 1}
+                of={photos.length}
+                wide={wide}
+                active={!!target && page === i + 1}
+                box={found?.box && found.page === i + 1 ? found.box : null}
+              />
             ))}
           </div>
         ) : (
-          <SourceText source={source} query={query} />
+          <SourceText source={source} query={target?.quote ?? ""} />
         )}
       </div>
-    </>
-  );
-}
-
-/** Desktop right rail with the original summary: the photos and the text read from them. */
-export function SourceRail({ source, query, pages = [] }: { source: string; query: string; pages?: File[] }) {
-  return (
-    <aside aria-labelledby="source-title" className="sticky top-20 hidden max-h-[calc(100dvh-7rem)] w-[380px] shrink-0 flex-col rounded-2xl border border-border-200 bg-white lg:flex">
-      <h2 id="source-title" className="flex items-center gap-2 border-b border-border-200 px-4 py-3 font-semibold text-primary-700">
-        <FileText size={20} aria-hidden="true" /> Original summary
-      </h2>
-      <div className="overflow-y-auto" tabIndex={0} role="region" aria-label="Original summary">
-        <SourceBody source={source} query={query} pages={pages} />
-      </div>
-    </aside>
-  );
-}
-
-/** Mobile bottom sheet with the original summary. */
-export function SourceSheet({ open, onClose, source, query, pages = [] }: { open: boolean; onClose: () => void; source: string; query: string; pages?: File[] }) {
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open && !d.open) d.showModal();
-    if (!open && d.open) d.close();
-  }, [open]);
-  return (
-    <dialog
-      ref={ref}
-      onClose={onClose}
-      onClick={(e) => {
-        if (e.target === ref.current) onClose();
-      }}
-      aria-labelledby="sheet-title"
-      className="m-0 mt-auto max-h-[88dvh] w-full max-w-none rounded-t-2xl bg-white p-0 backdrop:bg-ink-900/40 lg:hidden"
-    >
-      <div className="flex items-center justify-between border-b border-border-200 px-4 py-3">
-        <h2 id="sheet-title" className="flex items-center gap-2 font-semibold text-primary-700">
-          <FileText size={20} aria-hidden="true" /> Original summary
-        </h2>
-        <button type="button" onClick={onClose} className="inline-flex size-11 items-center justify-center rounded-lg text-ink-500 hover:bg-surface-50" aria-label="Close original summary">
-          <X size={22} aria-hidden="true" />
-        </button>
-      </div>
-      <div className="max-h-[calc(88dvh-3.5rem)] overflow-y-auto" tabIndex={0} role="region" aria-label="Original summary">
-        {open ? <SourceBody source={source} query={query} pages={pages} /> : null}
-      </div>
-    </dialog>
+    </div>
   );
 }

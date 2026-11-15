@@ -272,7 +272,7 @@ export function HandoffDocument({
           {p.otherNotes.length ? (
             <section aria-labelledby="h-notes" className="print-plain rounded-2xl border border-border-200 bg-white p-5">
               <SectionHeading id="h-notes" icon={<NotebookPen size={20} />}>
-                Other notes
+                Good to know
               </SectionHeading>
               <ul className="mt-2 list-disc space-y-1 pl-6 text-ink-900/90">
                 {p.otherNotes.map((n, i) => (

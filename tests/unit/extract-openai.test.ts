@@ -40,7 +40,7 @@ function answer(overrides: Partial<OpenAiDraft> = {}): OpenAiDraft {
     ],
     watchFor: ["Fainting"],
     questions: [],
-    otherNotes: [],
+    goodToKnow: [],
     ...overrides,
   };
 }

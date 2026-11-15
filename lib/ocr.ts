@@ -3,6 +3,7 @@
  * Client-side OCR with Tesseract.js. Photos never leave the browser; only the
  * recognized text is sent to /api/extract. HEIC photos are converted first.
  */
+import type { PageLine } from "./find-line";
 
 export interface OcrProgress {
   /** 0..1 across all pages */
@@ -71,4 +72,55 @@ export async function ocrImages(files: File[], onProgress: (p: OcrProgress) => v
   } finally {
     await worker.terminate();
   }
+}
+
+/**
+ * The lines of one page photo with where each sits on the page, read on this device. Used by the
+ * review screen to mark the line an item came from (lib/find-line.ts); nothing is sent anywhere.
+ * One reader is shared and each photo is read once. Resolves to no lines when the photo cannot be read.
+ */
+type LineReader = Awaited<ReturnType<typeof import("tesseract.js").createWorker>>;
+let lineReader: Promise<LineReader> | null = null;
+let lineQueue: Promise<unknown> = Promise.resolve();
+const pageLines = new WeakMap<File, Promise<PageLine[]>>();
+
+export function readPageLines(file: File): Promise<PageLine[]> {
+  let lines = pageLines.get(file);
+  if (!lines) {
+    // One page at a time: the reader does one job at once, and a phone has little to spare.
+    lines = lineQueue.then(() => readLines(file)).catch(() => []);
+    lineQueue = lines;
+    pageLines.set(file, lines);
+  }
+  return lines;
+}
+
+async function readLines(file: File): Promise<PageLine[]> {
+  const img = await prepare(await toImageBlob(file));
+  const bitmap = await createImageBitmap(img);
+  const { width, height } = bitmap;
+  bitmap.close();
+  if (!width || !height) return [];
+  lineReader ??= import("tesseract.js").then(({ createWorker }) => createWorker("eng"));
+  const worker = await lineReader;
+  const { data } = await worker.recognize(img, {}, { text: false, blocks: true });
+  const lines: PageLine[] = [];
+  for (const block of data.blocks ?? []) {
+    for (const paragraph of block.paragraphs) {
+      for (const line of paragraph.lines) {
+        const text = line.text.trim();
+        if (!text) continue;
+        lines.push({ text, x0: line.bbox.x0 / width, y0: line.bbox.y0 / height, x1: line.bbox.x1 / width, y1: line.bbox.y1 / height });
+      }
+    }
+  }
+  return lines;
+}
+
+/** Lets go of the shared reader when the review screen closes. */
+export function stopPageLineReader() {
+  const reader = lineReader;
+  lineReader = null;
+  lineQueue = Promise.resolve();
+  void reader?.then((worker) => worker.terminate()).catch(() => undefined);
 }
