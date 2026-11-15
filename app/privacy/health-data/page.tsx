@@ -5,7 +5,7 @@ import { PRIVACY_EMAIL } from "@/lib/contact";
 
 export const metadata: Metadata = { title: "Health data notice" };
 
-const EFFECTIVE = "November 13, 2026";
+const EFFECTIVE = "November 15, 2026";
 
 /**
  * Consumer health data privacy notice, for Washington's My Health My Data Act and the similar laws in
@@ -61,7 +61,7 @@ export default function HealthDataPage() {
             </li>
             <li>
               If you choose to add the calendar link to Google Calendar, Apple Calendar or Outlook: that company, which receives
-              appointments and reminders (not medicines).
+              appointments, reminders and, unless you leave them out, medicine names, strengths and times, and keeps its own copy.
             </li>
             <li>No one else, unless the law requires it. We do not sell health information.</li>
           </ul>

@@ -1,15 +1,34 @@
 "use client";
 
-import { Check, Copy, Link2, Power } from "lucide-react";
+import { Check, Copy, Link2, Pill, Power } from "lucide-react";
 import { useState, useTransition } from "react";
-import { startFeedAction, stopFeedAction } from "@/app/actions/calendar-feed";
+import { setFeedMedicinesAction, startFeedAction, stopFeedAction } from "@/app/actions/calendar-feed";
 import { subscribeLinks } from "@/lib/ics";
 
 const big = "flex min-h-14 w-full items-center gap-3 rounded-xl border-2 px-4 text-left text-[16px] font-bold transition-colors";
 
-/** One-tap ways to add the circle's calendar to Google, Apple or Outlook, and to replace or turn off the link. */
-export function CalendarLink({ circleId, personName, initialUrl }: { circleId: string; personName: string; initialUrl: string | null }) {
+/** What the calendar company receives when medicines are on. The privacy page says the same. */
+const MEDICINES_SHARED =
+  "With medicines on, Google, Apple or Microsoft receive each medicine's name, strength and times, and keep their own copy under their own privacy terms.";
+
+/**
+ * One-tap ways to add the circle's calendar to Google, Apple or Outlook, a switch for medicine
+ * times, and ways to replace or turn off the link.
+ */
+export function CalendarLink({
+  circleId,
+  personName,
+  initialUrl,
+  initialIncludeMedicines,
+}: {
+  circleId: string;
+  personName: string;
+  initialUrl: string | null;
+  initialIncludeMedicines: boolean;
+}) {
   const [url, setUrl] = useState(initialUrl);
+  const [meds, setMeds] = useState(initialIncludeMedicines);
+  const [medsPending, startMeds] = useTransition();
   const [copied, setCopied] = useState(false);
   const [confirm, setConfirm] = useState<"new" | "off" | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -24,7 +43,18 @@ export function CalendarLink({ circleId, personName, initialUrl }: { circleId: s
       else {
         setError(null);
         setUrl(result.url);
+        setMeds(result.includeMedicines);
         setCopied(false);
+      }
+    });
+  const switchMeds = () =>
+    startMeds(async () => {
+      const next = !meds;
+      const result = await setFeedMedicinesAction({ circleId, include: next });
+      if (!result.ok) setError(result.error);
+      else {
+        setError(null);
+        setMeds(next);
       }
     });
   const turnOff = () =>
@@ -42,9 +72,10 @@ export function CalendarLink({ circleId, personName, initialUrl }: { circleId: s
     return (
       <div className="max-w-xl space-y-4">
         <p className="text-[15px] text-ink-900">
-          Turn on a private link, then add it to the calendar app you already use. Appointments and reminders from this circle show up
-          there and stay up to date. Medicines are left out.
+          Turn on a private link, then add it to the calendar app you already use. Appointments, reminders and medicine times from this
+          circle show up there and stay up to date.
         </p>
+        <p className="text-[14px] text-ink-500">Medicines are on to start with. Once the link is on, you can leave them out before you add it to a calendar.</p>
         {error ? (
           <p role="alert" className="rounded-lg bg-attn-bg px-3 py-2 text-[14px] text-attn-ink">
             {error}
@@ -60,6 +91,35 @@ export function CalendarLink({ circleId, personName, initialUrl }: { circleId: s
   const links = subscribeLinks(url, name);
   return (
     <div className="max-w-xl space-y-5">
+      <section aria-labelledby="meds-title" className="space-y-2 rounded-xl border border-border-200 bg-white p-4">
+        <h2 id="meds-title" className="font-display text-[20px] text-primary-900">
+          Medicines
+        </h2>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={meds}
+          disabled={medsPending}
+          onClick={switchMeds}
+          className="flex min-h-14 w-full items-center gap-3 rounded-xl border-2 border-border-200 px-4 text-left hover:bg-paper-100 disabled:opacity-60"
+        >
+          <Pill className="size-6 shrink-0 text-primary-700" aria-hidden="true" />
+          <span className="flex-1">
+            <span className="block text-[16px] font-bold text-ink-900">Put medicine times in the calendar</span>
+            <span className="block text-[13px] text-ink-500">
+              {medsPending ? "Saving" : meds ? "On: each medicine shows at the times it is taken" : "Off: only appointments and reminders"}
+            </span>
+          </span>
+          <span
+            aria-hidden="true"
+            className={`relative inline-flex h-8 w-14 shrink-0 items-center rounded-full transition-colors ${meds ? "bg-primary-700" : "bg-border-200"}`}
+          >
+            <span className={`inline-block size-6 rounded-full bg-white shadow transition-transform ${meds ? "translate-x-7" : "translate-x-1"}`} />
+          </span>
+        </button>
+        <p className="text-[14px] text-ink-900">{MEDICINES_SHARED}</p>
+      </section>
+
       <section aria-labelledby="add-title" className="space-y-2.5">
         <h2 id="add-title" className="font-display text-[20px] text-primary-900">
           Pick your calendar app
@@ -102,11 +162,37 @@ export function CalendarLink({ circleId, personName, initialUrl }: { circleId: s
       <div className="rounded-lg border border-sky-100 bg-sky-100/60 px-4 py-3 text-[14px] text-primary-900">
         <p className="font-semibold">Good to know</p>
         <ul className="mt-1 list-disc space-y-0.5 pl-5">
-          <li>Changes reach Apple Calendar within about an hour. Google Calendar can take up to a day.</li>
-          <li>Anyone with this link can see the appointments and reminders, so only add it to your own calendar.</li>
+          <li>Anyone with this link can see what is in it, so only add it to your own calendar.</li>
           <li>Once added, Google, Apple or Microsoft keep a copy under their own privacy terms.</li>
+          <li>The Calendar page here always shows the latest.</li>
         </ul>
       </div>
+
+      <section aria-labelledby="soon-title" className="space-y-2">
+        <h2 id="soon-title" className="font-display text-[20px] text-primary-900">
+          How soon changes show
+        </h2>
+        <p className="text-[14px] text-ink-500">
+          Your calendar app checks the link on its own schedule. A change made here, like a new time or a stopped medicine, shows there after
+          its next check.
+        </p>
+        <dl className="divide-y divide-border-200 rounded-lg border border-border-200 bg-white text-[14px]">
+          <div className="px-4 py-3">
+            <dt className="font-semibold text-ink-900">Google Calendar</dt>
+            <dd className="text-ink-900">Usually within 12 hours, sometimes up to a day. It cannot be hurried.</dd>
+          </div>
+          <div className="px-4 py-3">
+            <dt className="font-semibold text-ink-900">Apple Calendar</dt>
+            <dd className="text-ink-900">
+              Usually within an hour. On a Mac, you pick how often when you subscribe: Every 15 minutes or Every hour works well.
+            </dd>
+          </div>
+          <div className="px-4 py-3">
+            <dt className="font-semibold text-ink-900">Outlook</dt>
+            <dd className="text-ink-900">Usually within a few hours, sometimes up to a day.</dd>
+          </div>
+        </dl>
+      </section>
 
       {error ? (
         <p role="alert" className="rounded-lg bg-attn-bg px-3 py-2 text-[14px] text-attn-ink">
@@ -119,7 +205,7 @@ export function CalendarLink({ circleId, personName, initialUrl }: { circleId: s
           <p className="text-[15px] text-ink-900">
             {confirm === "new"
               ? "The link you have now stops working, everywhere it was added. You then add the new one again. Make a new link?"
-              : "The link stops working, and the appointments disappear from calendars it was added to at their next update. Turn it off?"}
+              : "The link stops working, and everything from it disappears from calendars it was added to at their next update. Turn it off?"}
           </p>
           <div className="flex flex-wrap gap-2">
             <button
