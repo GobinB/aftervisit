@@ -1,6 +1,5 @@
 import { randomBytes, randomUUID } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { createServerClient } from "@supabase/ssr";
 import { expect, test, type APIRequestContext, type BrowserContext } from "@playwright/test";
 
 // Medicines in the calendar link. The calendar file is checked through its real address with a
@@ -71,14 +70,21 @@ async function addFeed(request: APIRequestContext, s: Seeded, includeMedicines?:
  * (only they can add themselves). False when that stack has email sign-in off.
  */
 async function signIn(context: BrowserContext, request: APIRequestContext, s: Seeded): Promise<boolean> {
-  let captured: { name: string; value: string }[] = [];
-  const client = createServerClient(API, ANON, { cookies: { getAll: () => [], setAll: (list) => void (captured = list) } });
-  const { data, error } = await client.auth.signInWithPassword({ email: s.email, password: s.password });
-  if (error || !data.session) return false;
-  const own = { apikey: ANON, authorization: `Bearer ${data.session.access_token}`, "content-type": "application/json" };
+  const token = await request.post(`${API}/auth/v1/token?grant_type=password`, {
+    headers: { apikey: ANON, "content-type": "application/json" },
+    data: { email: s.email, password: s.password },
+  });
+  if (!token.ok()) return false;
+  const session = await token.json();
+  // The session cookie as the app's Supabase client writes it: "base64-" and the session as
+  // base64url JSON, in pieces of 3180 characters named .0, .1, … when it is longer.
+  const name = `sb-${new URL(API).hostname.split(".")[0]}-auth-token`;
+  const value = `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`;
+  const pieces = value.length <= 3180 ? [[name, value]] : (value.match(/.{1,3180}/g) ?? []).map((part, i) => [`${name}.${i}`, part]);
+  await context.addCookies(pieces.map(([n, v]) => ({ name: n, value: v, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" as const })));
+  const own = { apikey: ANON, authorization: `Bearer ${session.access_token}`, "content-type": "application/json" };
   const row = await request.post(`${API}/rest/v1/circle_caregivers`, { headers: own, data: { circle_id: s.circleId, user_id: s.userId, role: "owner" } });
   expect(row.ok(), await row.text()).toBe(true);
-  await context.addCookies(captured.filter((c) => c.value).map((c) => ({ name: c.name, value: c.value, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" as const })));
   return true;
 }
 
