@@ -1,4 +1,4 @@
-// The database after migrations 0001-0021, as the Supabase CLI writes it. Regenerate with:
+// The database after migrations 0001-0022, as the Supabase CLI writes it. Regenerate with:
 // supabase gen types typescript --local > store/types.gen.ts
 export type Json =
   | string
@@ -109,6 +109,7 @@ export type Database = {
           circle_key_wrapped: string | null
           created_at: string
           key_version: number
+          phone: string | null
           role: string
           user_id: string
         }
@@ -117,6 +118,7 @@ export type Database = {
           circle_key_wrapped?: string | null
           created_at?: string
           key_version?: number
+          phone?: string | null
           role: string
           user_id: string
         }
@@ -125,6 +127,7 @@ export type Database = {
           circle_key_wrapped?: string | null
           created_at?: string
           key_version?: number
+          phone?: string | null
           role?: string
           user_id?: string
         }
@@ -719,6 +722,7 @@ export type Database = {
           lock_count: number
           locked_until: string | null
           name: string
+          phone: string | null
           pin_failures: number
           pin_hash: string | null
           revoked_at: string | null
@@ -740,6 +744,7 @@ export type Database = {
           lock_count?: number
           locked_until?: string | null
           name: string
+          phone?: string | null
           pin_failures?: number
           pin_hash?: string | null
           revoked_at?: string | null
@@ -761,6 +766,7 @@ export type Database = {
           lock_count?: number
           locked_until?: string | null
           name?: string
+          phone?: string | null
           pin_failures?: number
           pin_hash?: string | null
           revoked_at?: string | null

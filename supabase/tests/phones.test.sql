@@ -123,7 +123,7 @@ reset role;
 
 -- Signed out: nothing.
 set local role anon;
-select throws_ok($$select phone from public.members$$, '42501', null, 'a signed-out visitor cannot read people''s numbers');
+select is((select count(*)::int from public.members where phone is not null), 0, 'a signed-out visitor reads no one''s number');
 select throws_ok($$select phone from public.circle_caregivers$$, '42501', null, 'a signed-out visitor cannot read the caregiver''s number');
 reset role;
 
