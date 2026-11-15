@@ -609,13 +609,13 @@ test("scan page from a circle: Done waits for the circle, and a circle that cann
   await expect(page.getByLabel("Your first name")).toBeHidden();
   release();
   // Nobody is signed in here, so the circle cannot be opened: the page says so, and Done stays off.
-  await expect(page.getByRole("alert")).toContainText("This circle could not be opened");
+  await expect(page.getByRole("alert").filter({ hasText: "This circle could not be opened" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Done: read 1 page" })).toBeDisabled();
   await expect(page.getByLabel("Your first name")).toBeHidden();
 
   // A malformed circle in the address fails at once.
   await page.goto("/new?circle=not-a-circle");
-  await expect(page.getByRole("alert")).toContainText("This circle could not be opened");
+  await expect(page.getByRole("alert").filter({ hasText: "This circle could not be opened" })).toBeVisible();
   // With no circle at all, it is the stand-alone handoff, as before.
   await page.goto("/new");
   await page.locator('input[type="file"][multiple]').setInputFiles(png);

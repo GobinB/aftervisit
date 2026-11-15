@@ -3,41 +3,53 @@ import { loadEnvConfig } from "@next/env";
 import { expect, test, type Page } from "@playwright/test";
 
 /**
- * The Emergency page and phone numbers, opened through people's own links. A fictional circle is
- * written straight into the test database (the same one the app under test uses, from .env.local),
- * and each person's link is worked out the way the app does it. Skipped when that database is not
- * set up here. Everything is removed afterwards.
+ * The Emergency page and phone numbers, opened through people's own links. A fictional caregiver
+ * signs in with a password on the test database (the one the app under test uses, from .env.local)
+ * and makes a circle the way the app does; the people are written in with their links worked out
+ * the way the app does it. Skipped when that database is not set up here, or has password sign-in
+ * off. The circle is deleted afterwards.
  */
 loadEnvConfig(process.cwd());
 const URL_ = process.env.SUPABASE_URL ?? "";
+const ANON = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY ?? "";
 const HELPER_SECRET = process.env.HELPER_SESSION_SECRET ?? "";
 const SALT = process.env.IP_HASH_SALT ?? "";
-const ready = Boolean(URL_ && SERVICE && HELPER_SECRET);
+const ready = Boolean(URL_ && ANON && SERVICE && HELPER_SECRET);
 
 const tokenFor = (memberId: string) => createHmac("sha256", HELPER_SECRET).update(`ahc-member-link:${memberId}:1`).digest("base64url").slice(0, 24);
 const hashOf = (token: string) => createHash("sha256").update([SALT, "invite", token].join(":")).digest("hex");
 
-/** The test database's REST and admin endpoints, with the service key. */
-async function rest(path: string, init: RequestInit = {}) {
+/** The test database's REST, RPC and auth endpoints: as the service, or as the signed-in caregiver. */
+async function rest(path: string, init: RequestInit = {}, bearer = SERVICE) {
   const res = await fetch(`${URL_}${path}`, {
     ...init,
-    headers: { apikey: SERVICE, Authorization: `Bearer ${SERVICE}`, "content-type": "application/json", Prefer: "return=representation", ...(init.headers ?? {}) },
+    headers: {
+      apikey: bearer === SERVICE ? SERVICE : ANON,
+      Authorization: `Bearer ${bearer}`,
+      "content-type": "application/json",
+      Prefer: "return=representation",
+      ...(init.headers ?? {}),
+    },
   });
   if (!res.ok) throw new Error(`${init.method ?? "GET"} ${path}: ${res.status} ${await res.text()}`);
   const text = await res.text();
   return text ? JSON.parse(text) : null;
 }
 
-type Seeded = { circleId: string; ownerId: string; links: Record<"family" | "aide" | "hidden", string> };
+type Seeded = { circleId: string; ownerToken: string; links: Record<"family" | "aide" | "hidden", string> };
 
-async function seed(): Promise<Seeded> {
-  const user = await rest("/auth/v1/admin/users", {
+async function seed(): Promise<Seeded | null> {
+  const email = `emergency.${randomUUID()}@example.com`;
+  const password = randomUUID();
+  await rest("/auth/v1/admin/users", { method: "POST", body: JSON.stringify({ email, password, email_confirm: true, user_metadata: { name: "Lena Ortiz" } }) });
+  const signIn = await fetch(`${URL_}/auth/v1/token?grant_type=password`, {
     method: "POST",
-    body: JSON.stringify({ email: `emergency.${randomUUID()}@example.com`, email_confirm: true, user_metadata: { name: "Lena Ortiz" } }),
+    headers: { apikey: ANON, "content-type": "application/json" },
+    body: JSON.stringify({ email, password }),
   });
-  const ownerId = user.id as string;
-  const circleId = randomUUID();
+  if (!signIn.ok) return null;
+  const ownerToken = (await signIn.json()).access_token as string;
   const content = {
     person_name: "Teodora Ruiz",
     allergies: ["Penicillin", "Shellfish"],
@@ -47,8 +59,10 @@ async function seed(): Promise<Seeded> {
       { name: "Sunny Hills Clinic", relationship: "After-hours line" },
     ],
   };
-  await rest("/rest/v1/circles", { method: "POST", body: JSON.stringify({ id: circleId, owner_id: ownerId, content }) });
-  // No caregiver row: only the caregiver can write one (create_circle). The signed-in walk covers the caregiver's number.
+  const consents = ["authorized_to_share", "terms", "privacy"].map((type) => ({ type, version: "2026-11-03", text_hash: createHash("sha256").update(type).digest("hex") }));
+  const circleId = (await rest("/rest/v1/rpc/create_circle", { method: "POST", body: JSON.stringify({ p_content: content, p_consents: consents }) }, ownerToken)) as string;
+  // The caregiver's own number, set as they would set it.
+  await rest(`/rest/v1/circle_caregivers?circle_id=eq.${circleId}`, { method: "PATCH", body: JSON.stringify({ phone: "555-010-0100" }) }, ownerToken);
   const now = new Date();
   const later = new Date(now.getTime() + 30 * 86_400_000).toISOString();
   const ids = { family: randomUUID(), aide: randomUUID(), hidden: randomUUID(), noPhone: randomUUID() };
@@ -66,7 +80,7 @@ async function seed(): Promise<Seeded> {
     expires_at: later,
   }));
   await rest("/rest/v1/members", { method: "POST", body: JSON.stringify(rows) });
-  return { circleId, ownerId, links: { family: tokenFor(ids.family), aide: tokenFor(ids.aide), hidden: tokenFor(ids.hidden) } };
+  return { circleId, ownerToken, links: { family: tokenFor(ids.family), aide: tokenFor(ids.aide), hidden: tokenFor(ids.hidden) } };
 }
 
 async function openLink(page: Page, token: string, circleId: string) {
@@ -77,15 +91,21 @@ async function openLink(page: Page, token: string, circleId: string) {
 test.describe("Emergency page and phone numbers, through people's links", () => {
   test.skip(!ready, "needs the test database from .env.local");
   let seeded: Seeded;
+  let skip = "";
 
   test.beforeAll(async () => {
-    seeded = await seed();
+    const made = await seed();
+    if (made) seeded = made;
+    else skip = "password sign-in is off on this test database";
+  });
+
+  test.beforeEach(() => {
+    test.skip(Boolean(skip), skip);
   });
 
   test.afterAll(async () => {
-    if (!seeded) return;
-    await rest(`/rest/v1/circles?id=eq.${seeded.circleId}`, { method: "DELETE" });
-    await rest(`/auth/v1/admin/users/${seeded.ownerId}`, { method: "DELETE" });
+    // Deleted the way the caregiver deletes a circle; the daily cleanup erases it.
+    if (seeded) await rest("/rest/v1/rpc/delete_circle", { method: "POST", body: JSON.stringify({ p_circle: seeded.circleId }) }, seeded.ownerToken);
   });
 
   test("family: contacts first, then people with numbers, then allergies; big call buttons; their own number", async ({ page }, info) => {
@@ -109,6 +129,8 @@ test.describe("Emergency page and phone numbers, through people's links", () => 
     await expect(contacts.getByText("No number written down")).toBeVisible();
 
     const people = page.getByRole("region", { name: "People in the circle" });
+    // The caregiver first.
+    await expect(people.getByRole("link").first()).toHaveAccessibleName("Call Lena Ortiz, 555-010-0100");
     await expect(people.getByRole("link", { name: "Call Joy Banda, 555-010-0188" })).toHaveAttribute("href", "tel:5550100188");
     // Nobody without a number, and nobody is offered a call to themselves.
     await expect(people.getByText("Ivy Chen")).toHaveCount(0);
@@ -119,7 +141,7 @@ test.describe("Emergency page and phone numbers, through people's links", () => 
     const own = page.getByLabel(/Your number/);
     await own.fill("12");
     await page.getByRole("button", { name: "Save number" }).click();
-    await expect(page.getByRole("alert")).toContainText("Enter a phone number");
+    await expect(page.getByRole("alert").filter({ hasText: "Enter a phone number" })).toBeVisible();
     await own.fill("555-010-0166");
     await page.getByRole("button", { name: "Save number" }).click();
     await expect(page.getByText("Number saved.")).toBeVisible();
@@ -128,6 +150,9 @@ test.describe("Emergency page and phone numbers, through people's links", () => 
     await own.fill("");
     await page.getByRole("button", { name: "Remove number" }).click();
     await expect(page.getByText("Number removed.")).toBeVisible();
+    // Saving refreshes the page in the background; let it finish before moving on.
+    await expect(page.getByRole("button", { name: "Save number" })).toBeDisabled();
+    await page.waitForTimeout(500);
 
     // The People list calls too.
     await page.goto(`/circles/${seeded.circleId}/members`);
@@ -145,6 +170,7 @@ test.describe("Emergency page and phone numbers, through people's links", () => 
     await expect(page.getByRole("region", { name: "Emergency contacts" }).getByRole("link", { name: /Call Marco Ruiz/ })).toBeVisible();
     await expect(page.getByRole("region", { name: "Allergies" }).getByText("Shellfish")).toBeVisible();
     // People: a home aide sees only the caregiver on the list, never the other people or their numbers.
+    await expect(page.getByRole("link", { name: "Call Lena Ortiz, 555-010-0100" })).toBeVisible();
     await expect(page.getByText("555-010-0199")).toHaveCount(0);
     await expect(page.getByText("Paul Ruiz")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Your phone number" })).toBeVisible();
