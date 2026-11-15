@@ -1,4 +1,4 @@
-// The database after migrations 0001-0019, as the Supabase CLI writes it. Regenerate with:
+// The database after migrations 0001-0021, as the Supabase CLI writes it. Regenerate with:
 // supabase gen types typescript --local > store/types.gen.ts
 export type Json =
   | string
@@ -877,6 +877,7 @@ export type Database = {
           page_count: number
           paths: string[]
           visit_date: string | null
+          visit_id: string | null
         }
         Insert: {
           circle_id: string
@@ -891,6 +892,7 @@ export type Database = {
           page_count?: number
           paths?: string[]
           visit_date?: string | null
+          visit_id?: string | null
         }
         Update: {
           circle_id?: string
@@ -905,10 +907,56 @@ export type Database = {
           page_count?: number
           paths?: string[]
           visit_date?: string | null
+          visit_id?: string | null
         }
         Relationships: [
           {
             foreignKeyName: "visit_documents_circle_id_fkey"
+            columns: ["circle_id"]
+            isOneToOne: false
+            referencedRelation: "circles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "visit_documents_visit_id_fkey"
+            columns: ["visit_id"]
+            isOneToOne: false
+            referencedRelation: "visits"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      visits: {
+        Row: {
+          circle_id: string
+          content: Json
+          created_at: string
+          created_by: string
+          id: string
+          updated_at: string
+          visit_date: string | null
+        }
+        Insert: {
+          circle_id: string
+          content?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          updated_at?: string
+          visit_date?: string | null
+        }
+        Update: {
+          circle_id?: string
+          content?: Json
+          created_at?: string
+          created_by?: string
+          id?: string
+          updated_at?: string
+          visit_date?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "visits_circle_id_fkey"
             columns: ["circle_id"]
             isOneToOne: false
             referencedRelation: "circles"
@@ -923,6 +971,10 @@ export type Database = {
     Functions: {
       ack_recipient: { Args: { p_recipient: string }; Returns: boolean }
       add_ack: { Args: { p_name: string; p_token: string }; Returns: number }
+      check_daily_limit: {
+        Args: { p_bucket: string; p_ip_hash: string; p_limit: number }
+        Returns: boolean
+      }
       check_rate_limit: {
         Args: { p_bucket: string; p_ip_hash: string; p_limit: number }
         Returns: boolean
