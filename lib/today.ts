@@ -75,10 +75,25 @@ export function buildFeed(rows: ActivityRow[], people: PersonView[], limit = 8, 
   return items.sort((a, b) => b.at.localeCompare(a.at)).slice(0, limit);
 }
 
+export type TodayAction = { key: "scan" | "add-med" | "add-reminder"; label: string; detail: string; href: string };
+
 /**
- * The four cards at the top of the caregiver's Today screen: scanning a visit summary first, as the
- * main way in, then medications, reminders and allergies. Each card opens its page, or the form
- * to add the first entry when there is none yet.
+ * The three ways to put something into the circle, at the very top of the caregiver's Today screen:
+ * scan a visit summary, or add a medication or a reminder by hand. All three are the same size, so
+ * the circle is as easy to use with no scan at all.
+ */
+export function buildTodayActions(circleId: string): TodayAction[] {
+  const base = `/circles/${circleId}`;
+  return [
+    { key: "scan", label: "Scan after-visit summary", detail: "Take photos of the pages", href: `/new?circle=${circleId}` },
+    { key: "add-med", label: "Add a medication", detail: "Type it in, no scan needed", href: `${base}/medications/new` },
+    { key: "add-reminder", label: "Add a reminder", detail: "Something to do, and who does it", href: `${base}/todos?add=1` },
+  ];
+}
+
+/**
+ * The number cards under the actions on the caregiver's Today screen: medications, reminders and
+ * allergies. Each card opens its page, or the form to add the first entry when there is none yet.
  */
 export function buildTodayCards(
   circleId: string,
@@ -92,7 +107,6 @@ export function buildTodayCards(
   const volunteer = open.filter((todo) => !todo.assignee).length;
   const allergies = content?.allergies ?? [];
   return [
-    { key: "scan", label: "Scan after-visit summary", value: null, detail: "Take photos of the pages", tone: "primary", href: `/new?circle=${circleId}` },
     {
       key: "meds",
       label: "Medications",

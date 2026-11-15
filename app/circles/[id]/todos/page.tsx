@@ -21,9 +21,9 @@ const EMPTY: Record<TodoView, string> = {
   done: "Finished reminders will show here.",
 };
 
-export default async function TodosPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ show?: string }> }) {
+export default async function TodosPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ show?: string; add?: string }> }) {
   const { id } = await params;
-  const { show } = await searchParams;
+  const { show, add } = await searchParams;
   const actor = await getActor(id);
   if (!actor) redirect(`/login?next=/circles/${id}/todos`);
   const [todos, content, listed] = await Promise.all([listTodos(actor, id), getCircle(actor, id), listPeople(actor, id)]);
@@ -56,7 +56,7 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
 
       {canEdit ? (
         <div className="mb-5">
-          <TodoForm circleId={id} people={options} />
+          <TodoForm circleId={id} people={options} autoFocus={add === "1"} />
         </div>
       ) : null}
 

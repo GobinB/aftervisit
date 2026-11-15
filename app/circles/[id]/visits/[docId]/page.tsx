@@ -23,7 +23,7 @@ export default async function VisitDocumentPage({ params }: { params: Promise<{ 
   return (
     <>
       <PageHead
-        back={{ href: `/circles/${id}/visits`, label: "Saved summaries" }}
+        back={doc.visitId ? { href: `/circles/${id}/visits/notes/${doc.visitId}`, label: "Visit notes" } : { href: `/circles/${id}/visits`, label: "Visits" }}
         title={documentTitle(doc)}
         subtitle="Only you can see this."
         help="The pages as you photographed them. Tap a page to open it full size, where you can zoom in."

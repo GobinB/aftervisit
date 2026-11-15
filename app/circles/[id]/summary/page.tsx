@@ -1,4 +1,4 @@
-import { Images, Pencil } from "lucide-react";
+import { Pencil, Stethoscope } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -7,7 +7,8 @@ import { SummaryView } from "@/components/circles/SummaryView";
 import { getActor } from "@/lib/auth";
 import { getCircle } from "@/services/circles";
 import { listDocuments } from "@/services/documents";
-import { documentTitle } from "@/lib/schema/documents";
+import { listVisits } from "@/services/visits";
+import { visitLabel } from "@/lib/schema/visits";
 
 export const metadata: Metadata = { title: "Care summary", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -16,7 +17,7 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const actor = await getActor(id);
   if (!actor) redirect(`/login?next=/circles/${id}/summary`);
-  const [content, documents] = await Promise.all([getCircle(actor, id), listDocuments(actor, id, 20)]);
+  const [content, documents, visits] = await Promise.all([getCircle(actor, id), listDocuments(actor, id, 20), listVisits(actor, id, 20)]);
   if (!content) notFound();
   return (
     <>
@@ -32,29 +33,30 @@ export default async function SummaryPage({ params }: { params: Promise<{ id: st
               <Pencil className="size-4" aria-hidden="true" /> Edit care summary
             </Link>
           ) : null}
-          {documents ? (
+          {visits?.length || documents?.length ? (
             <section aria-labelledby="saved-title" className="no-print mt-8 border-t border-border-200 pt-6">
               <h2 id="saved-title" className="font-display text-[20px] text-primary-900">
-                Saved visit summaries
+                Visits
               </h2>
-              {documents.length ? (
-                <ul className="mt-2 divide-y divide-border-200">
-                  {documents.slice(0, 5).map((doc) => (
-                    <li key={doc.id}>
-                      <Link href={`/circles/${id}/visits/${doc.id}`} className="flex min-h-12 items-center gap-2 py-2 text-[15px] font-semibold text-primary-700 hover:text-primary-900">
-                        <Images className="size-5 shrink-0" aria-hidden="true" /> {documentTitle(doc)}
-                      </Link>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="mt-1 text-[14px] text-ink-500">When you scan an after-visit summary, you can keep the photos here. Only you can see them.</p>
-              )}
-              {documents.length > 5 ? (
-                <Link href={`/circles/${id}/visits`} className="mt-2 inline-flex min-h-11 items-center text-[15px] font-semibold text-primary-700">
-                  All {documents.length} saved summaries
-                </Link>
-              ) : null}
+              <ul className="mt-2 divide-y divide-border-200">
+                {(visits ?? []).slice(0, 5).map((visit) => (
+                  <li key={visit.id}>
+                    <Link href={`/circles/${id}/visits/notes/${visit.id}`} className="flex min-h-12 items-center gap-2 py-2 text-[15px] font-semibold text-primary-700 hover:text-primary-900">
+                      <Stethoscope className="size-5 shrink-0" aria-hidden="true" /> {visitLabel(visit)}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+              <Link href={`/circles/${id}/visits`} className="mt-2 inline-flex min-h-11 items-center text-[15px] font-semibold text-primary-700">
+                {documents?.length ? "All visits and saved photos" : "All visits"}
+              </Link>
+            </section>
+          ) : actor.kind === "caregiver" ? (
+            <section aria-labelledby="saved-title" className="no-print mt-8 border-t border-border-200 pt-6">
+              <h2 id="saved-title" className="font-display text-[20px] text-primary-900">
+                Visits
+              </h2>
+              <p className="mt-1 text-[14px] text-ink-500">When you scan an after-visit summary, what it says is kept here, with the photos if you choose. Only you can see the photos.</p>
             </section>
           ) : null}
         </div>
