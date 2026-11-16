@@ -1,4 +1,5 @@
 "use client";
+import { ReaderNote } from "@/components/review/ReaderNote";
 import { ArrowLeft, CalendarCheck, Eye, FileText, HelpCircle, Images, Info, Lightbulb, ListChecks, Pencil, Pill, Stethoscope } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -28,7 +29,7 @@ const isPhone = () => window.matchMedia("(max-width: 1023px)").matches;
 export default function ReviewPage() {
   const router = useRouter();
   const toast = useToast();
-  const { draft, reviewed, isSample, unsorted, recipients, updateDraft, setReviewed, circleId } = useFlow();
+  const { draft, reviewed, isSample, unsorted, recipients, updateDraft, setReviewed, circleId, reader } = useFlow();
   // The photos taken on the first step, still in this tab's memory (gone after a reload).
   const [pages] = useState(() => getOriginalPages());
   const [hydrated, setHydrated] = useState(false);
@@ -208,6 +209,7 @@ export default function ReviewPage() {
         <StepHeader current="Review" circle={Boolean(circleId)} />
         <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Review the draft</h1>
         <p className="mt-2 text-ink-500">Two steps: check the medicines, then check the rest. Nothing is saved until you finish.</p>
+        <ReaderNote reader={reader} />
       </div>
 
       {/* Phones: one at a time. The switch stays under the app bar while the page scrolls. */}

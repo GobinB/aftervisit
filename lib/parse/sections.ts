@@ -62,9 +62,17 @@ export function classifyHeading(label: string): SectionInfo | null {
   return null;
 }
 
+/**
+ * Epic and pharmacy pick-up lists: "Pick up these medications at Main Street Pharmacy - 1200 Main St".
+ * The medicines under it are new, even with no dose written. The pharmacy's name and address make the
+ * line long, so it is checked before the length limit.
+ */
+export const PICK_UP_HEADING_RE = /^(?:pick up (?:these|your) (?:medications?|medicines?|prescriptions?)|(?:new )?prescriptions? (?:were )?sent to)\b/i;
+
 /** A line that is a heading on its own (no content after it). */
 export function headingOf(line: string): SectionInfo | null {
   const t = line.trim();
+  if (PICK_UP_HEADING_RE.test(t)) return { kind: "medications", medKindHint: "new" };
   if (t.length > 70) return null;
   if (isMedGroupHeading(t)) return classifyHeading(t);
   const words = wordCount(t);

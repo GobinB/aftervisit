@@ -17,7 +17,7 @@ vi.mock("@/lib/auth", () => ({ getActor: async () => (limits.signedIn ? { kind: 
 vi.mock("@/lib/access", () => ({ json: (data: unknown, status = 200) => Response.json(data, { status }) }));
 
 const provider: { current: ExtractionProvider } = { current: null as unknown as ExtractionProvider };
-vi.mock("@/lib/extract/provider", () => ({ getProvider: async () => provider.current }));
+vi.mock("@/lib/extract/provider", () => ({ getProvider: async () => provider.current, fellBack: new WeakSet<object>() }));
 
 const { POST } = await import("@/app/api/extract/route");
 

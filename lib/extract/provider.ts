@@ -4,6 +4,12 @@ import { heuristicProvider } from "./heuristic";
 
 export type ProviderName = "heuristic" | "openai" | "gemini" | "anthropic";
 
+/**
+ * Drafts an outside reader handed back from the built-in parser after it failed, so the answer can
+ * say which reader really produced the draft (the review page tells the caregiver).
+ */
+export const fellBack = new WeakSet<object>();
+
 export interface ExtractInput {
   text: string;
   patientFirstName?: string;

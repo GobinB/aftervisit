@@ -48,6 +48,8 @@ export function stripBullet(line: string): string {
 
 /** ALL CAPS lines and Epic-style medication group headings never absorb the next line. */
 function looksLikeHeadingLine(s: string): boolean {
+  // "Pick up these medications at <pharmacy>": the medicine on the next line must stay its own line.
+  if (/^(?:pick up (?:these|your) (?:medications?|medicines?|prescriptions?)|(?:new )?prescriptions? (?:were )?sent to)\b/i.test(s.trim())) return true;
   const letters = s.replace(/[^A-Za-z]/g, "");
   if (letters.length >= 3 && letters === letters.toUpperCase()) return true;
   return isMedGroupHeading(s);
