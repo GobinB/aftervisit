@@ -40,7 +40,7 @@ export async function saveCareSummary(input: unknown) {
   if (!actor) return { ok: false as const, error: "Sign in to continue." };
   const result = await updateCircleContent(actor, parsed.data.circleId, parsed.data.content);
   if (result.ok) {
-    for (const path of ["", "/summary", "/medications"]) revalidatePath(`/circles/${parsed.data.circleId}${path}`);
+    for (const path of ["", "/summary", "/medications", "/emergency"]) revalidatePath(`/circles/${parsed.data.circleId}${path}`);
   }
   return result;
 }

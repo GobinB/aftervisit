@@ -4,6 +4,8 @@ Notable changes to All Hands Care (formerly AfterVisit). The newest entries are 
 
 ## Unreleased
 
+- On the Emergency page, "Add an emergency contact" (or "Change emergency contacts") and a new "Add allergies" (or "Change allergies") are clear buttons for the caregiver. Each opens only that part of the care summary, with a back button to Emergency, and saving returns to Emergency with the change shown. Before, the link was faint and opened the whole care summary editor, which then went to the Care summary page.
+
 - The site no longer calls All Hands Care a nonprofit (home page, link previews and the privacy page). It is free and open source; it is not a registered nonprofit.
 
 - Next.js 16 (16.4.6), with the newer React it brings. `middleware.ts` is now `proxy.ts`, as Next.js 16 names it; it does the same work. Builds use Turbopack. ESLint uses eslint-config-next's own flat config; its new React Compiler rules are off for now.

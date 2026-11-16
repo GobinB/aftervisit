@@ -37,7 +37,7 @@ async function rest(path: string, init: RequestInit = {}, bearer = SERVICE) {
   return text ? JSON.parse(text) : null;
 }
 
-type Seeded = { circleId: string; ownerToken: string; links: Record<"family" | "aide" | "hidden", string> };
+type Seeded = { circleId: string; ownerToken: string; ownerSession: Record<string, unknown>; links: Record<"family" | "aide" | "hidden", string> };
 
 async function seed(): Promise<Seeded | null> {
   const email = `emergency.${randomUUID()}@example.com`;
@@ -49,7 +49,8 @@ async function seed(): Promise<Seeded | null> {
     body: JSON.stringify({ email, password }),
   });
   if (!signIn.ok) return null;
-  const ownerToken = (await signIn.json()).access_token as string;
+  const ownerSession = (await signIn.json()) as Record<string, unknown>;
+  const ownerToken = ownerSession.access_token as string;
   const content = {
     person_name: "Teodora Ruiz",
     allergies: ["Penicillin", "Shellfish"],
@@ -80,7 +81,14 @@ async function seed(): Promise<Seeded | null> {
     expires_at: later,
   }));
   await rest("/rest/v1/members", { method: "POST", body: JSON.stringify(rows) });
-  return { circleId, ownerToken, links: { family: tokenFor(ids.family), aide: tokenFor(ids.aide), hidden: tokenFor(ids.hidden) } };
+  return { circleId, ownerToken, ownerSession, links: { family: tokenFor(ids.family), aide: tokenFor(ids.aide), hidden: tokenFor(ids.hidden) } };
+}
+
+/** Signs the browser in as the caregiver, with the session cookie the app's Supabase client writes. */
+async function signInAsCaregiver(page: Page, session: Record<string, unknown>) {
+  const name = `sb-${new URL(URL_).hostname.split(".")[0]}-auth-token`;
+  const value = `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`;
+  await page.context().addCookies([{ name, value, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }]);
 }
 
 async function openLink(page: Page, token: string, circleId: string) {
@@ -198,6 +206,31 @@ test.describe("Emergency page and phone numbers, through people's links", () => 
     // The numbers print as plain numbers.
     await expect(page.getByText("(555) 010-0177")).toBeVisible();
     await expect(page.getByRole("region", { name: "Allergies" }).getByText("Penicillin")).toBeVisible();
+  });
+
+  test("caregiver: the contacts and allergies buttons open just that part and come back to Emergency", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop-chrome", "signed-in flow; run once");
+    await signInAsCaregiver(page, seeded.ownerSession);
+    await page.goto(`/circles/${seeded.circleId}/emergency`);
+    await expect(page.getByRole("heading", { name: "Emergency", level: 1 })).toBeVisible();
+    const change = page.getByRole("link", { name: "Change emergency contacts" });
+    await expect(change).toHaveAttribute("href", `/circles/${seeded.circleId}/summary/edit?part=contacts&from=emergency`);
+    await expect(page.getByRole("link", { name: "Change allergies" })).toHaveAttribute("href", `/circles/${seeded.circleId}/summary/edit?part=allergies&from=emergency`);
+
+    // Only the emergency contacts, with the way back to Emergency.
+    await change.click();
+    await expect(page.getByRole("heading", { name: "Who to call in an emergency", level: 1 })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Emergency" }).first()).toHaveAttribute("href", `/circles/${seeded.circleId}/emergency`);
+    await expect(page.getByText("Pharmacy", { exact: true })).toHaveCount(0);
+
+    // Add one and save: back on Emergency, with the new contact ready to call.
+    await page.getByRole("button", { name: "Add another" }).click();
+    await page.getByLabel("Name").last().fill("Lucia Ruiz");
+    await page.getByLabel("Phone").last().fill("555-010-0155");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await page.waitForURL(`**/circles/${seeded.circleId}/emergency`);
+    await expect(page.getByRole("region", { name: "Emergency contacts" }).getByText("Lucia Ruiz")).toBeVisible();
+    await expect(page.getByRole("link", { name: /Call Lucia Ruiz/ })).toBeVisible();
   });
 
   test("signed out, the page asks to sign in", async ({ page }, info) => {
