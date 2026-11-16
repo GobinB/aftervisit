@@ -69,7 +69,6 @@ export function EventForm({
         return;
       }
       router.push(`/circles/${circleId}/calendar`);
-      router.refresh();
     });
   };
 
@@ -80,7 +79,6 @@ export function EventForm({
       if (!result.ok) setError(result.error);
       else {
         router.push(`/circles/${circleId}/calendar`);
-        router.refresh();
       }
     });
   };

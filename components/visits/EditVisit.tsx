@@ -21,7 +21,6 @@ const LISTS: { key: ListKey; title: string; add: string; item: string }[] = [
  */
 export function EditVisit({ circleId, visit }: { circleId: string; visit: VisitView }) {
   const id = useId();
-  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +65,6 @@ export function EditVisit({ circleId, visit }: { circleId: string; visit: VisitV
         return;
       }
       setOpen(false);
-      router.refresh();
     });
   };
 
@@ -173,7 +171,6 @@ export function DeleteVisit({ circleId, id }: { circleId: string; id: string }) 
               if (!result.ok) setError(result.error);
               else {
                 router.push(`/circles/${circleId}/visits`);
-                router.refresh();
               }
             })
           }

@@ -8,7 +8,9 @@ import { deleteEvent, goToEvent, saveEvent } from "@/services/events";
 
 function refresh(circleId: string) {
   revalidatePath(`/circles/${circleId}`);
-  revalidatePath(`/circles/${circleId}/calendar`);
+  // "layout" takes in each event's own page, so the page a change was made on comes back updated
+  // with the action's answer and the form needs no router.refresh().
+  revalidatePath(`/circles/${circleId}/calendar`, "layout");
 }
 
 export async function saveEventAction(input: unknown) {

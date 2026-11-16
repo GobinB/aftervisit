@@ -1,7 +1,6 @@
 "use client";
 
 import { Check, Hand } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { claimTodoAction, setTodoDoneAction } from "@/app/actions/todos";
 import { localToday } from "@/lib/schema/todos";
@@ -11,7 +10,6 @@ import { localToday } from "@/lib/schema/todos";
  * saves in the background; if saving fails it goes back and says so.
  */
 export function DoneToggle({ circleId, id, title, done }: { circleId: string; id: string; title: string; done: boolean }) {
-  const router = useRouter();
   const [, start] = useTransition();
   const [shown, setShown] = useState(done);
   const [error, setError] = useState<string | null>(null);
@@ -32,7 +30,7 @@ export function DoneToggle({ circleId, id, title, done }: { circleId: string; id
             if (!result.ok) {
               setShown(!next);
               setError(result.error);
-            } else router.refresh();
+            }
           });
         }}
         className={`-m-2.5 flex size-11 items-center justify-center rounded-full`}
@@ -56,7 +54,6 @@ export function DoneToggle({ circleId, id, title, done }: { circleId: string; id
 
 /** "I'll do it" on a reminder nobody has taken. It says "It's yours" at once and saves in the background. */
 export function ClaimButton({ circleId, id }: { circleId: string; id: string }) {
-  const router = useRouter();
   const [, start] = useTransition();
   const [taken, setTaken] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -74,7 +71,6 @@ export function ClaimButton({ circleId, id }: { circleId: string; id: string }) 
               setTaken(false);
               setError(result.error);
             }
-            router.refresh();
           });
         }}
         className={`inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 text-[14px] font-semibold ${

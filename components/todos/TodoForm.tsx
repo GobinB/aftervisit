@@ -43,7 +43,6 @@ export function TodoForm({ circleId, people, todo, autoFocus }: { circleId: stri
         setAssignee("none");
         setExpanded(false);
       }
-      router.refresh();
     });
   };
 
@@ -54,7 +53,6 @@ export function TodoForm({ circleId, people, todo, autoFocus }: { circleId: stri
       if (!result.ok) setError(result.error);
       else {
         router.push(`/circles/${circleId}/todos`);
-        router.refresh();
       }
     });
   };

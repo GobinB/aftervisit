@@ -85,7 +85,6 @@ export function SummaryEditor({ circleId, content, part }: { circleId: string; c
         return;
       }
       router.push(part ? `/circles/${circleId}` : `/circles/${circleId}/summary`);
-      router.refresh();
     });
   };
 
