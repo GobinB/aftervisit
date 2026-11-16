@@ -112,6 +112,7 @@ export type Database = {
           circle_key_wrapped: string | null
           created_at: string
           key_version: number
+          phone: string | null
           role: string
           user_id: string
         }
@@ -120,6 +121,7 @@ export type Database = {
           circle_key_wrapped?: string | null
           created_at?: string
           key_version?: number
+          phone?: string | null
           role: string
           user_id: string
         }
@@ -128,6 +130,7 @@ export type Database = {
           circle_key_wrapped?: string | null
           created_at?: string
           key_version?: number
+          phone?: string | null
           role?: string
           user_id?: string
         }
@@ -722,6 +725,7 @@ export type Database = {
           lock_count: number
           locked_until: string | null
           name: string
+          phone: string | null
           pin_failures: number
           pin_hash: string | null
           revoked_at: string | null
@@ -743,6 +747,7 @@ export type Database = {
           lock_count?: number
           locked_until?: string | null
           name: string
+          phone?: string | null
           pin_failures?: number
           pin_hash?: string | null
           revoked_at?: string | null
@@ -764,6 +769,7 @@ export type Database = {
           lock_count?: number
           locked_until?: string | null
           name?: string
+          phone?: string | null
           pin_failures?: number
           pin_hash?: string | null
           revoked_at?: string | null

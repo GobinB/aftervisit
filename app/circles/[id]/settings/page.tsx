@@ -2,9 +2,11 @@ import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { CircleFrame, circleTabs, roleLine } from "@/components/circles/CircleFrame";
 import { DeleteCircle } from "@/components/circles/DeleteCircle";
+import { PhoneField } from "@/components/circles/PhoneField";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { getCircle } from "@/services/circles";
+import { getOwnPhone } from "@/services/members";
 
 export const metadata: Metadata = { title: "Settings", robots: { index: false, follow: false } };
 export const dynamic = "force-dynamic";
@@ -16,12 +18,19 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
   if (actor.kind !== "caregiver") notFound();
   const canDelete = can(actor, "circle:delete", { circleId: id });
   if (!canDelete) notFound();
-  const content = await getCircle(actor, id);
+  const [content, ownPhone] = await Promise.all([getCircle(actor, id), getOwnPhone(actor, id)]);
   if (!content) notFound();
   return (
     <>
-      <CircleFrame personName={content.person_name} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} help="Rarely needed. Delete this circle." active="settings">
+      <CircleFrame personName={content.person_name} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} help="Your phone number, and deleting this circle." active="settings">
         <div className="max-w-xl space-y-6">
+          <section aria-labelledby="phone-title" className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">
+            <h2 id="phone-title" className="font-display border-b border-border-200 pb-3 text-section text-primary-900">
+              Your phone number
+            </h2>
+            <p className="mt-4 mb-3 text-ink-500">People in the circle see it on People and on the Emergency page, so they can tap to call you.</p>
+            <PhoneField circleId={id} initial={ownPhone} label="Your number" help="Leave it blank and save to remove it." />
+          </section>
           {canDelete ? (
             <section aria-labelledby="delete-title" className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">
               <h2 id="delete-title" className="font-display border-b-2 border-attn pb-3 text-section text-attn-ink">

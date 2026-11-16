@@ -10,6 +10,7 @@ import { useReaderReadsPages } from "@/components/intake/ReaderContext";
 import { StepHeader } from "@/components/StepHeader";
 import { COPY } from "@/lib/copy";
 import { isUnsorted } from "@/lib/parse";
+import { canReadScan, scanCircleAnswered, scanCircleFrom, scanCircleHref, scanCircleId, type ScanCircle } from "@/lib/scan-circle";
 import type { HandoffDraft } from "@/lib/schema";
 import { setOriginalFile, setOriginalPages, useFlow } from "@/lib/store";
 
@@ -58,18 +59,29 @@ export default function IntakePage() {
   const errorRef = useRef<HTMLParagraphElement>(null);
   const ids = { file: useId(), patient: useId(), caregiver: useId(), text: useId() };
   // Started from a care circle (/new?circle=<id>): confirming updates that circle's medications and to-dos.
-  const [circle, setCircle] = useState<{ id: string; personName: string } | null>(null);
+  // Taken from the address at once; Done waits for the lookup, so a circle visit never turns into a stand-alone handoff.
+  const [scanCircle, setScanCircle] = useState<ScanCircle>({ status: "checking" });
+  const circle = scanCircle.status === "ready" ? { id: scanCircle.id, personName: scanCircle.personName } : null;
+  const fromCircle = scanCircle.status === "loading" || scanCircle.status === "ready" || scanCircle.status === "failed";
+  const circleHref = scanCircleHref(scanCircle);
 
   useEffect(() => {
-    const id = new URLSearchParams(window.location.search).get("circle");
-    if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return;
-    visitContextAction(id)
+    const first = scanCircleFrom(window.location.search);
+    setScanCircle(first);
+    if (first.status !== "loading") return;
+    let live = true;
+    visitContextAction(first.id)
       .then((context) => {
-        if (!context.ok) return;
-        setCircle({ id, personName: context.personName });
-        setPatient((current) => current || context.personName.split(/\s+/)[0].slice(0, 60));
+        if (!live) return;
+        setScanCircle(scanCircleAnswered(first.id, context));
+        if (context.ok) setPatient((current) => current || context.personName.split(/\s+/)[0].slice(0, 60));
       })
-      .catch(() => undefined);
+      .catch(() => {
+        if (live) setScanCircle(scanCircleAnswered(first.id, null));
+      });
+    return () => {
+      live = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -103,7 +115,7 @@ export default function IntakePage() {
   }
 
   async function build() {
-    if (!ready || processing) return;
+    if (!ready || processing || !canReadScan(scanCircle)) return;
     setError(null);
     setProcessing(true);
     setStepsDone(0);
@@ -161,7 +173,7 @@ export default function IntakePage() {
       setOriginalFile(files.length === 1 ? files[0] : null);
       setOriginalPages(pasteMode ? [] : files);
       setOriginalName(files.length === 1 ? files[0].name : null);
-      startDraft(data.draft, { isSample: false, unsorted: !!data.unsorted, caregiverFirstName: caregiver.trim(), circleId: circle?.id ?? null });
+      startDraft(data.draft, { isSample: false, unsorted: !!data.unsorted, caregiverFirstName: caregiver.trim(), circleId: scanCircleId(scanCircle) });
       router.push("/new/review");
     } catch (e) {
       setProcessing(false);
@@ -240,8 +252,8 @@ export default function IntakePage() {
 
   return (
     <div className="mx-auto max-w-[720px]">
-      <BackLink href={circle ? `/circles/${circle.id}` : "/"} label={circle ? "Today" : "Home"} />
-      <StepHeader current="Upload" circle={Boolean(circle)} />
+      <BackLink href={circleHref ?? "/"} label={circleHref ? "Today" : "Home"} />
+      <StepHeader current="Upload" circle={fromCircle} />
       <h1 className="font-display text-[2rem] leading-tight font-medium text-primary-900">Scan after-visit summary</h1>
       <p className="mt-2 text-[16px] text-ink-500">
         {pasteMode ? "Paste the text from the patient portal." : "Take a photo of each page. Add as many pages as there are, then tap Done."}
@@ -445,7 +457,7 @@ export default function IntakePage() {
       </div>
 
       {/* A circle already knows who the visit was for, and nothing is shared from this flow, so the names are not asked. */}
-      <div className={circle ? "hidden" : "mt-6 grid gap-4 sm:grid-cols-2"}>
+      <div className={fromCircle || scanCircle.status === "checking" ? "hidden" : "mt-6 grid gap-4 sm:grid-cols-2"}>
         <div>
           <label htmlFor={ids.patient} className="font-medium">
             Who was the visit for? <span className="font-normal text-ink-500">(first name)</span>
@@ -484,10 +496,22 @@ export default function IntakePage() {
         </p>
       ) : null}
 
+      {scanCircle.status === "failed" ? (
+        <p role="alert" className="mt-6 rounded-xl bg-attn-bg px-4 py-3 text-attn-ink">
+          {scanCircle.message}
+        </p>
+      ) : null}
+
       {ready ? (
         <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t border-border-200 bg-surface-50/95 px-4 py-3 backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
-          <Button className="w-full sm:w-auto sm:min-w-64" onClick={build}>
-            {pageCount ? `Done: read ${pageCount} page${pageCount === 1 ? "" : "s"}` : circle ? "Done: read the summary" : "Build the handoff"}
+          <Button className="w-full sm:w-auto sm:min-w-64" onClick={build} disabled={!canReadScan(scanCircle)}>
+            {scanCircle.status === "loading" || scanCircle.status === "checking"
+              ? "Opening the circle"
+              : pageCount
+                ? `Done: read ${pageCount} page${pageCount === 1 ? "" : "s"}`
+                : fromCircle
+                  ? "Done: read the summary"
+                  : "Build the handoff"}
           </Button>
         </div>
       ) : null}

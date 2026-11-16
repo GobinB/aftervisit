@@ -526,7 +526,10 @@ test("privacy page describes access honestly", async ({ page }, info) => {
   await page.goto("/privacy");
   await expect(page.getByText(/Anyone who has a person.s link can open it/)).toBeVisible();
   await expect(page.getByText(/every phone that opened the old link is signed out/)).toBeVisible();
-  await expect(page.getByText(/They are not encrypted with a key only you hold/)).toBeVisible();
+  // How saved photos are protected: we keep the key, so we are able to open them, and we promise not to.
+  await expect(page.getByText(/We do not open them\./)).toBeVisible();
+  await expect(page.getByText(/Keeping the key does mean we are able to open them/)).toBeVisible();
+  await expect(page.getByText(/Phone numbers are never required/)).toBeVisible();
   await expect(page.getByRole("link", { name: "privacy@allhandscare.org" }).first()).toBeVisible();
   await page.getByRole("link", { name: "Health data notice" }).first().click();
   await expect(page.getByRole("heading", { name: "Health data notice" })).toBeVisible();
@@ -582,4 +585,40 @@ test("review: Good to know replaces Other notes, and nothing asks for lines to b
   await expect(page.getByLabel("Move this note to a section")).toHaveCount(0);
   // The address is still in the original, beside the draft (behind the Original switch on a phone).
   await expect(page.locator('aside[aria-labelledby="original-title"]').getByText(/44 Orchard Lane/)).toBeAttached();
+});
+
+test("scan page from a circle: Done waits for the circle, and a circle that cannot be opened is said so", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop-chrome", "behaviour check; run once");
+  const png = { name: "page.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==", "base64") };
+  // Hold the circle lookup (a server action, posted to /new) until the page has been checked.
+  let release: () => void = () => {};
+  const held = new Promise<void>((resolve) => (release = resolve));
+  await page.route(
+    (url) => url.pathname === "/new",
+    async (route) => {
+      if (route.request().method() === "POST") await held;
+      await route.continue();
+    },
+  );
+  await page.goto("/new?circle=22222222-2222-4222-8222-222222222222");
+  await page.locator('input[type="file"][multiple]').setInputFiles(png);
+  const waiting = page.getByRole("button", { name: "Opening the circle" });
+  await expect(waiting).toBeVisible();
+  await expect(waiting).toBeDisabled();
+  // Not a stand-alone handoff while it waits: the names a handoff asks for stay hidden.
+  await expect(page.getByLabel("Your first name")).toBeHidden();
+  release();
+  // Nobody is signed in here, so the circle cannot be opened: the page says so, and Done stays off.
+  await expect(page.getByRole("alert").filter({ hasText: "This circle could not be opened" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Done: read 1 page" })).toBeDisabled();
+  await expect(page.getByLabel("Your first name")).toBeHidden();
+
+  // A malformed circle in the address fails at once.
+  await page.goto("/new?circle=not-a-circle");
+  await expect(page.getByRole("alert").filter({ hasText: "This circle could not be opened" })).toBeVisible();
+  // With no circle at all, it is the stand-alone handoff, as before.
+  await page.goto("/new");
+  await page.locator('input[type="file"][multiple]').setInputFiles(png);
+  await expect(page.getByRole("button", { name: "Done: read 1 page" })).toBeEnabled();
+  await expect(page.getByLabel("Your first name")).toBeVisible();
 });

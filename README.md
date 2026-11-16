@@ -26,6 +26,8 @@ The public demo (`/new`, `/h/...`, `/i/...` handoff links) is unchanged: no acco
 
 Circles are the signed-in product. A caregiver signs in with Google. A helper opens a personal link (`/i/...`), which can be the same shape as an older handoff invite. The server tells them apart by the stored hash. Helper browsers can stay signed into more than one circle. See [docs/Permissions.md](docs/Permissions.md).
 
+Each circle has an Emergency page, for the caregiver and from every person's link: the care summary's emergency contacts, then the people in the circle who have a phone number, then allergies, with large tap-to-call buttons, and it prints. A phone number is optional, on each person (`members.phone`) and on the caregiver (`circle_caregivers.phone`). The caregiver adds or changes anyone's number on People, and their own in Settings or on People; a person can set their own from the Emergency page on their link. A person's number is shown to the caregiver and to family and care managers; the caregiver's to everyone in the circle.
+
 - Handoff demo: no account. Vercel Web Analytics only on marketing pages.
 - To build a draft, pasted text and PDFs are sent to All Hands Care's server and processed in memory; photos are read in the browser and only the recognized text is sent. Nothing is saved at this stage.
 - When a handoff is created, only the confirmed fields are stored (visit details, medication changes, next steps with assignees, watch-fors, questions, kept notes, each item's source sentence, recipient names and roles, the caregiver's first name). **The full source text is not stored.**

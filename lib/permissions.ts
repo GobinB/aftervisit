@@ -13,6 +13,10 @@ import type { HelperRole, VisibilityArea } from "@/lib/schema/circles";
  *
  * Visit notes: "visits:read" is what to watch for and good to know; "visits:read:summary" adds the
  * short summary, the reason and the questions for the next visit.
+ *
+ * Emergency page: "emergency:read" opens it. What is on it follows the actions it shows: emergency
+ * contacts and allergies need "summary:read", people's numbers "members:read" (the caregiver's own
+ * number "members:read:caregivers"). "phone:edit:own" is setting your own phone number.
  */
 export const ACTIONS = [
   "members:manage",
@@ -48,6 +52,8 @@ export const ACTIONS = [
   "visits:read",
   "visits:read:summary",
   "visits:edit",
+  "emergency:read",
+  "phone:edit:own",
 ] as const;
 
 export type Action = (typeof ACTIONS)[number];
@@ -87,6 +93,7 @@ const OWNER: Cell[] = [
   "allow",
   "allow",
   "allow", "allow", "allow",
+  "allow", "allow",
 ];
 
 const FAMILY: Cell[] = [
@@ -102,6 +109,7 @@ const FAMILY: Cell[] = [
   "deny",
   "deny",
   "allow", "allow", "deny",
+  "allow", "allow",
 ];
 
 const CARE_MANAGER: Cell[] = [
@@ -117,6 +125,7 @@ const CARE_MANAGER: Cell[] = [
   "deny",
   "deny",
   "allow", "allow", "deny",
+  "allow", "allow",
 ];
 
 const AIDE: Cell[] = [
@@ -132,6 +141,7 @@ const AIDE: Cell[] = [
   "deny",
   "deny",
   "allow", "deny", "deny",
+  "allow", "allow",
 ];
 
 export const GRID: Record<Role, Record<Action, Cell>> = {

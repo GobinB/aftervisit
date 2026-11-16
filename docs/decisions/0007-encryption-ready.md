@@ -6,7 +6,7 @@ Saved visit summaries are encrypted in the browser with the circle key, which Al
 
 - Each medical record keeps its contents in one `content jsonb` column. Plain columns hold only what the server needs to route and permit: ids, `circle_id`, kind, status, dates and owner.
 - Today that is `circles.content` (the person's name, allergies, doctors, pharmacy and emergency contacts) and `visits.content` (a visit's short summary, what to watch for, good to know and questions for the next visit). New medical tables follow the same rule.
-- Plain columns on purpose, because they are not medical and the server needs them: helper names, roles and optional emails, the caregiver's Google name and email, consent records, statuses, dates and ids.
+- Plain columns on purpose, because they are not medical and the server needs them: helper names, roles and optional emails and phone numbers, the caregiver's optional phone number, the caregiver's Google name and email, consent records, statuses, dates and ids.
 - `content` is checked with zod in `services/` before it is written, because Postgres will not be able to see inside it once it is encrypted.
 - Sorting and searching medical text happens in the app after reading, not in SQL.
 - Planned, not built: `content` becomes `content_enc`, encrypted with the circle key.

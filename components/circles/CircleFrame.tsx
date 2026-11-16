@@ -3,7 +3,7 @@ import { PageHead } from "@/components/circles/PageHead";
 import type { Actor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 
-export type CircleTab = "overview" | "calendar" | "todos" | "medications" | "summary" | "people" | "settings";
+export type CircleTab = "overview" | "calendar" | "todos" | "medications" | "summary" | "emergency" | "people" | "settings";
 
 /** One tab per module the viewer may open. A module gets a tab in the pull request that ships it. */
 export function circleTabs(actor: Actor, circleId: string): { key: CircleTab; label: string; href: string }[] {
@@ -15,6 +15,7 @@ export function circleTabs(actor: Actor, circleId: string): { key: CircleTab; la
   }
   if (can(actor, "medications:read", { circleId })) tabs.push({ key: "medications", label: "Medications", href: `${base}/medications` });
   if (can(actor, "summary:read", { circleId })) tabs.push({ key: "summary", label: "Care summary", href: `${base}/summary` });
+  if (can(actor, "emergency:read", { circleId })) tabs.push({ key: "emergency", label: "Emergency", href: `${base}/emergency` });
   if (can(actor, "members:manage", { circleId }) || can(actor, "members:read", { circleId }) || can(actor, "members:read:caregivers", { circleId })) {
     tabs.push({ key: "people", label: "People", href: `${base}/members` });
   }

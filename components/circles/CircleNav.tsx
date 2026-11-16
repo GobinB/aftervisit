@@ -1,6 +1,6 @@
 "use client";
 
-import { CalendarCheck, CalendarDays, ClipboardList, Home, ListChecks, MoreHorizontal, Pill, Settings, Users, type LucideIcon } from "lucide-react";
+import { CalendarCheck, CalendarDays, ClipboardList, Home, ListChecks, MoreHorizontal, Pill, Settings, Siren, Users, type LucideIcon } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { createContext, useContext, useEffect, useState } from "react";
@@ -15,6 +15,7 @@ const SHORT_LABELS: Record<CircleTab, string> = {
   todos: "Reminders",
   medications: "Meds",
   summary: "Summary",
+  emergency: "Emergency",
   people: "People",
   settings: "Settings",
 };
@@ -25,6 +26,7 @@ const TAB_ICONS: Record<CircleTab, LucideIcon> = {
   todos: ListChecks,
   medications: Pill,
   summary: ClipboardList,
+  emergency: Siren,
   people: Users,
   settings: Settings,
 };

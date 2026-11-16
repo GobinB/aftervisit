@@ -4,8 +4,10 @@ import { ChevronDown, Link2, Share2, Trash2, UserPlus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { addMemberAction, changeRoleAction, memberLinkAction, newLinkAction, revokeMemberAction, setVisibilityAction } from "@/app/actions/members";
+import { CallButton } from "@/components/circles/CallButton";
 import { memberUrl } from "@/components/circles/member-link";
 import { PeopleList } from "@/components/circles/PeopleList";
+import { PhoneField } from "@/components/circles/PhoneField";
 import { ShareLink, type ShareableLink } from "@/components/circles/ShareLink";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -13,6 +15,7 @@ import { Switch } from "@/components/ui/Switch";
 import { LocalTime } from "@/components/ui/LocalTime";
 import { dateTime } from "@/lib/format";
 import { LINK_IDLE_DAYS, LINK_MAX_DAYS } from "@/lib/link-life";
+import { cleanPhone } from "@/lib/phone";
 import { AREA_DETAILS, ROLE_DETAILS, SEE_PRESETS, presetFor } from "@/lib/share-message";
 import { AREA_LABELS, HELPER_ROLES, HELPER_ROLE_LABELS, READY_AREAS, type HelperRole, type PersonView, type VisibilityArea } from "@/lib/schema/circles";
 
@@ -61,7 +64,7 @@ export function MembersPanel({
     setOpen(open === person.id ? null : person.id);
   }
 
-  if (!canManage) return <PeopleList people={people} showSeen={false} />;
+  if (!canManage) return <PeopleList people={people} showSeen={false} showPhones />;
 
   return (
     <div className="space-y-5">
@@ -103,10 +106,27 @@ export function MembersPanel({
                   <ChevronDown className={`size-5 shrink-0 text-ink-500 transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
                 </button>
               ) : (
-                <div className="flex min-h-16 items-center gap-3 px-4 py-3">
-                  <PersonLine person={person} />
-                </div>
+                // The caregiver's own row: tap to add or change their own number.
+                <button
+                  type="button"
+                  onClick={() => tap(person)}
+                  aria-expanded={expanded}
+                  className="flex min-h-16 w-full items-center gap-3 px-4 py-3 text-left hover:bg-sky-100/40"
+                >
+                  <PersonLine person={person} you />
+                  <ChevronDown className={`size-5 shrink-0 text-ink-500 transition-transform ${expanded ? "rotate-180" : ""}`} aria-hidden="true" />
+                </button>
               )}
+              {!member && expanded ? (
+                <div className="border-t border-border-200 bg-surface-50 px-4 py-4">
+                  <PhoneField
+                    circleId={circleId}
+                    initial={person.phone ?? null}
+                    label="Your phone number"
+                    help="People in the circle see it here and on the Emergency page, so they can tap to call you."
+                  />
+                </div>
+              ) : null}
               {member && expanded ? (
                 <Profile
                   circleId={circleId}
@@ -132,14 +152,18 @@ export function MembersPanel({
   );
 }
 
-function PersonLine({ person }: { person: PersonView }) {
+function PersonLine({ person, you = false }: { person: PersonView; you?: boolean }) {
   return (
     <>
       <Avatar name={person.name} />
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[16px] font-semibold text-ink-900">{person.name}</span>
+        <span className="block truncate text-[16px] font-semibold text-ink-900">
+          {person.name}
+          {you ? <span className="font-normal text-ink-500"> (you)</span> : null}
+        </span>
         <span className="block text-[13px] text-ink-500">
           {person.roleLabel}
+          {person.phone ? <span className="tabular-nums"> · {person.phone}</span> : you ? " · add your phone number" : null}
           {person.kind === "member" && !person.revokedAt ? (
             person.lastSeenAt ? (
               <>
@@ -212,6 +236,7 @@ function AddPerson({ circleId, onDone, onCancel }: { circleId: string; onDone: (
   const [role, setRole] = useState<HelperRole>("family");
   const [hidden, setHidden] = useState<VisibilityArea[]>([]);
   const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [pin, setPin] = useState("");
   const [problem, setProblem] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -221,6 +246,11 @@ function AddPerson({ circleId, onDone, onCancel }: { circleId: string; onDone: (
     event.preventDefault();
     if (!name.trim()) {
       setProblem("Enter their name.");
+      return;
+    }
+    const checkedPhone = cleanPhone(phone);
+    if (!checkedPhone.ok) {
+      setProblem(checkedPhone.error);
       return;
     }
     if (pin && !/^\d{4}$/.test(pin)) {
@@ -234,6 +264,7 @@ function AddPerson({ circleId, onDone, onCancel }: { circleId: string; onDone: (
         name: name.trim(),
         role,
         email: email.trim() || undefined,
+        phone: phone.trim() || undefined,
         pin: pin || undefined,
         visibility: hidden.length ? { hidden } : {},
       });
@@ -242,6 +273,7 @@ function AddPerson({ circleId, onDone, onCancel }: { circleId: string; onDone: (
         setRole("family");
         setHidden([]);
         setEmail("");
+        setPhone("");
         setPin("");
       }
       await onDone(result, pin || null);
@@ -273,6 +305,24 @@ function AddPerson({ circleId, onDone, onCancel }: { circleId: string; onDone: (
       </fieldset>
       <WhatCanSee name={name || "they"} hidden={hidden} setHidden={setHidden} />
       <div className="grid gap-4 sm:grid-cols-2">
+        <div>
+          <label htmlFor="member-phone" className="text-[15px] font-semibold text-ink-900">
+            Phone <span className="font-normal text-ink-500">(optional)</span>
+          </label>
+          <input
+            id="member-phone"
+            name="phone"
+            type="tel"
+            inputMode="tel"
+            autoComplete="off"
+            maxLength={30}
+            className={`${field} tabular-nums`}
+            value={phone}
+            placeholder="e.g. 555-010-0142"
+            onChange={(e) => setPhone(e.target.value)}
+          />
+          <p className="mt-1 text-[13px] text-ink-500">For tap to call on the Emergency page.</p>
+        </div>
         <div>
           <label htmlFor="member-email" className="text-[15px] font-semibold text-ink-900">
             Email <span className="font-normal text-ink-500">(optional)</span>
@@ -387,6 +437,11 @@ function Profile({
             <Trash2 className="size-5" aria-hidden="true" /> Remove
           </button>
         )}
+      </div>
+
+      <div className="space-y-3 rounded-xl border border-border-200 bg-white p-3">
+        {person.phone && !removed ? <CallButton phone={person.phone} name={person.name} size="small" /> : null}
+        <PhoneField circleId={circleId} memberId={person.id} initial={person.phone ?? null} label={`${first}'s phone number`} help="Leave it blank and save to remove it." />
       </div>
 
       {confirm === "link" ? (

@@ -19,6 +19,8 @@ const READER_EFFECTIVE = "November 14, 2026";
 const NOTES_EFFECTIVE = "November 15, 2026";
 /** The policy changed when the calendar link started carrying medicine times. */
 const MEDS_CALENDAR_EFFECTIVE = "November 15, 2026";
+/** The policy changed when phone numbers could be added for the caregiver and the people they add. */
+const PHONES_EFFECTIVE = "November 15, 2026";
 
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
@@ -52,7 +54,7 @@ export default function PrivacyPage() {
   const provider = providerDisclosure();
   // OpenAI reads the photos, PDF or text of a visit summary itself; otherwise photos are read on the phone.
   const reads = provider.readsPages;
-  const effective = MEDS_CALENDAR_EFFECTIVE;
+  const effective = PHONES_EFFECTIVE;
   return (
     <PageShell>
       <main id="main" className="flex-1 overflow-x-clip">
@@ -129,7 +131,8 @@ export default function PrivacyPage() {
                   <ul>
                     <li>
                       <strong>Your account.</strong> Caregivers sign in with Google. Google shares your name, email address and profile photo
-                      with our sign-in service. We never see your Google password.
+                      with our sign-in service. We never see your Google password. If you add your phone number, we keep it so people in your
+                      circle can call you.
                     </li>
                     <li>
                       <strong>What you enter for the person you look after:</strong> the care summary (allergies, doctors, pharmacy, emergency
@@ -137,7 +140,8 @@ export default function PrivacyPage() {
                       of each visit you add (a short summary, what to watch for, good to know, and questions for the next visit).
                     </li>
                     <li>
-                      <strong>The people you add:</strong> their name, role, which parts they can see, an optional email for your own mail app,
+                      <strong>The people you add:</strong> their name, role, which parts they can see, an optional phone number (added by you, or
+                      by them from their link), an optional email for your own mail app,
                       and when they last opened their link. On our server, links and PINs are stored only as one-way hashes. Your own browser
                       remembers each person&apos;s link (never the PIN) so you can share it again; signing out removes them.
                     </li>
@@ -200,8 +204,8 @@ export default function PrivacyPage() {
                       people you add cannot see them from their links.
                     </li>
                     <li>
-                      <strong>The rest of a circle</strong> (the care summary, medications, reminders, calendar, visit notes, and the names and roles of the
-                      people you add) is read by our server to show each person their part. We do not look through it either, except to fix a
+                      <strong>The rest of a circle</strong> (the care summary, medications, reminders, calendar, visit notes, and the names, roles and phone
+                      numbers of the people you add) is read by our server to show each person their part. We do not look through it either, except to fix a
                       problem you ask us about or when the law requires it.
                     </li>
                     {reads ? (
@@ -243,6 +247,11 @@ export default function PrivacyPage() {
                       shared by mistake, make a new link or remove the person: every phone that opened the old link is signed out.
                     </li>
                     <li>The people you add see your name as it appears on your Google account.</li>
+                    <li>
+                      Phone numbers are never required. If you add yours, the people you add see it on People and on the Emergency page. A
+                      person&apos;s number is seen by you and by family and care managers in the circle; home aides and day programs see
+                      only yours. Each person can add, change or remove their own number from their link.
+                    </li>
                     <li>
                       If you turn on the calendar link, anyone who has that link can see the circle&apos;s appointments, reminders and, unless
                       you leave them out, medicine names, strengths and times. Make a new link, leave medicines out, or turn it off any time from
@@ -458,7 +467,13 @@ export default function PrivacyPage() {
                     the app. All Hands Care organizes what you and the clinician wrote; it does not give medical advice.
                   </p>
                   <p>
-                    <strong>Latest change, {MEDS_CALENDAR_EFFECTIVE}:</strong> the calendar link now carries medicine times as well as
+                    <strong>Latest change, {PHONES_EFFECTIVE}:</strong> you can add a phone number for yourself and for the people you
+                    add, and each person can add their own from their link, so a new Emergency page can offer tap to call. A number is
+                    never required. Yours is seen by the people you add; a person&apos;s is seen by you and by family and care managers in
+                    the circle. Before, no phone numbers were kept, other than the ones you write in the care summary.
+                  </p>
+                  <p>
+                    <strong>Before that, {MEDS_CALENDAR_EFFECTIVE}:</strong> the calendar link now carries medicine times as well as
                     appointments and reminders, unless you leave them out. With medicines on, the calendar company you add the link to
                     (Google, Apple or Microsoft) receives each medicine&apos;s name, strength and times and keeps its own copy. Before,
                     medicines were left out of the calendar link.

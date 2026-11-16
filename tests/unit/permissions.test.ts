@@ -128,3 +128,33 @@ describe("permissions grid", () => {
     expect(can(hidden, "medications:read", { circleId: CIRCLE })).toBe(true);
   });
 });
+
+describe("phone numbers and the Emergency page", () => {
+  test("everyone in the circle can open the Emergency page and set their own number", () => {
+    for (const role of ROLES) {
+      expect(can(actor(role), "emergency:read", { circleId: CIRCLE }), role).toBe(true);
+      expect(can(actor(role), "phone:edit:own", { circleId: CIRCLE }), role).toBe(true);
+    }
+    expect(can(actor("family"), "emergency:read", { circleId: OTHER })).toBe(false);
+    expect(can(stranger, "emergency:read", { circleId: CIRCLE })).toBe(false);
+    expect(can(stranger, "phone:edit:own", { circleId: CIRCLE })).toBe(false);
+  });
+
+  test("other people's numbers follow the People list; only the owner changes them", () => {
+    expect(can(actor("family"), "members:read", { circleId: CIRCLE })).toBe(true);
+    expect(can(actor("care_manager"), "members:read", { circleId: CIRCLE })).toBe(true);
+    expect(can(actor("home_aide"), "members:read", { circleId: CIRCLE })).toBe(false);
+    expect(can(actor("day_program"), "members:read", { circleId: CIRCLE })).toBe(false);
+    for (const role of ROLES) expect(can(actor(role), "members:read:caregivers", { circleId: CIRCLE }), role).toBe(true);
+    for (const role of ROLES) expect(can(actor(role), "members:manage", { circleId: CIRCLE }), role).toBe(role === "owner");
+  });
+
+  test("hiding the care summary hides the contacts and allergies, not the page", () => {
+    const hidden = helper("family", { hidden: ["summary"] });
+    expect(can(hidden, "emergency:read", { circleId: CIRCLE })).toBe(true);
+    expect(can(hidden, "summary:read", { circleId: CIRCLE })).toBe(false);
+    expect(can(helper("family", { members: "off" }), "members:read:caregivers", { circleId: CIRCLE })).toBe(false);
+    expect(can(helper("family", { members: "off" }), "phone:edit:own", { circleId: CIRCLE })).toBe(true);
+  });
+});
+

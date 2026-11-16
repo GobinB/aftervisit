@@ -18,7 +18,7 @@ export default async function MembersPage({ params }: { params: Promise<{ id: st
   const circle = await getCircle(actor, id);
   return (
     <>
-      <CircleFrame personName={circle?.person_name ?? "Your care circle"} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} help="Everyone who helps. Add a person to give them their own link. Tap a name to share their link, make a new one, or remove them." active="people">
+      <CircleFrame personName={circle?.person_name ?? "Your care circle"} subtitle={roleLine(actor)} tabs={circleTabs(actor, id)} help="Everyone who helps. Add a person to give them their own link. Tap a name to add their phone number, share their link, make a new one, or remove them." active="people">
         <MembersPanel circleId={id} personName={circle?.person_name ?? "the circle"} people={listed.people} canManage={listed.canManage} />
       </CircleFrame>
     </>
