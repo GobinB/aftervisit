@@ -1,5 +1,6 @@
 "use server";
 
+import { cleanPhone } from "@/lib/phone";
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -7,7 +8,7 @@ import { z } from "zod";
 import { getActor } from "@/lib/auth";
 import { explainCreateFailure } from "@/lib/circle-form";
 import { CircleContentSchema, CreateCircleSchema, TimeZoneSchema } from "@/lib/schema/circles";
-import { createCircle as create, deleteCircle as remove, setCircleTimeZone, updateCircleContent } from "@/services/circles";
+import { changeEmergencyContacts, createCircle as create, deleteCircle as remove, setCircleTimeZone, updateCircleContent } from "@/services/circles";
 
 export async function createCircle(input: unknown) {
   const parsed = CreateCircleSchema.safeParse(input);
@@ -55,5 +56,36 @@ export async function setTimeZoneAction(input: unknown) {
   if (!actor) return { ok: false as const, error: "Sign in to continue." };
   const result = await setCircleTimeZone(actor, parsed.data.circleId, parsed.data.timeZone, !parsed.data.replace);
   if (result.ok && parsed.data.replace) revalidatePath(`/circles/${parsed.data.circleId}`, "layout");
+  return result;
+}
+
+const AddContactSchema = z
+  .object({ circleId: z.string().uuid(), name: z.string().trim().min(1).max(80), relationship: z.string().trim().max(80).optional(), phone: z.string().max(40).optional() })
+  .strict();
+const RemoveContactSchema = z.object({ circleId: z.string().uuid(), index: z.number().int().min(0).max(19), name: z.string().max(80) }).strict();
+
+/** Adds one emergency contact from the Emergency page: a name, who they are, and a number. */
+export async function addEmergencyContactAction(input: unknown) {
+  const parsed = AddContactSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Type their name." };
+  const phone = cleanPhone(parsed.data.phone);
+  if (!phone.ok) return { ok: false as const, error: phone.error };
+  const actor = await getActor(parsed.data.circleId);
+  if (!actor) return { ok: false as const, error: "Sign in to continue." };
+  const result = await changeEmergencyContacts(actor, parsed.data.circleId, {
+    add: { name: parsed.data.name, relationship: parsed.data.relationship || undefined, phone: phone.phone ?? undefined },
+  });
+  if (result.ok) revalidatePath(`/circles/${parsed.data.circleId}`, "layout");
+  return result;
+}
+
+/** Removes one emergency contact from the Emergency page. */
+export async function removeEmergencyContactAction(input: unknown) {
+  const parsed = RemoveContactSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "That contact was not found." };
+  const actor = await getActor(parsed.data.circleId);
+  if (!actor) return { ok: false as const, error: "Sign in to continue." };
+  const result = await changeEmergencyContacts(actor, parsed.data.circleId, { remove: { index: parsed.data.index, name: parsed.data.name } });
+  if (result.ok) revalidatePath(`/circles/${parsed.data.circleId}`, "layout");
   return result;
 }

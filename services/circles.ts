@@ -87,6 +87,34 @@ export async function setCircleTimeZone(
   return result.ok ? { ok: true, timeZone } : result;
 }
 
+/**
+ * Adds or removes one emergency contact, reading the circle's details first so nothing else on them
+ * changes (the care summary editor writes them whole). A removal names the contact as well as its
+ * place, so a page that is out of date cannot remove the wrong one.
+ */
+export async function changeEmergencyContacts(
+  actor: Actor,
+  circleId: string,
+  change: { add: { name: string; relationship?: string; phone?: string } } | { remove: { index: number; name: string } },
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (actor.kind !== "caregiver" || !actor.circleIds.includes(circleId) || !can(actor, "summary:edit", { circleId })) {
+    return { ok: false, error: "Only the caregiver can change the emergency contacts." };
+  }
+  const { data: row } = await clientFor(actor).from("circles").select("content").eq("id", circleId).is("deleted_at", null).maybeSingle();
+  const current = CircleContentSchema.safeParse(row?.content);
+  if (!current.success) return { ok: false, error: generic };
+  const contacts = current.data.emergency_contacts;
+  let next: typeof contacts;
+  if ("add" in change) {
+    if (contacts.length >= 20) return { ok: false, error: "There can be 20 emergency contacts at most." };
+    next = [...contacts, change.add];
+  } else {
+    if (contacts[change.remove.index]?.name !== change.remove.name) return { ok: false, error: "That contact has already changed. Open the page again." };
+    next = contacts.filter((_, i) => i !== change.remove.index);
+  }
+  return updateCircleContent(actor, circleId, { ...current.data, emergency_contacts: next });
+}
+
 /** The circle's time zone, or null (then "today" is the UTC date). A failed read never stops a save. */
 export async function circleTimeZone(actor: Actor, circleId: string): Promise<string | null> {
   try {
