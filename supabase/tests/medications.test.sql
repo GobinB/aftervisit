@@ -3,7 +3,7 @@
 
 begin;
 
-select plan(14);
+select plan(17);
 
 -- Same column split as supabase/seed.sql: GoTrue renames confirmed_at.
 create function pg_temp.seed_user(p_id uuid, p_email text, p_name text, p_token text)
@@ -112,6 +112,13 @@ select is(
   'history names the caregiver who made the change'
 );
 select is((select status from public.medications where id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee11'), 'stopped', 'a stopped medication stays on the record');
+
+-- Deleting one added by mistake: the caregiver can, and its history goes with it.
+insert into public.medications (id, circle_id, name) values ('eeeeeeee-eeee-4eee-8eee-eeeeeeeeee12', 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee10', 'Added by mistake');
+select is((select count(*) from public.medication_changes where medication_id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee12')::int, 1, 'adding writes one history row');
+delete from public.medications where id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee12';
+select is((select count(*) from public.medications where id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee12')::int, 0, 'the caregiver deletes a medication from their circle');
+select is((select count(*) from public.medication_changes where medication_id = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeee12')::int, 0, 'its history is deleted with it');
 
 select * from finish();
 rollback;

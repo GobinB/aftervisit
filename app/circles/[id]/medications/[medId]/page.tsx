@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { PageHead } from "@/components/circles/PageHead";
 import { notFound, redirect } from "next/navigation";
+import { DeleteMedication } from "@/components/medications/DeleteMedication";
 import { MedicationForm } from "@/components/medications/MedicationForm";
 import { getActor } from "@/lib/auth";
 import { getCircle } from "@/services/circles";
@@ -25,6 +26,13 @@ export default async function EditMedicationPage({ params }: { params: Promise<{
         help="Change the dose or how often, then save. Mark it stopped when the doctor stops it; it stays in the history."
       />
       <MedicationForm circleId={id} medication={medication} doctors={(content?.doctors ?? []).map((doctor) => doctor.name)} />
+      <section aria-labelledby="delete-medication" className="mt-10 max-w-2xl border-t border-border-200 pt-6">
+        <h2 id="delete-medication" className="text-[15px] font-semibold text-ink-900">
+          Added by mistake?
+        </h2>
+        <p className="mt-1 mb-3 text-[14px] text-ink-500">Delete it. To keep the record of a medicine that has ended, use Stop on the list instead.</p>
+        <DeleteMedication circleId={id} id={medication.id} name={medication.name} />
+      </section>
     </>
   );
 }
