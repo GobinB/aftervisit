@@ -4,6 +4,8 @@ Notable changes to All Hands Care (formerly AfterVisit). The newest entries are 
 
 ## Unreleased
 
+- The site no longer calls All Hands Care a nonprofit (home page, link previews and the privacy page). It is free and open source; it is not a registered nonprofit.
+
 - Next.js 16 (16.4.6), with the newer React it brings. `middleware.ts` is now `proxy.ts`, as Next.js 16 names it; it does the same work. Builds use Turbopack. ESLint uses eslint-config-next's own flat config; its new React Compiler rules are off for now.
 
 - Delete a medication added by mistake. A medication's own page (Edit on the list) now ends with "Added by mistake?" and a Delete button, which asks once on the page before anything happens and points to Stop for a medicine that was really taken. Deleting removes it and its history; Stop still keeps the record with the date.

@@ -53,7 +53,7 @@ export default function HomePage() {
         <section className="bg-primary-900 text-white">
           <div className="mx-auto grid max-w-[1120px] items-center gap-10 px-4 pt-12 pb-14 sm:px-6 sm:pt-16 lg:grid-cols-[1.1fr_0.9fr] lg:gap-12 lg:pt-20 lg:pb-20">
             <div className="min-w-0">
-              <p className="text-[12px] font-semibold tracking-[0.14em] text-[#F6B7AA] uppercase">Free · Nonprofit · Open source</p>
+              <p className="text-[12px] font-semibold tracking-[0.14em] text-[#F6B7AA] uppercase">Free · Open source</p>
               <h1 className="font-display mt-4 text-[2.4rem] leading-[1.08] sm:text-[3.4rem]">Everyone who helps, on one page.</h1>
               <p className="mt-5 max-w-[34rem] text-[1.1rem] leading-relaxed text-white/80">
                 One place for the calendar, reminders and medications of the person you look after. Family and aides each open their own link.

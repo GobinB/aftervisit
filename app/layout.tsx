@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(appUrl),
   title: { default: "All Hands Care: one shared care page for the person you look after", template: "%s · All Hands Care" },
   description:
-    "One shared care page for the person you look after. Family, home aides and the day program each get their own private link. Free, private by design and nonprofit.",
+    "One shared care page for the person you look after. Family, home aides and the day program each get their own private link. Free, private by design and open source.",
   applicationName: "All Hands Care",
   appleWebApp: { capable: true, title: "All Hands Care", statusBarStyle: "default" },
   openGraph: { siteName: "All Hands Care", type: "website" },
