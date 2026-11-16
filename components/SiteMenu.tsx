@@ -4,6 +4,14 @@ import { useEffect, useId, useRef, useState } from "react";
 import Link from "next/link";
 import { StartSample } from "@/components/StartSample";
 
+const MENU_LINKS = [
+  { href: "/#how", label: "How it works" },
+  { href: "/about", label: "About" },
+  { href: "/care-teams", label: "For care teams" },
+  { href: "/privacy", label: "Privacy" },
+  { href: "/contact", label: "Contact and feedback" },
+];
+
 /** Links that do not fit in the phone header. Desktop shows them inline. */
 export function SiteMenu() {
   const [open, setOpen] = useState(false);
@@ -44,20 +52,16 @@ export function SiteMenu() {
       </button>
       {open ? (
         <div id={menuId} role="group" aria-label="Site" className="absolute right-0 z-40 mt-2 w-64 rounded-xl border border-border-200 bg-white p-2">
-          <Link
-            href="/#how"
-            className="flex min-h-12 items-center rounded-lg px-3 font-medium text-ink-900 hover:bg-surface-50"
-            onClick={() => setOpen(false)}
-          >
-            How it works
-          </Link>
-          <Link
-            href="/privacy"
-            className="flex min-h-12 items-center rounded-lg px-3 font-medium text-ink-900 hover:bg-surface-50"
-            onClick={() => setOpen(false)}
-          >
-            Privacy
-          </Link>
+          {MENU_LINKS.map(({ href, label }) => (
+            <Link
+              key={href}
+              href={href}
+              className="flex min-h-12 items-center rounded-lg px-3 font-medium text-ink-900 hover:bg-surface-50"
+              onClick={() => setOpen(false)}
+            >
+              {label}
+            </Link>
+          ))}
           <div className="px-1 pt-1" onClick={() => setOpen(false)}>
             <StartSample label="Try a sample visit" variant="secondary" className="w-full" />
           </div>

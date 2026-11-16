@@ -1,10 +1,11 @@
-import { ArrowRight, CalendarDays, Check, EllipsisVertical, FileText, ListChecks, Lock, Pill, Share, SquarePlus, Users } from "lucide-react";
+import { ArrowRight, CalendarDays, Check, ChevronDown, EllipsisVertical, FileText, ListChecks, Lock, Pill, Share, SquarePlus, Users } from "lucide-react";
 import Link from "next/link";
 import { ButtonLink } from "@/components/Button";
 import { PhonePreview } from "@/components/home/PhonePreview";
 import { PageShell } from "@/components/PageShell";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { StartSample } from "@/components/StartSample";
+import { ASSEMBLY_CODE, CAREGIVING_FACTS, CAREGIVING_SOURCE } from "@/lib/site";
 
 /** Where a caregiver starts. /circles/new sends a signed-out visitor to Google sign-in first. */
 const START_HREF = "/circles/new";
@@ -26,6 +27,42 @@ const PROMISES = [
   "Each person sees only what you choose.",
   "No ads. Your information is never sold.",
   "Turn off anyone’s link at any time.",
+];
+
+/** Answers must match the privacy policy and terms; change them together. */
+const FAQ = [
+  {
+    q: "Does everyone need an account?",
+    a: "No. Only the caregiver who starts the circle signs in, with Google. Everyone else opens their own private link. No password, nothing to install.",
+  },
+  {
+    q: "What does it cost?",
+    a: "Nothing. All Hands Care is free, with no ads, and your information is never sold. It is a project of Assembly Code, a nonprofit.",
+  },
+  {
+    q: "What can a home aide or day program see?",
+    a: "Only what you choose. By default they see the reminders given to them and, from visit notes, what to watch for. Family members can see more. You can change it for each person.",
+  },
+  {
+    q: "What if a link goes to the wrong person?",
+    a: "Open People and make a new link for that person. The old one stops working at once. You can also add a PIN, so a link alone is not enough.",
+  },
+  {
+    q: "Does it send reminders by text?",
+    a: "No. It does not send texts or alerts. You can add the circle's calendar link to your phone's calendar, so appointments and reminders show up there.",
+  },
+  {
+    q: "Is it covered by HIPAA?",
+    a: "HIPAA covers doctors, hospitals and health plans, not tools families use on their own. We still treat what you keep here as sensitive health information. Our privacy policy explains how.",
+  },
+  {
+    q: "Does it give medical advice?",
+    a: "No. It organizes what the clinician wrote. Always follow what the doctor, nurse or pharmacist tells you. In an emergency, call 911.",
+  },
+  {
+    q: "Can I stop using it?",
+    a: "Yes, any time. Delete the circle from its Settings: every link stops working at once, and everything is erased for good after 30 days.",
+  },
 ];
 
 const INSTALL = [
@@ -64,6 +101,13 @@ export default function HomePage() {
                 </ButtonLink>
                 <StartSample variant="navy" label="Try a sample visit" className="min-h-13 px-6" />
               </div>
+              <p className="mt-6 text-[15px] text-white/75">
+                A project of{" "}
+                <a href={ASSEMBLY_CODE.url} className="font-semibold text-white underline underline-offset-4" target="_blank" rel="noreferrer">
+                  {ASSEMBLY_CODE.name}
+                </a>
+                , a nonprofit.
+              </p>
             </div>
             <PhonePreview className="lg:mr-0 lg:ml-auto" />
           </div>
@@ -124,15 +168,46 @@ export default function HomePage() {
           </div>
         </section>
 
+        {/* Why: the problem, with numbers a reader can check */}
+        <section aria-labelledby="why-title" className="bg-paper-100">
+          <div className="mx-auto max-w-[1120px] px-4 py-14 sm:px-6 sm:py-20">
+            <h2 id="why-title" className="font-display max-w-2xl text-[1.9rem] leading-tight text-primary-900">
+              One person shouldn’t have to be the switchboard.
+            </h2>
+            <p className="mt-3 max-w-2xl text-ink-500">
+              After every visit, someone passes the news along by phone and text, one person at a time. Millions of families do this every
+              week.
+            </p>
+            <ul className="mt-8 grid gap-4 md:grid-cols-3">
+              {CAREGIVING_FACTS.map(({ figure, body }) => (
+                <li key={figure} className="rounded-xl bg-white p-5">
+                  <p className="font-display text-[2.2rem] leading-none text-primary-900">{figure}</p>
+                  <p className="mt-2 text-ink-900">{body}</p>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 text-[14px] text-ink-500">
+              Source:{" "}
+              <a className="text-primary-700 underline underline-offset-2" href={CAREGIVING_SOURCE.url} target="_blank" rel="noreferrer">
+                {CAREGIVING_SOURCE.title}
+              </a>
+              .{" "}
+              <Link className="text-primary-700 underline underline-offset-2" href="/about">
+                Why we built All Hands Care
+              </Link>
+            </p>
+          </div>
+        </section>
+
         {/* How it works */}
-        <section id="how" aria-labelledby="how-title" className="scroll-mt-20 bg-paper-100">
+        <section id="how" aria-labelledby="how-title" className="scroll-mt-20 bg-white">
           <div className="mx-auto max-w-[1120px] px-4 py-14 sm:px-6 sm:py-20">
             <h2 id="how-title" className="font-display text-[1.9rem] leading-tight text-primary-900">
               How it works
             </h2>
             <ol className="mt-8 grid gap-4 md:grid-cols-3">
               {STEPS.map(({ title, body }, index) => (
-                <li key={title} className="rounded-xl bg-white p-5">
+                <li key={title} className="rounded-xl border border-border-200 bg-paper-100/50 p-5">
                   <span className="font-display text-[2rem] leading-none text-[#E5644E]">{index + 1}</span>
                   <h3 className="mt-3 text-[1.05rem] font-semibold text-ink-900">{title}</h3>
                   <p className="mt-1 text-ink-500">{body}</p>
@@ -162,6 +237,49 @@ export default function HomePage() {
                 </li>
               ))}
             </ul>
+          </div>
+        </section>
+
+        {/* Questions caregivers ask */}
+        <section id="questions" aria-labelledby="faq-title" className="scroll-mt-20 bg-white">
+          <div className="mx-auto max-w-[1120px] px-4 py-14 sm:px-6 sm:py-20">
+            <h2 id="faq-title" className="font-display text-[1.9rem] leading-tight text-primary-900">
+              Questions caregivers ask
+            </h2>
+            <div className="mt-8 divide-y divide-border-200 border-y border-border-200">
+              {FAQ.map(({ q, a }) => (
+                <details key={q} className="group">
+                  <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-4 py-3 text-[1.05rem] font-semibold text-ink-900 [&::-webkit-details-marker]:hidden">
+                    {q}
+                    <ChevronDown className="size-5 shrink-0 text-primary-700 transition-transform group-open:rotate-180" aria-hidden="true" />
+                  </summary>
+                  <p className="max-w-3xl pb-5 text-ink-500">{a}</p>
+                </details>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* First families: an honest ask, like a pilot sign-up */}
+        <section aria-labelledby="try-title" className="bg-[#FCEDEA]">
+          <div className="mx-auto grid max-w-[1120px] gap-6 px-4 py-12 sm:px-6 sm:py-14 md:grid-cols-[1.3fr_1fr] md:items-center">
+            <div>
+              <h2 id="try-title" className="font-display text-[1.9rem] leading-tight text-primary-900">
+                We’re trying it with our first families.
+              </h2>
+              <p className="mt-2 text-ink-900">
+                Share the care of a parent with family, an aide or a day program? We’ll set it up with you in about 15 minutes and check in
+                after a few days. Tell us honestly what works and what doesn’t.
+              </p>
+            </div>
+            <div className="flex flex-col gap-3 sm:flex-row md:flex-col md:items-start">
+              <ButtonLink href="/contact" className="min-h-13 px-6">
+                Try it with your family <ArrowRight size={18} aria-hidden="true" />
+              </ButtonLink>
+              <Link href="/care-teams" className="inline-flex min-h-11 items-center font-semibold text-primary-700 underline underline-offset-4">
+                For agencies and day programs
+              </Link>
+            </div>
           </div>
         </section>
 

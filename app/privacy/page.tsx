@@ -4,6 +4,7 @@ import Link from "next/link";
 import { SOURCE_URL } from "@/components/AppBar";
 import { PageShell } from "@/components/PageShell";
 import { PRIVACY_EMAIL } from "@/lib/contact";
+import { MAKER } from "@/lib/site";
 import { env } from "@/lib/env";
 import { providerDisclosure } from "@/lib/extract/provider";
 import { LINK_IDLE_DAYS, LINK_MAX_DAYS } from "@/lib/link-life";
@@ -119,7 +120,8 @@ export default function PrivacyPage() {
                 <section id="who">
                   <h3>Who we are</h3>
                   <p>
-                    All Hands Care is a free, open-source care page for families. &ldquo;We&rdquo; means the people who run it. Write
+                    All Hands Care is a free, open-source care page for families, made by {MAKER.name} in {MAKER.place} as a project of
+                    Assembly Code, a nonprofit. &ldquo;We&rdquo; means the people who run it. Write
                     to us any time at{" "}
                     <a className="text-primary-700 underline" href={`mailto:${PRIVACY_EMAIL}`}>
                       {PRIVACY_EMAIL}
