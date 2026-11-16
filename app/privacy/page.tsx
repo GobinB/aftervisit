@@ -21,6 +21,8 @@ const NOTES_EFFECTIVE = "November 15, 2026";
 const MEDS_CALENDAR_EFFECTIVE = "November 15, 2026";
 /** The policy changed when phone numbers could be added for the caregiver and the people they add. */
 const PHONES_EFFECTIVE = "November 15, 2026";
+/** The policy changed when each circle started keeping the time zone where the person lives. */
+const TIME_ZONE_EFFECTIVE = "November 16, 2026";
 
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
@@ -54,7 +56,7 @@ export default function PrivacyPage() {
   const provider = providerDisclosure();
   // OpenAI reads the photos, PDF or text of a visit summary itself; otherwise photos are read on the phone.
   const reads = provider.readsPages;
-  const effective = PHONES_EFFECTIVE;
+  const effective = TIME_ZONE_EFFECTIVE;
   return (
     <PageShell>
       <main id="main" className="flex-1 overflow-x-clip">
@@ -469,7 +471,12 @@ export default function PrivacyPage() {
                     the app. All Hands Care organizes what you and the clinician wrote; it does not give medical advice.
                   </p>
                   <p>
-                    <strong>Latest change, {PHONES_EFFECTIVE}:</strong> you can add a phone number for yourself and for the people you
+                    <strong>Latest change, {TIME_ZONE_EFFECTIVE}:</strong> we now keep the time zone where the person you look after
+                    lives (such as Eastern Time), taken from your phone or computer, so dates are right and the calendar link shows each
+                    medicine and appointment at the right time. It is not a location: only the zone.
+                  </p>
+                  <p>
+                    <strong>Before that, {PHONES_EFFECTIVE}:</strong> you can add a phone number for yourself and for the people you
                     add, and each person can add their own from their link, so a new Emergency page can offer tap to call. A number is
                     never required. Yours is seen by the people you add; a person&apos;s is seen by you and by family and care managers in
                     the circle. Before, no phone numbers were kept, other than the ones you write in the care summary.
