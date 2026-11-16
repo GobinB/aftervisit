@@ -117,7 +117,7 @@ export default function PrivacyPage() {
                 <section id="who">
                   <h3>Who we are</h3>
                   <p>
-                    All Hands Care is a free, nonprofit, open-source care page for families. &ldquo;We&rdquo; means the people who run it. Write
+                    All Hands Care is a free, open-source care page for families. &ldquo;We&rdquo; means the people who run it. Write
                     to us any time at{" "}
                     <a className="text-primary-700 underline" href={`mailto:${PRIVACY_EMAIL}`}>
                       {PRIVACY_EMAIL}
