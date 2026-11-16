@@ -17,6 +17,8 @@ const EFFECTIVE = "November 13, 2026";
 const READER_EFFECTIVE = "November 14, 2026";
 /** The policy changed when a visit's notes started being kept with the circle and shown to people by role. */
 const NOTES_EFFECTIVE = "November 15, 2026";
+/** The policy changed when the calendar link started carrying medicine times. */
+const MEDS_CALENDAR_EFFECTIVE = "November 15, 2026";
 
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
@@ -50,7 +52,7 @@ export default function PrivacyPage() {
   const provider = providerDisclosure();
   // OpenAI reads the photos, PDF or text of a visit summary itself; otherwise photos are read on the phone.
   const reads = provider.readsPages;
-  const effective = NOTES_EFFECTIVE;
+  const effective = MEDS_CALENDAR_EFFECTIVE;
   return (
     <PageShell>
       <main id="main" className="flex-1 overflow-x-clip">
@@ -242,8 +244,9 @@ export default function PrivacyPage() {
                     </li>
                     <li>The people you add see your name as it appears on your Google account.</li>
                     <li>
-                      If you turn on the calendar link, anyone who has that link can see the circle&apos;s appointments and reminders (not
-                      medicines). Make a new link or turn it off any time from Calendar, Add to my calendar.
+                      If you turn on the calendar link, anyone who has that link can see the circle&apos;s appointments, reminders and, unless
+                      you leave them out, medicine names, strengths and times. Make a new link, leave medicines out, or turn it off any time from
+                      Calendar, Add to my calendar.
                     </li>
                     <li>Pages opened from a link ask search engines not to index them.</li>
                   </ul>
@@ -323,7 +326,10 @@ export default function PrivacyPage() {
                     </li>
                     <li>
                       If you add the calendar link to Google Calendar, Apple Calendar or Outlook, that company receives the appointments and
-                      reminders (titles, times, places and notes) and keeps its own copy under its own privacy terms.
+                      reminders (titles, times, places and notes) and keeps its own copy under its own privacy terms. With medicines on (they
+                      are on unless you turn them off), it also receives each medicine&apos;s name, strength and the times it is taken, and
+                      keeps its own copy of those too. Leave medicines out on the same page and they drop out of that calendar at its next
+                      update.
                     </li>
                     <li>Vercel Web Analytics counts page visits without cookies.</li>
                     <li>These companies handle information only to provide their service to us. We do not sell or share it with anyone else.</li>
@@ -452,7 +458,13 @@ export default function PrivacyPage() {
                     the app. All Hands Care organizes what you and the clinician wrote; it does not give medical advice.
                   </p>
                   <p>
-                    <strong>Latest change, {NOTES_EFFECTIVE}:</strong> the notes of a visit you add are now kept with the circle: a short
+                    <strong>Latest change, {MEDS_CALENDAR_EFFECTIVE}:</strong> the calendar link now carries medicine times as well as
+                    appointments and reminders, unless you leave them out. With medicines on, the calendar company you add the link to
+                    (Google, Apple or Microsoft) receives each medicine&apos;s name, strength and times and keeps its own copy. Before,
+                    medicines were left out of the calendar link.
+                  </p>
+                  <p>
+                    <strong>Before that, {NOTES_EFFECTIVE}:</strong> the notes of a visit you add are now kept with the circle: a short
                     summary, what to watch for, good to know, and questions for the next visit. They show on Today, and the people you add
                     see them by role (family and care managers all of it; home aides and day programs what to watch for and good to know).
                     Before, only medicine changes, reminders and appointments were kept from a visit.
