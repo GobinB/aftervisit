@@ -1,5 +1,5 @@
 "use client";
-import { CheckCircle2, FileSearch, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, FileSearch, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge, MED_KIND_LABEL } from "@/components/Badge";
 import { COPY } from "@/lib/copy";
@@ -11,15 +11,59 @@ export const inputClass =
   "w-full rounded-lg border border-border-200 bg-white px-3 py-2 text-base outline-none focus:border-action-500 focus:ring-2 focus:ring-action-500/30";
 
 /**
- * One of the two cards on Review: the medicines, and everything else. Each is confirmed once, with
- * the button in the bar at the bottom of the screen. The border turns green once it is.
+ * The check mark beside a section's name on Review. Tapped once the caregiver has compared the section
+ * with the original; tapped again to take it back. Off, with the reason shown, while something in the
+ * section still needs a look.
+ */
+export function CheckToggle({
+  section,
+  checked,
+  blocked,
+  onToggle,
+}: {
+  /** The section's name, spoken after the visible words: "Mark checked: Medicines". */
+  section: string;
+  checked: boolean;
+  /** "1 medicine still needs a look" */
+  blocked?: string;
+  onToggle: (checked: boolean) => void;
+}) {
+  const hintId = useId();
+  return (
+    <span className="inline-flex flex-col items-end">
+      <button
+        type="button"
+        aria-pressed={checked}
+        // The visible words first, then the section, as WCAG asks: "Mark checked: Medicines".
+        aria-label={`${checked ? "Checked" : "Mark checked"}: ${section}`}
+        aria-describedby={blocked ? hintId : undefined}
+        disabled={!!blocked && !checked}
+        onClick={() => onToggle(!checked)}
+        className={`inline-flex min-h-[48px] items-center gap-1.5 rounded-full border-2 px-4 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+          checked ? "border-ok bg-ok text-white hover:bg-ok-ink" : "border-border-200 bg-white text-primary-700 hover:border-ok hover:bg-ok-bg"
+        }`}
+      >
+        <Check size={18} strokeWidth={3} aria-hidden="true" /> {checked ? "Checked" : "Mark checked"}
+      </button>
+      {blocked ? (
+        <span id={hintId} className="mt-1 text-[13px] font-medium text-med-ink">
+          {blocked}
+        </span>
+      ) : null}
+    </span>
+  );
+}
+
+/**
+ * One of the two cards on Review: the medicines, and everything else. The medicines card carries its
+ * own check mark; everything else has one per section. The border turns green once all are ticked.
  */
 export function ReviewCard({
   id,
   icon,
   title,
   count,
-  step,
+  check,
   done,
   children,
 }: {
@@ -27,8 +71,8 @@ export function ReviewCard({
   icon: ReactNode;
   title: string;
   count?: number;
-  /** "Step 1 of 2" */
-  step: string;
+  /** The card's check mark, if it has one of its own. */
+  check?: ReactNode;
   done: boolean;
   children: ReactNode;
 }) {
@@ -40,26 +84,21 @@ export function ReviewCard({
           {title}
           {count !== undefined ? <span className="text-base font-normal text-ink-500">({count})</span> : null}
         </h2>
-        {done ? (
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-ok-bg px-2.5 py-1 text-sm font-semibold text-ok-ink">
-            <CheckCircle2 size={16} aria-hidden="true" /> Checked
-          </span>
-        ) : (
-          <span className="text-sm font-medium text-ink-500">{step}</span>
-        )}
+        {check}
       </div>
       <div className="mt-3">{children}</div>
     </section>
   );
 }
 
-/** A named list inside "Everything else": next steps, watch for, good to know, questions. */
+/** A named section inside "Everything else": the visit, next steps, watch for, good to know, questions. */
 export function SubSection({
   id,
   icon,
   title,
   count,
   help,
+  check,
   onAdd,
   addLabel = "Add one",
   children,
@@ -69,19 +108,24 @@ export function SubSection({
   title: string;
   count?: number;
   help?: string;
+  /** The section's check mark, when it needs one (an empty list does not). */
+  check?: ReactNode;
   onAdd?: () => void;
   addLabel?: string;
   children: ReactNode;
 }) {
   return (
     <section aria-labelledby={`${id}-title`} className="border-t border-border-200 pt-4 first:border-0 first:pt-0">
-      <h3 id={`${id}-title`} className="flex items-center gap-2 text-[17px] font-semibold text-primary-900">
-        <span className="text-primary-700" aria-hidden="true">
-          {icon}
-        </span>
-        {title}
-        {count !== undefined ? <span className="text-[15px] font-normal text-ink-500">({count})</span> : null}
-      </h3>
+      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+        <h3 id={`${id}-title`} className="flex items-center gap-2 text-[17px] font-semibold text-primary-900">
+          <span className="text-primary-700" aria-hidden="true">
+            {icon}
+          </span>
+          {title}
+          {count !== undefined ? <span className="text-[15px] font-normal text-ink-500">({count})</span> : null}
+        </h3>
+        {check}
+      </div>
       {help ? <p className="mt-1 text-sm text-ink-500">{help}</p> : null}
       <div className="mt-1.5">{children}</div>
       {onAdd ? (

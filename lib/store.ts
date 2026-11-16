@@ -1,7 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { Reviewed, ReviewStep } from "./review";
+import type { Reviewed, ReviewSection } from "./review";
 import type { HandoffDraft, RecipientShare, Role } from "./schema";
 
 /**
@@ -25,7 +25,7 @@ interface FlowState {
   isSample: boolean;
   /** Set when the parser could not place anything (shows the "Nothing parsed" message). */
   unsorted: boolean;
-  /** The two confirms on Review: the medicines, then everything else (lib/review.ts). */
+  /** The check mark on each section of Review (lib/review.ts). */
   reviewed: Reviewed;
   caregiverFirstName: string;
   recipients: RecipientShare[];
@@ -41,7 +41,7 @@ interface FlowState {
     opts: { isSample: boolean; unsorted?: boolean; caregiverFirstName?: string; recipients?: RecipientShare[]; circleId?: string | null; reader?: DraftReader | null },
   ) => void;
   updateDraft: (fn: (d: HandoffDraft) => HandoffDraft) => void;
-  setReviewed: (step: ReviewStep, value: boolean) => void;
+  setReviewed: (section: ReviewSection, value: boolean) => void;
   setRecipients: (r: RecipientShare[]) => void;
   setCaregiver: (name: string) => void;
   setCreated: (c: CreatedHandoff | null) => void;
@@ -80,7 +80,7 @@ export const useFlow = create<FlowState>()(
           reader: opts.reader ?? null,
         }),
       updateDraft: (fn) => set((s) => (s.draft ? { draft: fn(s.draft) } : s)),
-      setReviewed: (step, value) => set((s) => ({ reviewed: { ...s.reviewed, [step]: value } })),
+      setReviewed: (section, value) => set((s) => ({ reviewed: { ...s.reviewed, [section]: value } })),
       setRecipients: (recipients) => set({ recipients }),
       setCaregiver: (caregiverFirstName) => set({ caregiverFirstName }),
       setCreated: (created) => set({ created }),
@@ -94,9 +94,10 @@ export const useFlow = create<FlowState>()(
     {
       name: "aftervisit-flow",
       storage: createJSONStorage(() => sessionStorage),
-      version: 3,
+      version: 4,
       // Version 2 kept one tick per section. A draft from before starts its two confirms again.
-      migrate: (persisted, version) => (version < 3 ? { ...(persisted as object), reviewed: {} } : persisted) as FlowState,
+      // 4: one check mark per section instead of two confirms, so ticks from before do not carry over.
+      migrate: (persisted, version) => (version < 4 ? { ...(persisted as object), reviewed: {} } : persisted) as FlowState,
     },
   ),
 );

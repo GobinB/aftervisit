@@ -1,10 +1,17 @@
 import { describe, expect, test } from "vitest";
-import { canAcceptMed, medNeedsLook, reviewComplete, reviewState, taskNeedsLook, waitingText } from "@/lib/review";
+import { canAcceptMed, medNeedsLook, reviewComplete, reviewState, sectionsToCheck, taskNeedsLook, waitingText, type Reviewed } from "@/lib/review";
 import type { MedicationChange, Task } from "@/lib/schema";
 
 const med = (over: Partial<MedicationChange> = {}): MedicationChange => ({ id: "m1", kind: "new", name: "Lisinopril", detail: "20 mg once daily", confidence: "high", ...over });
 const task = (over: Partial<Task> = {}): Task => ({ id: "t1", title: "Call the clinic", category: "home", confidence: "high", ...over });
-const draft = (medications: MedicationChange[], tasks: Task[] = []) => ({ medications, tasks });
+const draft = (medications: MedicationChange[], tasks: Task[] = [], lists: { watchFor?: string[]; otherNotes?: string[]; questions?: string[] } = {}) => ({
+  medications,
+  tasks,
+  watchFor: lists.watchFor ?? [],
+  otherNotes: lists.otherNotes ?? [],
+  questions: lists.questions ?? [],
+});
+const all: Reviewed = { medications: true, visit: true, tasks: true, watchFor: true, otherNotes: true, questions: true };
 
 describe("the review rule", () => {
   test("a medicine the reader was unsure of must be looked at, and so must one with no name", () => {
@@ -21,50 +28,69 @@ describe("the review rule", () => {
     expect(canAcceptMed(med({ name: "   " }))).toBe(false);
   });
 
-  test("the medicines cannot be confirmed while one still needs a look", () => {
+  test("each section with something in it gets a check mark; the medicines and the visit always do", () => {
+    expect(sectionsToCheck(draft([]))).toEqual(["medications", "visit"]);
+    expect(sectionsToCheck(draft([med()], [task()], { watchFor: ["Fever"], otherNotes: ["No caffeine"], questions: ["Why?"] }))).toEqual([
+      "medications",
+      "visit",
+      "tasks",
+      "watchFor",
+      "otherNotes",
+      "questions",
+    ]);
+    // Empty lists need no tick.
+    expect(sectionsToCheck(draft([med()], [], { watchFor: ["Fever"] }))).toEqual(["medications", "visit", "watchFor"]);
+  });
+
+  test("the medicines cannot be ticked while one still needs a look", () => {
     const flagged = draft([med(), med({ id: "m2", confidence: "low", unreadable: ["dose"] })]);
-    // Even if the confirm was somehow recorded, it does not count.
-    expect(reviewState(flagged, { medications: true })).toMatchObject({ medsWaiting: 1, medsDone: false, step: "medications" });
-    expect(reviewComplete(flagged, { medications: true, rest: true })).toBe(false);
+    const state = reviewState(flagged, all);
+    // Even if the tick was somehow recorded, it does not count.
+    expect(state).toMatchObject({ medsWaiting: 1, complete: false });
+    expect(state.done.medications).toBe(false);
+    expect(state.blocked.medications).toBe("1 medicine still needs a look");
+    expect(reviewComplete(flagged, all)).toBe(false);
   });
 
-  test("accepting, fixing or deleting the flagged medicine opens the confirm", () => {
+  test("accepting, fixing or deleting the flagged medicine lets the medicines be ticked", () => {
     const accepted = draft([med(), med({ id: "m2", confidence: "high" })]);
-    expect(reviewState(accepted, {})).toMatchObject({ medsWaiting: 0, medsDone: false, step: "medications" });
-    expect(reviewState(accepted, { medications: true })).toMatchObject({ medsDone: true, step: "rest" });
-    const deleted = draft([med()]);
-    expect(reviewState(deleted, { medications: true }).step).toBe("rest");
+    expect(reviewState(accepted, {}).blocked.medications).toBeUndefined();
+    expect(reviewState(accepted, { medications: true }).done.medications).toBe(true);
   });
 
-  test("two confirms, in order: the medicines, then everything else", () => {
-    const clean = draft([med()], [task()]);
-    expect(reviewState(clean, {}).step).toBe("medications");
-    // The second confirm alone is not enough.
-    expect(reviewState(clean, { rest: true })).toMatchObject({ restDone: false, step: "medications" });
-    expect(reviewState(clean, { medications: true }).step).toBe("rest");
-    expect(reviewState(clean, { medications: true, rest: true })).toMatchObject({ medsDone: true, restDone: true, step: "done" });
-    expect(reviewComplete(clean, { medications: true, rest: true })).toBe(true);
+  test("every section that needs a tick must have one, in any order", () => {
+    const clean = draft([med()], [task()], { watchFor: ["Fever"] });
+    expect(reviewState(clean, {})).toMatchObject({ doneCount: 0, complete: false });
+    expect(reviewState(clean, { tasks: true, watchFor: true })).toMatchObject({ doneCount: 2, complete: false });
+    expect(reviewState(clean, { medications: true, visit: true, tasks: true })).toMatchObject({ doneCount: 3, complete: false });
+    expect(reviewState(clean, { medications: true, visit: true, tasks: true, watchFor: true })).toMatchObject({ doneCount: 4, complete: true });
+    // A tick on a section that has nothing in it does not count towards the total.
+    expect(reviewState(clean, { questions: true }).doneCount).toBe(0);
   });
 
-  test("a visit with no medicines still takes both confirms", () => {
+  test("a visit with no medicines still needs the medicines ticked, so an empty list is noticed", () => {
     const none = draft([]);
-    expect(reviewComplete(none, {})).toBe(false);
-    expect(reviewComplete(none, { medications: true, rest: true })).toBe(true);
+    expect(reviewComplete(none, { visit: true })).toBe(false);
+    expect(reviewComplete(none, { medications: true, visit: true })).toBe(true);
   });
 
-  test("a next step the reader was unsure of holds the second confirm", () => {
+  test("a next step the reader was unsure of holds the next steps' tick", () => {
     const unsure = draft([med()], [task({ confidence: "low" })]);
     expect(taskNeedsLook(unsure.tasks[0])).toBe(true);
-    expect(reviewState(unsure, { medications: true, rest: true })).toMatchObject({ tasksWaiting: 1, restDone: false, step: "rest" });
+    const state = reviewState(unsure, all);
+    expect(state).toMatchObject({ tasksWaiting: 1, complete: false });
+    expect(state.done.tasks).toBe(false);
+    expect(state.blocked.tasks).toBe("1 next step still needs a look");
   });
 
-  test("a medicine that turns up flagged after the confirm takes the confirm back", () => {
+  test("a medicine that turns up flagged after the tick takes the tick back", () => {
     const later = draft([med(), med({ id: "m3", name: "", origin: "caregiver" })]);
-    expect(reviewState(later, { medications: true, rest: true }).step).toBe("medications");
+    expect(reviewState(later, all).done.medications).toBe(false);
+    expect(reviewComplete(later, all)).toBe(false);
   });
 
   test("no draft, nothing to save", () => {
-    expect(reviewComplete(null, { medications: true, rest: true })).toBe(false);
+    expect(reviewComplete(null, all)).toBe(false);
   });
 
   test("says how many are waiting in plain words", () => {

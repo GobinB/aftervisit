@@ -4,7 +4,7 @@ import { ArrowLeft, CalendarCheck, Eye, FileText, HelpCircle, Images, Info, Ligh
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { AddButton, EmptyNote, inputClass, MedRow, ReviewCard, SubSection, TaskRow, TextItemRow } from "@/components/review/parts";
+import { AddButton, CheckToggle, EmptyNote, inputClass, MedRow, ReviewCard, SubSection, TaskRow, TextItemRow } from "@/components/review/parts";
 import { OriginalView, type SourceTarget } from "@/components/review/SourcePanel";
 import { BackLink } from "@/components/circles/PageHead";
 import { StepHeader } from "@/components/StepHeader";
@@ -12,7 +12,7 @@ import { useToast } from "@/components/Toast";
 import { COPY } from "@/lib/copy";
 import { shortDate } from "@/lib/format";
 import { itemId } from "@/lib/parse/util";
-import { medNeedsLook, reviewState, waitingText } from "@/lib/review";
+import { medNeedsLook, reviewState, type ReviewSection } from "@/lib/review";
 import type { HandoffDraft, MedicationChange, Task } from "@/lib/schema";
 import { getOriginalPages, useFlow } from "@/lib/store";
 
@@ -37,10 +37,8 @@ export default function ReviewPage() {
   // Phones show one at a time: the draft, or the original.
   const [view, setView] = useState<"draft" | "original">("draft");
   const draftScroll = useRef(0);
-  const medsConfirmedAt = useRef(0);
   const [newItem, setNewItem] = useState<string | null>(null);
   const [editVisit, setEditVisit] = useState(false);
-  const [medsOpen, setMedsOpen] = useState(true);
   const nameListId = useId();
   const visitIds = { name: useId(), date: useId(), provider: useId(), specialty: useId(), reason: useId(), summary: useId() };
 
@@ -94,7 +92,6 @@ export default function ReviewPage() {
   function addMed() {
     const m: MedicationChange = { id: itemId("med"), kind: "new", name: "", detail: "", origin: "caregiver", confidence: "high" };
     setNewItem(m.id);
-    setMedsOpen(true);
     set((d) => ({ ...d, medications: [...d.medications, m] }));
   }
   function addTask() {
@@ -131,18 +128,12 @@ export default function ReviewPage() {
     if (quote && !isPhone()) setTarget((now) => (now?.quote === quote && now.page === page ? now : { quote, page }));
   };
 
-  function confirmMeds() {
-    medsConfirmedAt.current = Date.now();
-    setReviewed("medications", true);
-    setMedsOpen(false);
-    requestAnimationFrame(() => document.getElementById("rest-title")?.closest("section")?.scrollIntoView({ block: "start", behavior: "smooth" }));
-  }
-  function confirmRest() {
-    // The same button holds both confirms. A double tap on the first must not give the second.
-    if (Date.now() - medsConfirmedAt.current < 900) return;
-    setReviewed("rest", true);
-    router.push(next);
-  }
+  /** The check mark for one section. None for a section that does not need one (an empty list). */
+  const check = (section: ReviewSection, name: string) =>
+    state.sections.includes(section) ? (
+      <CheckToggle section={name} checked={state.done[section]} blocked={state.blocked[section]} onToggle={(value) => setReviewed(section, value)} />
+    ) : undefined;
+  const restSections = state.sections.filter((section) => section !== "medications");
 
   const photoCount = pages.filter((file) => !/pdf/i.test(file.type) && !/\.pdf$/i.test(file.name)).length;
   const v = draft.visit;
@@ -182,25 +173,15 @@ export default function ReviewPage() {
     );
   const visitLine = [shortDate(v.date), v.provider, v.specialty].filter(Boolean).join(" · ");
 
-  // The bar at the bottom holds the one button for the step the caregiver is on.
-  const bar =
-    state.step === "medications"
-      ? {
-          label: "Step 1 of 2",
-          hint: state.medsWaiting ? waitingText(state.medsWaiting, "medicine", "medicines") : "Check each medicine against the original.",
-          blocked: state.medsWaiting > 0,
-          button: "Medicines look right",
-          onClick: confirmMeds,
-        }
-      : state.step === "rest"
-        ? {
-            label: "Step 2 of 2",
-            hint: state.tasksWaiting ? waitingText(state.tasksWaiting, "next step", "next steps") : "Check the rest, then continue.",
-            blocked: state.tasksWaiting > 0,
-            button: "The rest looks right",
-            onClick: confirmRest,
-          }
-        : { label: "Both steps checked", hint: circleId ? "Next: choose what goes into the circle." : "Next: choose who sees it.", blocked: false, button: "Continue", onClick: () => router.push(next) };
+  // The bar at the bottom: how many sections are ticked, and Continue once all are.
+  const firstBlocked = state.sections.map((section) => state.blocked[section]).find(Boolean);
+  const bar = {
+    label: `${state.doneCount} of ${state.sections.length} checked`,
+    hint: state.complete ? (circleId ? "Next: choose what goes into the circle." : "Next: choose who sees it.") : (firstBlocked ?? "Tick each section once it matches the original"),
+    blocked: !state.complete,
+    button: "Continue",
+    onClick: () => router.push(next),
+  };
 
   return (
     <div>
@@ -208,7 +189,7 @@ export default function ReviewPage() {
         <BackLink href={circleId ? `/circles/${circleId}` : "/"} label={circleId ? "Today" : "Home"} />
         <StepHeader current="Review" circle={Boolean(circleId)} />
         <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Review the draft</h1>
-        <p className="mt-2 text-ink-500">Two steps: check the medicines, then check the rest. Nothing is saved until you finish.</p>
+        <p className="mt-2 text-ink-500">Compare each section with the original and tick it. Nothing is saved until you finish.</p>
         <ReaderNote reader={reader} />
       </div>
 
@@ -243,7 +224,7 @@ export default function ReviewPage() {
             <div className="flex gap-3 rounded-xl bg-sky-100 px-4 py-3 text-primary-900">
               <Info size={20} className="mt-0.5 shrink-0" aria-hidden="true" />
               <p>
-                This is a sample visit for Margaret, who is fictional. Check both steps to continue, or{" "}
+                This is a sample visit for Margaret, who is fictional. Tick each section to continue, or{" "}
                 <Link href="/h/demo" className="font-medium text-primary-700 underline underline-offset-4">
                   see the finished handoff page
                 </Link>
@@ -264,16 +245,13 @@ export default function ReviewPage() {
           </datalist>
 
           <div className="mt-5 space-y-5">
-            <ReviewCard id="medications" icon={<Pill size={20} />} title="Medicines" count={draft.medications.length} step="Step 1 of 2" done={state.medsDone}>
-              {state.medsDone && !medsOpen ? (
-                <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="min-w-0 flex-1 text-ink-900">{draft.medications.length ? draft.medications.map((m) => m.name).join(", ") : "No medicines in this visit."}</p>
-                  <button type="button" onClick={() => setMedsOpen(true)} className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100">
-                    <Pencil size={16} aria-hidden="true" /> Look again
-                  </button>
-                </div>
-              ) : (
-                <>
+            <ReviewCard id="medications" icon={<Pill size={20} />} title="Medicines" count={draft.medications.length} check={check("medications", "Medicines")} done={state.done.medications}>
+              {!draft.medications.length ? (
+                <p className="mb-2 rounded-xl border border-med/40 bg-med-bg/30 px-3 py-2 text-[15px] text-med-ink">
+                  No medicines were read. If the summary names any (even under &ldquo;Pick up these medications&rdquo;), add them below.
+                </p>
+              ) : null}
+              <>
                   {waiting.length ? (
                     <div className="mb-3 rounded-xl border border-med/40 bg-med-bg/30 px-3 pt-2.5">
                       <h3 className="text-[15px] font-bold text-med-ink">
@@ -284,13 +262,12 @@ export default function ReviewPage() {
                   ) : null}
                   {settled.length ? <ul>{settled.map(medRow)}</ul> : waiting.length ? null : <EmptyNote />}
                   <AddButton label="Add a medicine" onAdd={addMed} />
-                </>
-              )}
+              </>
             </ReviewCard>
 
-            <ReviewCard id="rest" icon={<ListChecks size={20} />} title="Everything else" step="Step 2 of 2" done={state.restDone}>
+            <ReviewCard id="rest" icon={<ListChecks size={20} />} title="Everything else" done={restSections.every((section) => state.done[section])}>
               <div className="space-y-4">
-                <SubSection id="visit" icon={<Stethoscope size={18} />} title="The visit">
+                <SubSection id="visit" icon={<Stethoscope size={18} />} title="The visit" check={check("visit", "The visit")}>
                   <div className="flex flex-wrap items-center justify-between gap-2">
                     <p className="min-w-0 flex-1 text-ink-900">{visitLine || <span className="text-ink-500">No date or clinician was read.</span>}</p>
                     <button
@@ -369,7 +346,7 @@ export default function ReviewPage() {
                   </div>
                 </SubSection>
 
-                <SubSection id="tasks" icon={<CalendarCheck size={18} />} title="Next steps" count={draft.tasks.length} onAdd={addTask} addLabel="Add a next step">
+                <SubSection id="tasks" icon={<CalendarCheck size={18} />} title="Next steps" count={draft.tasks.length} check={check("tasks", "Next steps")} onAdd={addTask} addLabel="Add a next step">
                   {draft.tasks.length ? (
                     <ul>
                       {draft.tasks.map((t, i) => (
@@ -390,7 +367,7 @@ export default function ReviewPage() {
                   )}
                 </SubSection>
 
-                <SubSection id="watchFor" icon={<Eye size={18} />} title="Watch for" count={draft.watchFor.length} onAdd={() => addText("watchFor")}>
+                <SubSection id="watchFor" icon={<Eye size={18} />} title="Watch for" count={draft.watchFor.length} check={check("watchFor", "Watch for")} onAdd={() => addText("watchFor")}>
                   {textList("watchFor", "Watch-for item")}
                 </SubSection>
 
@@ -400,12 +377,20 @@ export default function ReviewPage() {
                   title="Good to know"
                   count={draft.otherNotes.length}
                   help="Instructions that are not a medicine or something to do once, like what to avoid."
+                  check={check("otherNotes", "Good to know")}
                   onAdd={() => addText("otherNotes")}
                 >
                   {textList("otherNotes", "Good-to-know item")}
                 </SubSection>
 
-                <SubSection id="questions" icon={<HelpCircle size={18} />} title="Questions for the next visit" count={draft.questions.length} onAdd={() => addText("questions")}>
+                <SubSection
+                  id="questions"
+                  icon={<HelpCircle size={18} />}
+                  title="Questions for the next visit"
+                  count={draft.questions.length}
+                  check={check("questions", "Questions for the next visit")}
+                  onAdd={() => addText("questions")}
+                >
                   {textList("questions", "Question")}
                 </SubSection>
               </div>
@@ -434,7 +419,7 @@ export default function ReviewPage() {
         </aside>
       </div>
 
-      {/* The bar: one button for the step the caregiver is on. On a phone looking at the original, the way back. */}
+      {/* The bar: how many sections are ticked, and Continue. On a phone looking at the original, the way back. */}
       <div data-review-bar className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-border-200 bg-white">
         <div className="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className={`text-sm text-ink-500 ${view === "original" ? "max-lg:hidden" : ""}`} aria-live="polite">
