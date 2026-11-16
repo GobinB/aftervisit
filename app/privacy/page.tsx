@@ -17,6 +17,8 @@ const EFFECTIVE = "November 13, 2026";
 const READER_EFFECTIVE = "November 14, 2026";
 /** The policy changed when a visit's notes started being kept with the circle and shown to people by role. */
 const NOTES_EFFECTIVE = "November 15, 2026";
+/** The policy changed when the calendar link started carrying medicine times. */
+const MEDS_CALENDAR_EFFECTIVE = "November 15, 2026";
 /** The policy changed when phone numbers could be added for the caregiver and the people they add. */
 const PHONES_EFFECTIVE = "November 15, 2026";
 
@@ -251,8 +253,9 @@ export default function PrivacyPage() {
                       only yours. Each person can add, change or remove their own number from their link.
                     </li>
                     <li>
-                      If you turn on the calendar link, anyone who has that link can see the circle&apos;s appointments and reminders (not
-                      medicines). Make a new link or turn it off any time from Calendar, Add to my calendar.
+                      If you turn on the calendar link, anyone who has that link can see the circle&apos;s appointments, reminders and, unless
+                      you leave them out, medicine names, strengths and times. Make a new link, leave medicines out, or turn it off any time from
+                      Calendar, Add to my calendar.
                     </li>
                     <li>Pages opened from a link ask search engines not to index them.</li>
                   </ul>
@@ -332,7 +335,10 @@ export default function PrivacyPage() {
                     </li>
                     <li>
                       If you add the calendar link to Google Calendar, Apple Calendar or Outlook, that company receives the appointments and
-                      reminders (titles, times, places and notes) and keeps its own copy under its own privacy terms.
+                      reminders (titles, times, places and notes) and keeps its own copy under its own privacy terms. With medicines on (they
+                      are on unless you turn them off), it also receives each medicine&apos;s name, strength and the times it is taken, and
+                      keeps its own copy of those too. Leave medicines out on the same page and they drop out of that calendar at its next
+                      update.
                     </li>
                     <li>Vercel Web Analytics counts page visits without cookies.</li>
                     <li>These companies handle information only to provide their service to us. We do not sell or share it with anyone else.</li>
@@ -465,6 +471,12 @@ export default function PrivacyPage() {
                     add, and each person can add their own from their link, so a new Emergency page can offer tap to call. A number is
                     never required. Yours is seen by the people you add; a person&apos;s is seen by you and by family and care managers in
                     the circle. Before, no phone numbers were kept, other than the ones you write in the care summary.
+                  </p>
+                  <p>
+                    <strong>Before that, {MEDS_CALENDAR_EFFECTIVE}:</strong> the calendar link now carries medicine times as well as
+                    appointments and reminders, unless you leave them out. With medicines on, the calendar company you add the link to
+                    (Google, Apple or Microsoft) receives each medicine&apos;s name, strength and times and keeps its own copy. Before,
+                    medicines were left out of the calendar link.
                   </p>
                   <p>
                     <strong>Before that, {NOTES_EFFECTIVE}:</strong> the notes of a visit you add are now kept with the circle: a short
