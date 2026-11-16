@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useId, useState, useTransition } from "react";
+import { useId, useState } from "react";
 import { setMemberPhoneAction, setOwnPhoneAction } from "@/app/actions/members";
 import { cleanPhone } from "@/lib/phone";
 
@@ -28,7 +28,9 @@ export function PhoneField({
   const [saved, setSaved] = useState(initial ?? "");
   const [note, setNote] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
-  const [pending, start] = useTransition();
+  // Its own flag rather than useTransition: with router.refresh() inside the transition, the
+  // transition never finished in a production build and the button stayed on "Saving".
+  const [pending, setPending] = useState(false);
   const changed = value.trim() !== saved.trim();
 
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -40,17 +42,24 @@ export function PhoneField({
       return;
     }
     setProblem(null);
-    start(async () => {
-      const result = memberId ? await setMemberPhoneAction({ circleId, memberId, phone: value }) : await setOwnPhoneAction({ circleId, phone: value });
-      if (!result.ok) {
-        setProblem(result.error);
-        return;
+    setPending(true);
+    void (async () => {
+      try {
+        const result = memberId ? await setMemberPhoneAction({ circleId, memberId, phone: value }) : await setOwnPhoneAction({ circleId, phone: value });
+        if (!result.ok) {
+          setProblem(result.error);
+          return;
+        }
+        setValue(result.phone ?? "");
+        setSaved(result.phone ?? "");
+        setNote(result.phone ? "Number saved." : "Number removed.");
+        router.refresh();
+      } catch {
+        setProblem("That did not save. Check your connection and try again.");
+      } finally {
+        setPending(false);
       }
-      setValue(result.phone ?? "");
-      setSaved(result.phone ?? "");
-      setNote(result.phone ? "Number saved." : "Number removed.");
-      router.refresh();
-    });
+    })();
   }
 
   return (
