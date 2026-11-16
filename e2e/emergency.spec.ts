@@ -254,6 +254,23 @@ test.describe("Emergency page and phone numbers, through people's links", () => 
     await other.close();
   });
 
+  test("caregiver: the time zone where the person lives can be picked in Settings, and is kept", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop-chrome", "signed-in flow; run once");
+    await signInAsCaregiver(page, seeded.ownerSession);
+    await page.goto(`/circles/${seeded.circleId}/settings`);
+    const zone = page.getByLabel("Teodora Ruiz lives in");
+    await expect(zone).toBeVisible();
+    // A son in Chicago looking after his mother there: he picks Central Time, and it is kept.
+    await zone.selectOption("America/Chicago");
+    await page.getByRole("button", { name: "Save", exact: true }).click();
+    await expect(page.getByText("Saved: Central Time.")).toBeVisible();
+    const circle = await rest(`/rest/v1/circles?select=content&id=eq.${seeded.circleId}`);
+    expect(circle[0].content.time_zone).toBe("America/Chicago");
+    await page.reload();
+    await expect(page.getByText(/Times are in\s*Central Time/)).toBeVisible();
+    await expect(page.getByLabel("Teodora Ruiz lives in")).toHaveValue("America/Chicago");
+  });
+
   test("signed out, the page asks to sign in", async ({ page }, info) => {
     test.skip(info.project.name !== "desktop-chrome", "access check; run once");
     await page.goto(`/circles/${seeded.circleId}/emergency`);
