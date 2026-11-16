@@ -363,7 +363,7 @@ test("PIN: parallel guesses cannot get past the lockout", async ({ page }, info)
 test("no horizontal scroll at 360 px; buttons at least 48 px", async ({ page }, info) => {
   test.skip(info.project.name === "desktop-chrome", "mobile check");
   await page.setViewportSize({ width: 360, height: 760 });
-  for (const path of ["/", "/new", "/h/demo", "/privacy"]) {
+  for (const path of ["/", "/new", "/h/demo", "/privacy", "/terms"]) {
     await page.goto(path);
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
     expect(overflow, path).toBeLessThanOrEqual(0);
@@ -538,6 +538,20 @@ test("privacy page describes access honestly", async ({ page }, info) => {
   const body = (await page.locator("main").innerText()).toLowerCase();
   expect(body).not.toContain("not a hipaa covered entity");
   expect(body).not.toMatch(/no (third-party )?ai/);
+});
+
+test("terms page: linked from the footer, says it is not for emergencies or medical advice", async ({ page }, info) => {
+  test.skip(info.project.name !== "desktop-chrome", "content check; run once");
+  await page.goto("/");
+  await page.getByRole("contentinfo").getByRole("link", { name: "Terms" }).click();
+  await expect(page.getByRole("heading", { name: "Terms of use", level: 1 })).toBeVisible();
+  await expect(page.getByText(/not for emergencies\. If someone is in danger, call 911/)).toBeVisible();
+  await expect(page.getByText(/It does not give medical advice/)).toBeVisible();
+  await expect(page.getByText(/You must be 18 or older/)).toBeVisible();
+  await expect(page.getByRole("link", { name: "admin@allhandscare.org" }).first()).toBeVisible();
+  await expect(page.getByRole("link", { name: "privacy@allhandscare.org" }).first()).toBeVisible();
+  await page.goto("/login");
+  await expect(page.getByRole("link", { name: "Terms" })).toHaveAttribute("href", "/terms");
 });
 
 test("review: 'See it in the original' marks the clinic's sentence; a phone swaps to the original and back", async ({ page }, info) => {

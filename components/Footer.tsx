@@ -19,6 +19,9 @@ export function Footer() {
             <Link href="/privacy" className="underline-offset-4 hover:text-primary-900 hover:underline">
               Privacy
             </Link>
+            <Link href="/terms" className="underline-offset-4 hover:text-primary-900 hover:underline">
+              Terms
+            </Link>
             <Link href="/privacy/health-data" className="underline-offset-4 hover:text-primary-900 hover:underline">
               Health data notice
             </Link>
