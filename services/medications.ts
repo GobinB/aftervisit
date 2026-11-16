@@ -1,4 +1,6 @@
 import "server-only";
+import { circleTimeZone } from "@/services/circles";
+import { todayIn } from "@/lib/time-zone";
 import type { Actor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import type { Medication, MedicationChange, MedicationInput } from "@/lib/schema/medications";
@@ -136,7 +138,8 @@ export async function setMedicationStatus(
   if (actor.kind !== "caregiver" || !can(actor, "medications:edit", { circleId })) {
     return { ok: false, error: "Only the caregiver can change medications." };
   }
-  const stop_date = status === "stopped" ? new Date().toISOString().slice(0, 10) : null;
+  // Today where the person lives, not on the server (UTC): stopped at 9 p.m. in Kentucky is still today.
+  const stop_date = status === "stopped" ? todayIn(await circleTimeZone(actor, circleId)) : null;
   const { data, error } = await clientFor(actor).from("medications").update({ status, stop_date }).eq("circle_id", circleId).eq("id", id).select("id").maybeSingle();
   if (error || !data) return { ok: false, error: generic };
   return { ok: true };

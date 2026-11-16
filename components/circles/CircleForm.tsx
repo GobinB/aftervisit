@@ -26,6 +26,16 @@ function links(type: ConsentType) {
   );
 }
 
+/** This device's time zone, for "today" and the calendar link. Left out if the browser does not say. */
+function deviceTimeZone(): { time_zone?: string } {
+  try {
+    const zone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return zone ? { time_zone: zone } : {};
+  } catch {
+    return {};
+  }
+}
+
 const field =
   "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500";
 
@@ -60,7 +70,7 @@ export function CircleForm() {
     start(async () => {
       try {
         const result = await createCircle({
-          content: { person_name: name, allergies: [], doctors: [], emergency_contacts: [] },
+          content: { person_name: name, allergies: [], doctors: [], emergency_contacts: [], ...deviceTimeZone() },
           consents: { authorized_to_share: true, terms: true, privacy: true },
         });
         if (!result.ok) {

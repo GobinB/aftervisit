@@ -4,6 +4,8 @@ Notable changes to All Hands Care (formerly AfterVisit). The newest entries are 
 
 ## Unreleased
 
+- Calendar link times are right in Google Calendar, Apple Calendar and Outlook. A medicine at 7:00 showed at 2:00 in Google Calendar: the file gave times with no time zone, and Google reads those as UTC. Each circle now keeps the time zone where the person lives (from the caregiver's phone or computer when the circle is started, or the first time an existing circle is opened), and every timed entry in the link carries it, with daylight saving handled. The Add to your calendar page says which time zone is used and offers to switch if this device is in another. "Today" on Today and the Calendar page, and the date a medicine is stopped (by hand or from a visit), are now the date where the person lives, not the server's UTC date, so an evening change is no longer dated tomorrow. The privacy page lists the time zone among what is kept.
+
 - On the Emergency page, "Add an emergency contact" (or "Change emergency contacts") and a new "Add allergies" (or "Change allergies") are clear buttons for the caregiver. Each opens only that part of the care summary, with a back button to Emergency, and saving returns to Emergency with the change shown. Before, the link was faint and opened the whole care summary editor, which then went to the Care summary page.
 
 - The site no longer calls All Hands Care a nonprofit (home page, link previews and the privacy page). It is free and open source; it is not a registered nonprofit.

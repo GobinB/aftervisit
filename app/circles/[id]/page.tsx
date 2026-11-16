@@ -1,4 +1,5 @@
 import { ArrowRight, UserPlus } from "lucide-react";
+import { todayIn } from "@/lib/time-zone";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
@@ -31,7 +32,8 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
   const { id } = await params;
   const actor = await getActor(id);
   if (!actor) redirect(`/login?next=/circles/${id}`);
-  const today = new Date().toISOString().slice(0, 10);
+  // Today where the person lives (the server runs in UTC). getCircle is cached, so the read below is free.
+  const today = todayIn((await getCircle(actor, id))?.time_zone);
   // Everything Today shows is read at once rather than one after another.
   const [content, listed, medications, todos, events, activity, visits] = await Promise.all([
     getCircle(actor, id),

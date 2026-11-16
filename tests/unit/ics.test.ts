@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, test } from "vitest";
 import { buildCalendar, escapeText, type FeedMedicine, foldLine, medicineLines, subscribeLinks } from "@/lib/ics";
 import { medsOnDay } from "@/lib/med-days";
 import type { CareEvent } from "@/lib/schema/events";
@@ -253,5 +253,58 @@ describe("medicines in the calendar link", () => {
     expect(withMeds).toContain("UID:med-med1-0800@h");
     expect(without).not.toContain("med-");
     expect(without).not.toContain("Lisinopril");
+  });
+});
+
+describe("time zones: a 7:00 medicine is 7:00 where the person lives", () => {
+  const zoned = (timeZone: string | null) =>
+    buildCalendar({
+      name: "Teodora's care",
+      events: [
+        { id: "e1", title: "Dr. Patel", date: "2026-10-27", startTime: "10:30", endTime: "11:15", location: null, notes: null, repeat: "weekly", repeatUntil: "2026-11-17", going: null, needsVolunteer: false },
+      ],
+      reminders: [{ id: "r1", title: "Pick up refill", dueDate: "2026-11-20", who: null }],
+      medicines: [
+        { id: "m1", name: "Lisinopril", dose: "10 mg", amount: null, form: null, schedule: "daily", every: null, weekdays: [], times: ["07:00"], startDate: "2026-11-01", stopDate: null, status: "active", updatedAt: "2026-11-01T12:00:00Z" },
+        { id: "m2", name: "Metformin", dose: null, amount: null, form: null, schedule: "daily", every: null, weekdays: [], times: ["21:00"], startDate: "2026-11-01", stopDate: "2026-11-16", status: "stopped", updatedAt: "2026-11-16T03:00:00Z" },
+      ],
+      goingName: () => null,
+      host: "allhandscare.org",
+      timeZone,
+      now: new Date("2026-11-16T05:00:00Z"),
+    });
+
+  test("timed entries carry the zone, with its VTIMEZONE block and X-WR-TIMEZONE", () => {
+    const ics = zoned("America/New_York");
+    expect(ics).toContain("X-WR-TIMEZONE:America/New_York\r\n");
+    expect(ics).toContain("BEGIN:VTIMEZONE\r\nTZID:America/New_York\r\n");
+    expect(ics).toContain("RRULE:FREQ=YEARLY;BYMONTH=3;BYDAY=2SU");
+    expect(ics).toContain("DTSTART;TZID=America/New_York:20261101T070000\r\nDTEND;TZID=America/New_York:20261101T071500");
+    expect(ics).toContain("DTSTART;TZID=America/New_York:20261027T103000\r\nDTEND;TZID=America/New_York:20261027T111500");
+    expect(ics).not.toMatch(/\r\nDTSTART:2026/);
+  });
+
+  test("a repeat's end is the end of its last day there, written in UTC as the standard asks", () => {
+    const ics = zoned("America/New_York");
+    // Until Nov 17: 23:59:59 in New York (EST, UTC-5) is 04:59:59 UTC on the 18th.
+    expect(ics).toContain("RRULE:FREQ=WEEKLY;UNTIL=20261118T045959Z");
+    // Stopped Nov 16: the last dose is the evening of the 15th.
+    expect(ics).toContain("RRULE:FREQ=DAILY;UNTIL=20261116T045959Z");
+  });
+
+  test("all-day entries stay dates", () => {
+    expect(zoned("America/New_York")).toContain("DTSTART;VALUE=DATE:20261120\r\nDTEND;VALUE=DATE:20261121");
+  });
+
+  test("a zone with no daylight saving, and a circle whose zone is not known yet", () => {
+    expect(zoned("America/Phoenix")).toContain("DTSTART;TZID=America/Phoenix:20261101T070000");
+    const floating = zoned(null);
+    expect(floating).toContain("DTSTART:20261101T070000");
+    expect(floating).not.toContain("VTIMEZONE");
+    expect(floating).not.toContain("X-WR-TIMEZONE");
+  });
+
+  test("an unknown zone is left out rather than written wrong", () => {
+    expect(zoned("Not/AZone")).not.toContain("TZID=");
   });
 });

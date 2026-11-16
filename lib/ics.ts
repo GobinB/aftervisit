@@ -1,11 +1,14 @@
 import type { CareEvent, Repeat } from "@/lib/schema/events";
 import { doseText, scheduleText, type Medication } from "@/lib/schema/medications";
+import { vtimezone, zonedToUtc } from "@/lib/time-zone";
 
 /**
  * A circle's calendar as an iCalendar file (RFC 5545), for Google Calendar, Apple Calendar and
- * Outlook to subscribe to. Times are "floating": a 10:30 appointment shows at 10:30 in whatever
- * time zone the reader's calendar uses, the same wall-clock time the circle stores and the Calendar
- * page shows. Medicine times work the same way.
+ * Outlook to subscribe to. A 10:30 appointment or a 7:00 medicine is 10:30 or 7:00 where the person
+ * lives: every timed entry carries the circle's time zone (TZID, with its VTIMEZONE block), so each
+ * calendar app shows it at the right moment wherever the reader is. Without a zone the times would
+ * "float", and Google Calendar reads floating times in a subscribed calendar as UTC (7:00 showed at
+ * 2:00 in Kentucky). Until a circle's zone is known, the times float as before.
  */
 export type FeedReminder = { id: string; title: string; dueDate: string; who: string | null };
 export type FeedMedicine = Pick<
@@ -48,6 +51,15 @@ export function foldLine(line: string): string {
 
 const date = (iso: string) => iso.replace(/-/g, "");
 const dateTime = (iso: string, clock: string) => `${date(iso)}T${clock.replace(":", "")}00`;
+/** "DTSTART;TZID=America/New_York:20261116T070000", or a floating time when the zone is not known. */
+const timed = (name: "DTSTART" | "DTEND", iso: string, clock: string, tz: string | null) =>
+  tz ? `${name};TZID=${tz}:${dateTime(iso, clock)}` : `${name}:${dateTime(iso, clock)}`;
+/**
+ * The end of a repeat that has a time of day: the end of its last day. With a zone, the standard
+ * wants this as a UTC instant ("...Z"); floating starts keep a floating end.
+ */
+const untilEndOf = (iso: string, tz: string | null) =>
+  tz ? `${zonedToUtc(iso, "23:59:59", tz).toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "")}` : `${date(iso)}T235959`;
 const addDays = (iso: string, days: number) => {
   const d = new Date(`${iso}T12:00:00Z`);
   d.setUTCDate(d.getUTCDate() + days);
@@ -64,16 +76,16 @@ function addMinutes(clock: string, minutes: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
-function eventLines(event: CareEvent, whoIsGoing: string | null, host: string, now: Date): string[] {
+function eventLines(event: CareEvent, whoIsGoing: string | null, host: string, now: Date, tz: string | null): string[] {
   const lines = ["BEGIN:VEVENT", `UID:${event.id}@${host}`, `DTSTAMP:${stamp(now)}`];
   if (event.startTime) {
-    lines.push(`DTSTART:${dateTime(event.date, event.startTime)}`);
-    lines.push(`DTEND:${dateTime(event.date, event.endTime ?? addMinutes(event.startTime, 60))}`);
+    lines.push(timed("DTSTART", event.date, event.startTime, tz));
+    lines.push(timed("DTEND", event.date, event.endTime ?? addMinutes(event.startTime, 60), tz));
   } else {
     lines.push(`DTSTART;VALUE=DATE:${date(event.date)}`, `DTEND;VALUE=DATE:${date(nextDay(event.date))}`);
   }
   if (event.repeat !== "none") {
-    const until = event.repeatUntil ? (event.startTime ? `;UNTIL=${date(event.repeatUntil)}T235959` : `;UNTIL=${date(event.repeatUntil)}`) : "";
+    const until = event.repeatUntil ? (event.startTime ? `;UNTIL=${untilEndOf(event.repeatUntil, tz)}` : `;UNTIL=${date(event.repeatUntil)}`) : "";
     lines.push(`RRULE:${RRULE[event.repeat]}${until}`);
   }
   lines.push(`SUMMARY:${escapeText(event.title)}`);
@@ -95,7 +107,7 @@ const MED_MINUTES = 15;
  * and so does a stopped one with no stop date. A medicine with a schedule but no time of day
  * becomes an all-day entry, as the Calendar page lists it under "Any time".
  */
-export function medicineLines(med: FeedMedicine, host: string, now: Date): string[] {
+export function medicineLines(med: FeedMedicine, host: string, now: Date, tz: string | null = null): string[] {
   if (med.schedule === "as_needed") return [];
   if (med.status === "stopped" && !med.stopDate) return [];
   const every = Math.max(1, med.every ?? 1);
@@ -156,9 +168,9 @@ export function medicineLines(med: FeedMedicine, host: string, now: Date): strin
     const endClock = `${String(Math.floor(endTotal / 60) % 24).padStart(2, "0")}:${String(endTotal % 60).padStart(2, "0")}`;
     return [
       ...common(`med-${med.id}-${time.replace(":", "")}`),
-      `DTSTART:${dateTime(first, time)}`,
-      `DTEND:${dateTime(endDay, endClock)}`,
-      `RRULE:${rule}${last ? `;UNTIL=${date(last)}T235959` : ""}`,
+      timed("DTSTART", first, time, tz),
+      timed("DTEND", endDay, endClock, tz),
+      `RRULE:${rule}${last ? `;UNTIL=${untilEndOf(last, tz)}` : ""}`,
       ...tail,
     ];
   });
@@ -186,6 +198,7 @@ export function buildCalendar({
   medicines = [],
   goingName,
   host,
+  timeZone = null,
   now = new Date(),
 }: {
   name: string;
@@ -195,8 +208,12 @@ export function buildCalendar({
   medicines?: FeedMedicine[];
   goingName: (event: CareEvent) => string | null;
   host: string;
+  /** The circle's IANA time zone. Timed entries carry it; without it they float. */
+  timeZone?: string | null;
   now?: Date;
 }): string {
+  const zone = timeZone ? vtimezone(timeZone) : null;
+  const tz = zone ? (timeZone as string) : null;
   const lines = [
     "BEGIN:VCALENDAR",
     "VERSION:2.0",
@@ -207,9 +224,11 @@ export function buildCalendar({
     // Ask calendar apps to check again every hour (most decide for themselves).
     "REFRESH-INTERVAL;VALUE=DURATION:PT1H",
     "X-PUBLISHED-TTL:PT1H",
-    ...events.flatMap((event) => eventLines(event, goingName(event), host, now)),
+    // Google and Apple also read this for the calendar as a whole.
+    ...(tz ? [`X-WR-TIMEZONE:${tz}`, ...(zone as string[])] : []),
+    ...events.flatMap((event) => eventLines(event, goingName(event), host, now, tz)),
     ...reminders.flatMap((reminder) => reminderLines(reminder, host, now)),
-    ...medicines.flatMap((med) => medicineLines(med, host, now)),
+    ...medicines.flatMap((med) => medicineLines(med, host, now, tz)),
     "END:VCALENDAR",
   ];
   return lines.map(foldLine).join("\r\n") + "\r\n";

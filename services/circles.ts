@@ -54,9 +54,46 @@ export async function updateCircleContent(actor: Actor, circleId: string, conten
   }
   const parsed = CircleContentSchema.safeParse(content);
   if (!parsed.success) return { ok: false, error: "Check the details and try again." };
-  const { data, error } = await clientFor(actor).from("circles").update({ content: parsed.data }).eq("id", circleId).is("deleted_at", null).select("id");
+  const db = clientFor(actor);
+  // An editor that does not send the time zone (the care summary) keeps the one already stored.
+  if (!parsed.data.time_zone) {
+    const { data: current } = await db.from("circles").select("content").eq("id", circleId).maybeSingle();
+    const zone = CircleContentSchema.safeParse(current?.content).data?.time_zone;
+    if (zone) parsed.data.time_zone = zone;
+  }
+  const { data, error } = await db.from("circles").update({ content: parsed.data }).eq("id", circleId).is("deleted_at", null).select("id");
   if (error || !data?.length) return { ok: false, error: generic };
   return { ok: true };
+}
+
+/**
+ * Records where the person lives. `onlyIfMissing` (from a page load) never replaces a zone already
+ * set, so a caregiver who travels does not move every medicine time; the subscribe page can replace it.
+ */
+export async function setCircleTimeZone(
+  actor: Actor,
+  circleId: string,
+  timeZone: string,
+  onlyIfMissing: boolean,
+): Promise<{ ok: true; timeZone: string } | { ok: false; error: string }> {
+  if (actor.kind !== "caregiver" || !actor.circleIds.includes(circleId) || !can(actor, "summary:edit", { circleId })) {
+    return { ok: false, error: "Only the caregiver can change this." };
+  }
+  const { data: row } = await clientFor(actor).from("circles").select("content").eq("id", circleId).is("deleted_at", null).maybeSingle();
+  const current = CircleContentSchema.safeParse(row?.content);
+  if (!current.success) return { ok: false, error: generic };
+  if (onlyIfMissing && current.data.time_zone) return { ok: true, timeZone: current.data.time_zone };
+  const result = await updateCircleContent(actor, circleId, { ...current.data, time_zone: timeZone });
+  return result.ok ? { ok: true, timeZone } : result;
+}
+
+/** The circle's time zone, or null (then "today" is the UTC date). A failed read never stops a save. */
+export async function circleTimeZone(actor: Actor, circleId: string): Promise<string | null> {
+  try {
+    return (await getCircle(actor, circleId))?.time_zone ?? null;
+  } catch {
+    return null;
+  }
 }
 
 /** Cached per request, so the circle layout and its page share one read. */

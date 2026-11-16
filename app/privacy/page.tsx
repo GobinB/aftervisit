@@ -137,7 +137,9 @@ export default function PrivacyPage() {
                     <li>
                       <strong>What you enter for the person you look after:</strong> the care summary (allergies, doctors, pharmacy, emergency
                       contacts), the calendar, reminders and medication list, with each medication change and when it was made, and the notes
-                      of each visit you add (a short summary, what to watch for, good to know, and questions for the next visit).
+                      of each visit you add (a short summary, what to watch for, good to know, and questions for the next visit). Also the
+                      time zone where the person lives (such as Eastern Time), taken from your phone or computer, so dates and medicine times
+                      are right in the calendar link.
                     </li>
                     <li>
                       <strong>The people you add:</strong> their name, role, which parts they can see, an optional phone number (added by you, or
