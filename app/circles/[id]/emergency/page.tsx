@@ -1,8 +1,9 @@
-import { Siren } from "lucide-react";
+import { Pencil, Plus, Siren } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CallButton } from "@/components/circles/CallButton";
+import { EmergencyContacts } from "@/components/circles/EmergencyContacts";
 import { PageHead } from "@/components/circles/PageHead";
 import { PhoneField } from "@/components/circles/PhoneField";
 import { roleLine } from "@/components/circles/CircleFrame";
@@ -55,22 +56,13 @@ export default async function EmergencyPage({ params }: { params: Promise<{ id: 
 
         {content ? (
           <Section title="Emergency contacts" id="contacts-title">
-            {contacts.length ? (
-              <ul className="divide-y divide-border-200">
-                {contacts.map((contact, index) => (
-                  <Row key={`${contact.name}-${index}`} name={contact.name} detail={contact.relationship}>
-                    {contact.phone ? <CallButton phone={contact.phone} name={contact.name} /> : <span className="text-[14px] text-ink-500">No number written down</span>}
-                  </Row>
-                ))}
-              </ul>
-            ) : (
-              <p className="py-2 text-ink-500">No emergency contact yet.</p>
-            )}
-            {caregiver ? (
-              <Link href={`/circles/${id}/summary/edit`} className="no-print mt-2 inline-flex min-h-11 items-center text-[15px] font-semibold text-primary-700 hover:text-primary-900">
-                {contacts.length ? "Change emergency contacts" : "Add an emergency contact"}
-              </Link>
-            ) : null}
+            <EmergencyContacts
+              circleId={id}
+              contacts={contacts}
+              canEdit={caregiver}
+              // People in the circle who have a number: one tap makes them an emergency contact.
+              candidates={caregiver && people ? people.withPhone.map((person) => ({ name: person.name, phone: person.phone as string, roleLabel: person.roleLabel })) : []}
+            />
           </Section>
         ) : null}
 
@@ -119,6 +111,12 @@ export default async function EmergencyPage({ params }: { params: Promise<{ id: 
             ) : (
               <p className="py-2 text-ink-500">No allergies written down.</p>
             )}
+            {caregiver ? (
+              <Link href={`/circles/${id}/summary/edit?part=allergies&from=emergency`} className="no-print mt-3 inline-flex min-h-12 items-center gap-2 rounded-lg border border-border-200 bg-white px-4 text-[15px] font-semibold text-primary-700 hover:bg-sky-100">
+                {content.allergies.length ? <Pencil className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
+                {content.allergies.length ? "Change allergies" : "Add allergies"}
+              </Link>
+            ) : null}
           </Section>
         ) : null}
 

@@ -148,5 +148,6 @@ export async function feedFile(token: string): Promise<string | null> {
     medicines,
     goingName: (event) => (!event.going ? null : event.going.kind === "caregiver" ? caregiver : (names.get(event.going.memberId) ?? "Someone")),
     host: new URL(env.appUrl).host,
+    timeZone: content.success ? (content.data.time_zone ?? null) : null,
   });
 }

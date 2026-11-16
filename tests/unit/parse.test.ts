@@ -229,3 +229,27 @@ describe("source traceability", () => {
     }
   });
 });
+
+describe("Epic pharmacy pick-up list", () => {
+  const text = [
+    "Instructions from Samuel Okafor, MD",
+    "Your medications have changed today",
+    "See your updated medication list for details.",
+    "Pick up these medications at Main Street Pharmacy - 1200 Main St, Louisville KY 40202",
+    "apixaban",
+    "Address: 1200 Main St, Louisville KY 40202",
+    "Phone: 502-555-0190",
+    "Ambulatory referral to Cardiac Rehabilitation",
+    "Expires: 4/14/2027 (requested)",
+  ].join("\n");
+
+  test("lists the medicine under it as new, even with no dose, and nothing else as a medicine", () => {
+    const draft = parse({ text });
+    expect(draft.medications.map((m) => [m.kind, m.name])).toEqual([["new", "Apixaban"]]);
+    expect(draft.medications[0].detail).not.toMatch(/referral|expires|address|phone/i);
+  });
+
+  test("keeps the referral as something to do", () => {
+    expect(parse({ text }).tasks.map((t) => t.title)).toContain("Ambulatory referral to Cardiac Rehabilitation");
+  });
+});

@@ -1,4 +1,5 @@
 import { CalendarPlus, ChevronLeft, ChevronRight, Plus } from "lucide-react";
+import { todayIn } from "@/lib/time-zone";
 import type { Metadata } from "next";
 import { PageHead } from "@/components/circles/PageHead";
 import Link from "next/link";
@@ -38,7 +39,8 @@ export default async function CalendarPage({ params, searchParams }: { params: P
   if (!can(actor, "calendar:read", { circleId: id })) notFound();
   const content = await getCircle(actor, id);
   const personName = content?.person_name ?? "Your care circle";
-  const today = new Date().toISOString().slice(0, 10);
+  // Today where the person lives, not on the server (which runs in UTC).
+  const today = todayIn(content?.time_zone);
   // The week is the default view; Month, List and a single day are one tap away.
   const isDate = (value?: string) => /^\d{4}-\d{2}-\d{2}$/.test(value ?? "");
   const view = query.view === "month" ? "month" : query.view === "list" ? "list" : query.view === "day" && isDate(query.date) ? "day" : "week";

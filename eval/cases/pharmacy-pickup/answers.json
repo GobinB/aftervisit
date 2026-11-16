@@ -1,0 +1,12 @@
+{
+  "format": "clinic visit (Epic-style, medicine only under pharmacy pickup, no dose)",
+  "visitDate": "2026-10-14",
+  "medications": [
+    { "name": "apixaban", "kind": "new" }
+  ],
+  "nextSteps": [
+    { "what": "Pick up apixaban at Main Street Pharmacy", "match": ["pick up|pharmacy|apixaban"] },
+    { "what": "Cardiac rehabilitation referral", "match": ["rehab"] },
+    { "what": "Follow-up on November 3 at 10:45 AM", "match": ["follow|okafor|nov|november"] }
+  ]
+}

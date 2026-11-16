@@ -3,7 +3,7 @@
 import { Check, Copy, Link2, Pill, Power } from "lucide-react";
 import { useState, useTransition } from "react";
 import { setFeedMedicinesAction, startFeedAction, stopFeedAction } from "@/app/actions/calendar-feed";
-import { subscribeLinks } from "@/lib/ics";
+import { subscribeLinks } from "@/lib/calendar-links";
 
 const big = "flex min-h-14 w-full items-center gap-3 rounded-xl border-2 px-4 text-left text-[16px] font-bold transition-colors";
 

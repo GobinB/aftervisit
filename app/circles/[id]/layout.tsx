@@ -1,5 +1,6 @@
 import { circleTabs } from "@/components/circles/CircleFrame";
 import { CircleShell } from "@/components/circles/Shell";
+import { RecordTimeZone } from "@/components/circles/RecordTimeZone";
 import { ShareUpdates } from "@/components/circles/ShareUpdates";
 import { getActor } from "@/lib/auth";
 import { getCircle } from "@/services/circles";
@@ -18,6 +19,7 @@ export default async function CircleLayout({ children, params }: { children: Rea
   return (
     <CircleShell signedIn={actor.kind === "caregiver"} circle={{ personName: content?.person_name ?? "Your care circle", tabs: circleTabs(actor, id) }}>
       {/* After the caregiver changes something, the people who can see it are offered their same link with a note. */}
+      {actor.kind === "caregiver" && content && !content.time_zone ? <RecordTimeZone circleId={id} /> : null}
       {pending.length ? <ShareUpdates circleId={id} personName={content?.person_name ?? "your person"} pending={pending} /> : null}
       {children}
     </CircleShell>

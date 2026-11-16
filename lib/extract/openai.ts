@@ -1,4 +1,5 @@
 import "server-only";
+import { fellBack } from "./provider";
 import { z } from "zod";
 import { itemId } from "../parse/util";
 import { HandoffDraftSchema, MED_KINDS, TASK_CATEGORIES, type HandoffDraft } from "../schema";
@@ -34,6 +35,13 @@ Fields:
 - medications: every new, stopped, dose-changed or explicitly continued medicine. "dose" is the amount
   and strength as written ("20 mg", "1 tablet of 5 mg"). "instructions" is how and when to take it, in
   plain words ("once a day in the morning", not "QAM"). Use "kind" from the document's wording.
+  A medicine named to pick up, fill or buy (for example under "Pick up these medications at <pharmacy>",
+  "Prescriptions sent to" or "New prescriptions") is a new medicine unless the document says it is
+  already taken: list it in medications (kind "new"; dose and instructions null when not stated, which is
+  not unreadable), and also add picking it up as a task. A line saying the medicines changed, or pointing
+  to a medication list you were not given, does not mean there are none: list every medicine the pages
+  name. Medicines or vaccines given during the visit in the clinic (for example "Medications Given" or
+  "Immunizations Given") are not taken at home: leave them out of medications.
 - tasks: anything the caregiver or patient must do: schedule, call, pick up, bring, return, go to an
   appointment, get a lab test. One action per task. "dueText" keeps the document's timing words.
   "dueDate" (yyyy-mm-dd) and "dueTime" (24-hour HH:MM) only when the document states that exact date or
@@ -274,7 +282,9 @@ export function createOpenAiProvider(opts: OpenAiReaderOptions): ExtractionProvi
       } catch (e) {
         // The caregiver never sees a provider error: the built-in parser reads the text instead.
         console.warn("openai reader fell back:", e instanceof ReaderError ? e.kind : "error");
-        return heuristicProvider.extract(input);
+        const draft = await heuristicProvider.extract(input);
+        fellBack.add(draft);
+        return draft;
       }
     },
     async readPages(input: PagesInput) {

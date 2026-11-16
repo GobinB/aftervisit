@@ -4,6 +4,7 @@ vi.mock("server-only", () => ({}));
 
 import { batchPages, mergeDrafts } from "@/lib/extract/merge";
 import { medNeedsCheck, unreadableFields, unreadableLabel } from "@/lib/extract/flags";
+import { fellBack } from "@/lib/extract/provider";
 import { createOpenAiProvider, DEFAULT_OPENAI_MODEL, OPENAI_PROMPT, openAiJsonSchema, toDraft, type OpenAiDraft } from "@/lib/extract/openai";
 import { providerDisclosure, resolveProviderName } from "@/lib/extract/provider";
 import { parse } from "@/lib/parse";
@@ -160,6 +161,10 @@ describe("OpenAI answer", () => {
     const draft = toDraft(answer({ goodToKnow: ["Avoid caffeine after noon.", "  ", "Low-salt diet."] }), {});
     expect(draft.otherNotes).toEqual(["Avoid caffeine after noon.", "Low-salt diet."]);
     expect(OPENAI_PROMPT).toMatch(/goodToKnow: instructions and advice/);
+    // A medicine only under "Pick up these medications at <pharmacy>" is still a medicine (found on the live site, November 16).
+    expect(OPENAI_PROMPT).toMatch(/Pick up these medications at <pharmacy>/);
+    expect(OPENAI_PROMPT).toMatch(/list it in medications \(kind "new"/);
+    expect(OPENAI_PROMPT).toMatch(/Immunizations Given/);
     expect(OPENAI_PROMPT).not.toMatch(/otherNotes/);
   });
 
@@ -227,6 +232,11 @@ describe("fallback", () => {
   it.each(cases)("text: %s gives the built-in parser's draft", async (_name, respond) => {
     const draft = await createOpenAiProvider({ apiKey: "k", fetch: vi.fn(respond) }).extract({ text: SAMPLE_SOURCE_TEXT });
     expect(draft.medications.map((m) => m.name)).toEqual(parse({ text: SAMPLE_SOURCE_TEXT }).medications.map((m) => m.name));
+  });
+
+  it.each(cases)("text: %s is marked as the built-in parser's, so Review does not say AI read it", async (_name, respond) => {
+    const draft = await createOpenAiProvider({ apiKey: "k", fetch: vi.fn(respond) }).extract({ text: SAMPLE_SOURCE_TEXT });
+    expect(fellBack.has(draft)).toBe(true);
   });
 
   it("logs only the kind of failure, never the summary", async () => {

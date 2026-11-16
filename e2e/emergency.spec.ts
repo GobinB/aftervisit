@@ -37,7 +37,7 @@ async function rest(path: string, init: RequestInit = {}, bearer = SERVICE) {
   return text ? JSON.parse(text) : null;
 }
 
-type Seeded = { circleId: string; ownerToken: string; links: Record<"family" | "aide" | "hidden", string> };
+type Seeded = { circleId: string; ownerToken: string; ownerSession: Record<string, unknown>; links: Record<"family" | "aide" | "hidden", string> };
 
 async function seed(): Promise<Seeded | null> {
   const email = `emergency.${randomUUID()}@example.com`;
@@ -49,7 +49,8 @@ async function seed(): Promise<Seeded | null> {
     body: JSON.stringify({ email, password }),
   });
   if (!signIn.ok) return null;
-  const ownerToken = (await signIn.json()).access_token as string;
+  const ownerSession = (await signIn.json()) as Record<string, unknown>;
+  const ownerToken = ownerSession.access_token as string;
   const content = {
     person_name: "Teodora Ruiz",
     allergies: ["Penicillin", "Shellfish"],
@@ -80,7 +81,14 @@ async function seed(): Promise<Seeded | null> {
     expires_at: later,
   }));
   await rest("/rest/v1/members", { method: "POST", body: JSON.stringify(rows) });
-  return { circleId, ownerToken, links: { family: tokenFor(ids.family), aide: tokenFor(ids.aide), hidden: tokenFor(ids.hidden) } };
+  return { circleId, ownerToken, ownerSession, links: { family: tokenFor(ids.family), aide: tokenFor(ids.aide), hidden: tokenFor(ids.hidden) } };
+}
+
+/** Signs the browser in as the caregiver, with the session cookie the app's Supabase client writes. */
+async function signInAsCaregiver(page: Page, session: Record<string, unknown>) {
+  const name = `sb-${new URL(URL_).hostname.split(".")[0]}-auth-token`;
+  const value = `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`;
+  await page.context().addCookies([{ name, value, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }]);
 }
 
 async function openLink(page: Page, token: string, circleId: string) {
@@ -198,6 +206,52 @@ test.describe("Emergency page and phone numbers, through people's links", () => 
     // The numbers print as plain numbers.
     await expect(page.getByText("(555) 010-0177")).toBeVisible();
     await expect(page.getByRole("region", { name: "Allergies" }).getByText("Penicillin")).toBeVisible();
+  });
+
+  test("caregiver: add, add from the circle and remove emergency contacts right on the page", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop-chrome", "signed-in flow; run once");
+    await signInAsCaregiver(page, seeded.ownerSession);
+    await page.goto(`/circles/${seeded.circleId}/emergency`);
+    const contacts = page.getByRole("region", { name: "Emergency contacts" });
+    await expect(contacts.getByText("Marco Ruiz")).toBeVisible();
+    // Allergies still open just that part of the care summary, and come back here.
+    await expect(page.getByRole("link", { name: "Change allergies" })).toHaveAttribute("href", `/circles/${seeded.circleId}/summary/edit?part=allergies&from=emergency`);
+
+    // Typed in here: a name, who they are and a number. A number that is not one is refused.
+    await contacts.getByRole("button", { name: "Add an emergency contact" }).click();
+    const form = contacts.getByRole("form", { name: "Add an emergency contact" });
+    await form.getByLabel("Name").fill("Lucia Ruiz");
+    await form.getByLabel(/Who they are/).fill("Niece");
+    await form.getByLabel("Phone").fill("12");
+    await form.getByRole("button", { name: "Save contact" }).click();
+    await expect(contacts.getByRole("alert")).toBeVisible();
+    await form.getByLabel("Phone").fill("555-010-0155");
+    await form.getByRole("button", { name: "Save contact" }).click();
+    await expect(contacts.getByText("Lucia Ruiz was added.")).toBeVisible();
+    await expect(contacts.getByRole("link", { name: /Call Lucia Ruiz/ })).toBeVisible();
+    await expect(contacts.getByText("Niece")).toBeVisible();
+
+    // Someone in the circle with a number, in one tap.
+    await contacts.getByRole("button", { name: "Joy Banda", exact: true }).click();
+    await expect(contacts.getByText("Joy Banda was added.")).toBeVisible();
+    await expect(contacts.getByRole("link", { name: /Call Joy Banda/ })).toBeVisible();
+    await expect(contacts.getByRole("button", { name: "Joy Banda", exact: true })).toHaveCount(0);
+
+    // Removed, and the page still lists the rest.
+    await contacts.getByRole("button", { name: "Remove Lucia Ruiz from emergency contacts" }).click();
+    await expect(contacts.getByText("Lucia Ruiz was removed.")).toBeVisible();
+    await expect(contacts.getByRole("link", { name: /Call Lucia Ruiz/ })).toHaveCount(0);
+    await expect(contacts.getByText("Marco Ruiz")).toBeVisible();
+
+    // A person with a link sees the contacts, but no way to change them.
+    const other = await page.context().browser()!.newContext();
+    const helper = await other.newPage();
+    await openLink(helper, seeded.links.family, seeded.circleId);
+    await helper.goto(`/circles/${seeded.circleId}/emergency`);
+    await expect(helper.getByRole("region", { name: "Emergency contacts" }).getByText("Joy Banda")).toBeVisible();
+    await expect(helper.getByRole("button", { name: "Add an emergency contact" })).toHaveCount(0);
+    await expect(helper.getByRole("button", { name: /^Remove / })).toHaveCount(0);
+    await other.close();
   });
 
   test("signed out, the page asks to sign in", async ({ page }, info) => {

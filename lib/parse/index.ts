@@ -135,6 +135,15 @@ export function parseWithTrace(input: ParseInput): { draft: HandoffDraft; trace:
       return place("medication");
     }
 
+    // Under a pharmacy pick-up list, Epic follows the medicines with the pharmacy's address and phone,
+    // then the visit's orders. A referral is something to do and ends the medicines; the rest is left out.
+    if (ctx.kind === "medications" && /^\s*(ambulatory |outpatient )?referral\b/i.test(content)) {
+      if (!inline) section = { kind: "tasks" };
+      addTasks(content, true);
+      return place("task");
+    }
+    if (ctx.kind === "medications" && /^\s*(address|phone|fax|hours|expires)\s*:/i.test(content)) return place("other");
+
     // Medications: dose pattern anywhere, or any named line in a Medications section.
     const inMeds = ctx.kind === "medications";
     const startsWithNonMedTask =

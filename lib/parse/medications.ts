@@ -137,6 +137,10 @@ export function classifyMedication(
   inMedSection: boolean,
   kindHint?: Kind,
 ): MedicationChange | null {
+  // A pharmacy's address and phone under a pick-up heading are not medicines.
+  if (/^\s*(address|phone|fax|hours|pharmacy|expires)\s*:/i.test(line)) return null;
+  // Epic lists referrals among the orders under the medicines; a referral is never a medicine.
+  if (/^\s*(ambulatory |outpatient )?referral\b/i.test(line)) return null;
   const dose = DOSE_RE.exec(line);
   const verbKind = medVerbKind(line);
   if (!dose && !inMedSection) return null;

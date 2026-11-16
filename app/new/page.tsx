@@ -12,7 +12,7 @@ import { COPY } from "@/lib/copy";
 import { isUnsorted } from "@/lib/parse";
 import { canReadScan, scanCircleAnswered, scanCircleFrom, scanCircleHref, scanCircleId, type ScanCircle } from "@/lib/scan-circle";
 import type { HandoffDraft } from "@/lib/schema";
-import { setOriginalFile, setOriginalPages, useFlow } from "@/lib/store";
+import { type DraftReader, setOriginalFile, setOriginalPages, useFlow } from "@/lib/store";
 
 const MAX_MB = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB || 10);
 const MIN_TEXT = 50;
@@ -29,6 +29,8 @@ const STEP_LABELS = ["Reading the summary", "Finding what changed", "Finding wha
 
 interface ExtractResponse {
   draft?: HandoffDraft;
+  /** The reader that made the draft ("openai" or "heuristic"). */
+  provider?: string;
   unsorted?: boolean;
   error?: string;
   message?: string;
@@ -127,6 +129,8 @@ export default function IntakePage() {
     try {
       let res: Response | null = null;
       let data: ExtractResponse | null = null;
+      // Which reader made the draft, for the note on Review.
+      let reader: DraftReader = "builtin";
       if (pasteMode) {
         res = await fetch("/api/extract", {
           method: "POST",
@@ -142,7 +146,10 @@ export default function IntakePage() {
         // Photos go through our server to the model. If it cannot read them, the phone reads them below.
         const { readPagesOnServer } = await import("@/lib/read-pages");
         const draft = await readPagesOnServer(files, patient || undefined);
-        if (draft) data = { draft, unsorted: isUnsorted(draft) };
+        if (draft) {
+          data = { draft, unsorted: isUnsorted(draft) };
+          reader = "openai";
+        }
       }
       if (!pasteMode && kind !== "pdf" && !data) {
         // Photos are read here in the browser; only the text is sent. Also the fallback when the model could not read them.
@@ -153,6 +160,7 @@ export default function IntakePage() {
           setOcrPage({ page: p.page, of: files.length });
         });
         if (ocrText.replace(/\s+/g, "").length < 20) throw new UserError(COPY.nothingParsed);
+        reader = "device";
         res = await fetch("/api/extract", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -163,6 +171,7 @@ export default function IntakePage() {
       if (!data) {
         data = res ? ((await res.json().catch(() => ({}))) as ExtractResponse) : {};
         if (!res?.ok) throw new UserError(data.message || COPY.genericError);
+        if (reader !== "device") reader = data.provider === "openai" ? "openai" : "builtin";
       }
       if (!data.draft) throw new UserError(data.message || COPY.genericError);
 
@@ -173,7 +182,7 @@ export default function IntakePage() {
       setOriginalFile(files.length === 1 ? files[0] : null);
       setOriginalPages(pasteMode ? [] : files);
       setOriginalName(files.length === 1 ? files[0].name : null);
-      startDraft(data.draft, { isSample: false, unsorted: !!data.unsorted, caregiverFirstName: caregiver.trim(), circleId: scanCircleId(scanCircle) });
+      startDraft(data.draft, { isSample: false, unsorted: !!data.unsorted, caregiverFirstName: caregiver.trim(), circleId: scanCircleId(scanCircle), reader });
       router.push("/new/review");
     } catch (e) {
       setProcessing(false);

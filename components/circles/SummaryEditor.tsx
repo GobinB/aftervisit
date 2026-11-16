@@ -26,7 +26,7 @@ const blank = (): SummaryRow => ({ name: "", extra: "", phone: "" });
  * The care summary, one part at a time, so it can be filled in whenever the caregiver has a minute.
  * Saving keeps every other part as it was.
  */
-export function SummaryEditor({ circleId, content, part }: { circleId: string; content: CircleContent; part: SummaryPart | null }) {
+export function SummaryEditor({ circleId, content, part, done }: { circleId: string; content: CircleContent; part: SummaryPart | null; done: string }) {
   const id = useId();
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -84,7 +84,8 @@ export function SummaryEditor({ circleId, content, part }: { circleId: string; c
         setError(result.error);
         return;
       }
-      router.push(part ? `/circles/${circleId}` : `/circles/${circleId}/summary`);
+      // Back where it was opened from: Today, the Emergency page, or the Care summary.
+      router.push(done);
     });
   };
 

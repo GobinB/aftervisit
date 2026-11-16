@@ -1,8 +1,14 @@
 "use client";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { Reviewed, ReviewStep } from "./review";
+import type { Reviewed, ReviewSection } from "./review";
 import type { HandoffDraft, RecipientShare, Role } from "./schema";
+
+/**
+ * Which reader made the draft, for the note on Review: the AI model (OpenAI), the built-in reader on
+ * our server (pasted text, a PDF's text), or the phone reading the photos itself.
+ */
+export type DraftReader = "openai" | "builtin" | "device";
 
 export interface CreatedHandoff {
   token: string;
@@ -19,7 +25,7 @@ interface FlowState {
   isSample: boolean;
   /** Set when the parser could not place anything (shows the "Nothing parsed" message). */
   unsorted: boolean;
-  /** The two confirms on Review: the medicines, then everything else (lib/review.ts). */
+  /** The check mark on each section of Review (lib/review.ts). */
   reviewed: Reviewed;
   caregiverFirstName: string;
   recipients: RecipientShare[];
@@ -28,12 +34,14 @@ interface FlowState {
   originalName: string | null;
   /** Set when the visit was started from a care circle: confirming updates that circle. */
   circleId: string | null;
+  /** Which reader made the draft; null for the sample. */
+  reader: DraftReader | null;
   startDraft: (
     draft: HandoffDraft,
-    opts: { isSample: boolean; unsorted?: boolean; caregiverFirstName?: string; recipients?: RecipientShare[]; circleId?: string | null },
+    opts: { isSample: boolean; unsorted?: boolean; caregiverFirstName?: string; recipients?: RecipientShare[]; circleId?: string | null; reader?: DraftReader | null },
   ) => void;
   updateDraft: (fn: (d: HandoffDraft) => HandoffDraft) => void;
-  setReviewed: (step: ReviewStep, value: boolean) => void;
+  setReviewed: (section: ReviewSection, value: boolean) => void;
   setRecipients: (r: RecipientShare[]) => void;
   setCaregiver: (name: string) => void;
   setCreated: (c: CreatedHandoff | null) => void;
@@ -51,6 +59,7 @@ const initial = {
   created: null,
   originalName: null,
   circleId: null,
+  reader: null,
 };
 
 /** Client-side flow state. Lives in sessionStorage so a refresh never loses the draft. */
@@ -68,9 +77,10 @@ export const useFlow = create<FlowState>()(
           caregiverFirstName: opts.caregiverFirstName ?? "",
           recipients: opts.recipients ?? [],
           circleId: opts.circleId ?? null,
+          reader: opts.reader ?? null,
         }),
       updateDraft: (fn) => set((s) => (s.draft ? { draft: fn(s.draft) } : s)),
-      setReviewed: (step, value) => set((s) => ({ reviewed: { ...s.reviewed, [step]: value } })),
+      setReviewed: (section, value) => set((s) => ({ reviewed: { ...s.reviewed, [section]: value } })),
       setRecipients: (recipients) => set({ recipients }),
       setCaregiver: (caregiverFirstName) => set({ caregiverFirstName }),
       setCreated: (created) => set({ created }),
@@ -84,9 +94,10 @@ export const useFlow = create<FlowState>()(
     {
       name: "aftervisit-flow",
       storage: createJSONStorage(() => sessionStorage),
-      version: 3,
+      version: 4,
       // Version 2 kept one tick per section. A draft from before starts its two confirms again.
-      migrate: (persisted, version) => (version < 3 ? { ...(persisted as object), reviewed: {} } : persisted) as FlowState,
+      // 4: one check mark per section instead of two confirms, so ticks from before do not carry over.
+      migrate: (persisted, version) => (version < 4 ? { ...(persisted as object), reviewed: {} } : persisted) as FlowState,
     },
   ),
 );

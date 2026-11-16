@@ -30,10 +30,11 @@ test("no WCAG 2.1 AA violations on any screen", async ({ page }, info) => {
   await expect(page.getByText("Look for this line")).toBeVisible();
   await audit(page, "review, original marked");
   if (await page.getByRole("button", { name: "Back to the draft" }).isVisible()) await page.getByRole("button", { name: "Back to the draft" }).click();
-  await page.getByRole("button", { name: "Medicines look right" }).click();
-  await audit(page, "review, second step");
-  await page.waitForTimeout(1000);
-  await page.getByRole("button", { name: "The rest looks right" }).click();
+  await page.getByRole("button", { name: "Mark checked: Medicines" }).click();
+  await audit(page, "review, one section checked");
+  const marks = page.getByRole("button", { name: /^Mark checked: / });
+  while (await marks.count()) await marks.first().click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
   await page.getByRole("switch", { name: "Protect with a 4-digit PIN" }).click();
   await audit(page, "share");
@@ -51,18 +52,23 @@ test("keyboard only: sample visit reaches Share", async ({ page }, info) => {
   }
   await page.keyboard.press("Enter");
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
-  // Two confirms, both reachable by keyboard. The same button holds each in turn.
-  for (const label of ["Medicines look right", "The rest looks right"]) {
+  // Every check mark, then Continue, reached and pressed by keyboard alone.
+  const focused = () => page.evaluate(() => document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.textContent?.replace(/\s+/g, " ").trim() ?? "");
+  for (let round = 0; round < 12; round++) {
+    let found = "";
     for (let i = 0; i < 300; i++) {
-      if ((await page.evaluate(() => document.activeElement?.textContent)) === label) break;
+      const label = await focused();
+      if (/^Mark checked: /.test(label) || label === "Continue") {
+        found = label;
+        break;
+      }
       await page.keyboard.press("Tab");
     }
-    expect(await page.evaluate(() => document.activeElement?.textContent)).toBe(label);
+    expect(found).not.toBe("");
     // Focus ring is visible on the focused element.
-    const outline = await page.evaluate(() => getComputedStyle(document.activeElement!).outlineStyle);
-    expect(outline).not.toBe("none");
-    await page.waitForTimeout(1000);
+    expect(await page.evaluate(() => getComputedStyle(document.activeElement!).outlineStyle)).not.toBe("none");
     await page.keyboard.press("Enter");
+    if (found === "Continue") break;
   }
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
 });

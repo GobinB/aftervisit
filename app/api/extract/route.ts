@@ -4,7 +4,7 @@ import { getActor } from "@/lib/auth";
 import { COPY } from "@/lib/copy";
 import { env, RATE_LIMITS } from "@/lib/env";
 import { heuristicProvider } from "@/lib/extract/heuristic";
-import { getProvider, type ExtractionProvider, type PageFile } from "@/lib/extract/provider";
+import { fellBack, getProvider, type ExtractionProvider, type PageFile } from "@/lib/extract/provider";
 import { isUnsorted } from "@/lib/parse";
 import { checkDailyLimit, checkRateLimit } from "@/lib/ratelimit";
 import { ExtractTextSchema, type HandoffDraft } from "@/lib/schema";
@@ -37,7 +37,8 @@ async function readerFor(provider: ExtractionProvider): Promise<ExtractionProvid
   return (await checkDailyLimit(actor.userId, "outside_reader", env.extractionDailyLimit)) ? provider : heuristicProvider;
 }
 
-const ok = (draft: HandoffDraft, provider: string) => json({ draft, unsorted: isUnsorted(draft), provider });
+/** `provider` is the reader that really made the draft: the built-in parser when the model fell back. */
+const ok = (draft: HandoffDraft, provider: string) => json({ draft, unsorted: isUnsorted(draft), provider: fellBack.has(draft) ? "heuristic" : provider });
 
 /**
  * POST /api/extract

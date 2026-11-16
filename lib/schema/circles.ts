@@ -22,6 +22,20 @@ export const PharmacySchema = z.object({
   address: z.string().trim().max(200).optional(),
 });
 
+/** An IANA time zone ("America/New_York") the runtime knows. Checked with Intl only, so this file stays light for the browser. */
+export const TimeZoneSchema = z
+  .string()
+  .max(64)
+  .regex(/^[A-Za-z_]+(\/[A-Za-z0-9_+-]+)*$/)
+  .refine((value) => {
+    try {
+      new Intl.DateTimeFormat("en-US", { timeZone: value });
+      return true;
+    } catch {
+      return false;
+    }
+  });
+
 export const CircleContentSchema = z.object({
   person_name: z.string().trim().min(1).max(120),
   allergies: z.array(line).max(50).default([]),
@@ -29,6 +43,8 @@ export const CircleContentSchema = z.object({
   pharmacy: PharmacySchema.optional(),
   emergency_contacts: z.array(EmergencyContactSchema).max(20).default([]),
   poa_location: z.string().trim().max(300).optional(),
+  /** Where the person lives, for "today" and the calendar link. Taken from the caregiver's device once. */
+  time_zone: TimeZoneSchema.optional(),
 });
 export type CircleContent = z.infer<typeof CircleContentSchema>;
 

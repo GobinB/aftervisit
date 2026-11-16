@@ -1,4 +1,6 @@
 import "server-only";
+import { circleTimeZone } from "@/services/circles";
+import { todayIn } from "@/lib/time-zone";
 import type { Actor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import type { ApplyVisitInput } from "@/lib/schema/visit";
@@ -46,7 +48,8 @@ export async function applyVisit(actor: Actor, input: ApplyVisitInput): Promise<
     return { ok: false, error: "Only the caregiver can update the circle from a visit." };
   }
   const db = clientFor(actor);
-  const today = new Date().toISOString().slice(0, 10);
+  // Today where the person lives, for medicines stopped or started by this visit.
+  const today = todayIn(await circleTimeZone(actor, circleId));
   const counts = { added: 0, changed: 0, stopped: 0, todos: 0, events: 0, failed: 0 };
 
   // The visit itself first, so the notes are kept even if a later write fails.
