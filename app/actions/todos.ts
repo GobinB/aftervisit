@@ -8,7 +8,9 @@ import { claimTodo, deleteTodo, saveTodo, setTodoDone } from "@/services/todos";
 
 function refresh(circleId: string) {
   revalidatePath(`/circles/${circleId}`);
-  revalidatePath(`/circles/${circleId}/todos`);
+  // "layout" takes in each reminder's own page, so the page a change was made on comes back updated
+  // with the action's answer and the form needs no router.refresh().
+  revalidatePath(`/circles/${circleId}/todos`, "layout");
 }
 
 export async function saveTodoAction(input: unknown) {

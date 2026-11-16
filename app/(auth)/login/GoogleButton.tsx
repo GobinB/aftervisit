@@ -69,6 +69,8 @@ export function GoogleButton({ next }: { next: string }) {
     // Opened straight from the tap, so iOS allows it and keeps it inside the app.
     const opened = window.open(url, "_blank");
     if (!opened) {
+      // A full page load on purpose: /login/google is a route handler that sends the browser on to Google.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = url;
       return;
     }

@@ -50,7 +50,7 @@ Next.js 15 (App Router) · TypeScript · React 19 · Tailwind CSS v4 · lucide-r
 app/                     routes, server actions, Google sign-in
 components/ui/           Button, Badge, Switch, Toast, PinInput
 services/                circles and members. Each call checks can() before store/
-store/                   the only folder that imports @supabase (plus auth routes and middleware, which use @supabase/ssr)
+store/                   the only folder that imports @supabase (plus auth routes and proxy.ts, which use @supabase/ssr)
 lib/                     actor, permissions, schema, parser
 supabase/migrations/     0001 through 0004. Seed data is fictional, in supabase/seed.sql
 tests/unit/              Vitest, including the permissions grid

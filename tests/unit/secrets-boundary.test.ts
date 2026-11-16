@@ -19,7 +19,7 @@ describe("secret boundaries", () => {
     const offenders: string[] = [];
     for (const path of files(".")) {
       if (!/\.(ts|tsx)$/.test(path)) continue;
-      if (path.endsWith("middleware.ts")) continue;
+      if (path.endsWith("proxy.ts")) continue;
       const text = readFileSync(path, "utf8");
       if (!MARKERS.some((marker) => text.includes(marker))) continue;
       if (!text.trimStart().startsWith('import "server-only"')) offenders.push(path);

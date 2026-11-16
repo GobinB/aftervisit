@@ -84,7 +84,6 @@ export function MedicationForm({ circleId, medication, doctors = [] }: { circleI
         return;
       }
       router.push(`/circles/${circleId}/medications`);
-      router.refresh();
     });
   };
 

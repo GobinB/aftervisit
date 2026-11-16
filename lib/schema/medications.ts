@@ -77,6 +77,9 @@ export const MedicationStatusSchema = z
   .object({ circleId: z.string().uuid(), id: z.string().uuid(), status: z.enum(["active", "stopped"]) })
   .strict();
 
+/** Deleting one medication, for one added by mistake. */
+export const MedicationDeleteSchema = z.object({ circleId: z.string().uuid(), id: z.string().uuid() }).strict();
+
 /** One medication as screens show it. */
 export type Medication = {
   id: string;

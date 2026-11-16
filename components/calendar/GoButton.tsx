@@ -1,13 +1,11 @@
 "use client";
 
 import { Check, Hand } from "lucide-react";
-import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { goToEventAction } from "@/app/actions/events";
 
 /** "I'll go" on an event that asks for someone. */
 export function GoButton({ circleId, id }: { circleId: string; id: string }) {
-  const router = useRouter();
   const [, start] = useTransition();
   const [going, setGoing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -26,7 +24,6 @@ export function GoButton({ circleId, id }: { circleId: string; id: string }) {
               setGoing(false);
               setError(result.error);
             }
-            router.refresh();
           });
         }}
         className={`inline-flex min-h-10 items-center gap-1.5 rounded-md px-3 text-[14px] font-semibold ${

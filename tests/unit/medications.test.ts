@@ -1,12 +1,12 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
 import type { Actor } from "@/lib/auth";
-import { MedicationInputSchema, clockTime, doseText, scheduleText } from "@/lib/schema/medications";
+import { MedicationDeleteSchema, MedicationInputSchema, clockTime, doseText, scheduleText } from "@/lib/schema/medications";
 
 const { clientFor } = vi.hoisted(() => ({ clientFor: vi.fn() }));
 vi.mock("server-only", () => ({}));
 vi.mock("@/store/db", () => ({ clientFor }));
 
-import { listMedications, saveMedication, setMedicationStatus } from "@/services/medications";
+import { deleteMedication, listMedications, saveMedication, setMedicationStatus } from "@/services/medications";
 
 const circleId = "22222222-2222-4222-8222-222222222222";
 const owner: Actor = { kind: "caregiver", userId: "user-owner", circleIds: [circleId], role: "owner", accessToken: "token" };
@@ -79,5 +79,42 @@ describe("medication permissions", () => {
     const input = MedicationInputSchema.parse({ circleId, name: "Lisinopril", schedule: "as_needed", times: ["08:00"] });
     expect(await saveMedication(owner, input)).toEqual({ ok: true, id: "m1" });
     expect(insert).toHaveBeenCalledWith(expect.objectContaining({ circle_id: circleId, name: "Lisinopril", times: [] }));
+  });
+});
+
+describe("deleting a medication", () => {
+  const medId = "44444444-4444-4444-8444-444444444444";
+  const family: Actor = { kind: "helper", memberId: "33333333-3333-4333-8333-333333333303", circleId, role: "family", visibility: {} };
+
+  test("only the caregiver can, and a helper never reaches the database", async () => {
+    expect((await deleteMedication(aide, circleId, medId)).ok).toBe(false);
+    expect((await deleteMedication(family, circleId, medId)).ok).toBe(false);
+    expect(clientFor).not.toHaveBeenCalled();
+  });
+
+  test("the caregiver's delete is scoped to the circle and the medication, through their own session", async () => {
+    const calls: [string, string][] = [];
+    const chain = {
+      eq: (column: string, value: string) => (calls.push([column, value]), chain),
+      select: () => ({ maybeSingle: async () => ({ data: { id: medId }, error: null }) }),
+    };
+    const from = vi.fn(() => ({ delete: () => chain }));
+    clientFor.mockReturnValue({ from });
+    expect(await deleteMedication(owner, circleId, medId)).toEqual({ ok: true });
+    expect(clientFor).toHaveBeenCalledWith(owner);
+    expect(from).toHaveBeenCalledWith("medications");
+    expect(calls).toEqual([["circle_id", circleId], ["id", medId]]);
+  });
+
+  test("nothing deleted (not found, or not theirs) is reported, not hidden", async () => {
+    const chain = { eq: () => chain, select: () => ({ maybeSingle: async () => ({ data: null, error: null }) }) };
+    clientFor.mockReturnValue({ from: () => ({ delete: () => chain }) });
+    expect((await deleteMedication(owner, circleId, medId)).ok).toBe(false);
+  });
+
+  test("the request needs a circle and a medication id, nothing else", () => {
+    expect(MedicationDeleteSchema.safeParse({ circleId, id: medId }).success).toBe(true);
+    expect(MedicationDeleteSchema.safeParse({ circleId, id: "nope" }).success).toBe(false);
+    expect(MedicationDeleteSchema.safeParse({ circleId, id: medId, all: true }).success).toBe(false);
   });
 });

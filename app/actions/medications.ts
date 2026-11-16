@@ -3,8 +3,8 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { getActor } from "@/lib/auth";
-import { MedicationInputSchema, MedicationStatusSchema } from "@/lib/schema/medications";
-import { saveMedication, setMedicationStatus } from "@/services/medications";
+import { MedicationDeleteSchema, MedicationInputSchema, MedicationStatusSchema } from "@/lib/schema/medications";
+import { deleteMedication, saveMedication, setMedicationStatus } from "@/services/medications";
 
 export async function saveMedicationAction(input: unknown) {
   const parsed = MedicationInputSchema.safeParse(input);
@@ -31,6 +31,21 @@ export async function setMedicationStatusAction(input: unknown) {
   if (result.ok) {
     revalidatePath(`/circles/${parsed.data.circleId}`);
     revalidatePath(`/circles/${parsed.data.circleId}/medications`);
+  }
+  return result;
+}
+
+export async function deleteMedicationAction(input: unknown) {
+  const parsed = MedicationDeleteSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "That medication was not found." };
+  const actor = await getActor(parsed.data.circleId);
+  if (!actor) return { ok: false as const, error: "Sign in to continue." };
+  const result = await deleteMedication(actor, parsed.data.circleId, parsed.data.id);
+  if (result.ok) {
+    // Today, the list and its edit pages, and the calendar, which shows medicine times.
+    revalidatePath(`/circles/${parsed.data.circleId}`);
+    revalidatePath(`/circles/${parsed.data.circleId}/medications`, "layout");
+    revalidatePath(`/circles/${parsed.data.circleId}/calendar`, "layout");
   }
   return result;
 }

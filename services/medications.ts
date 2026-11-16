@@ -112,6 +112,20 @@ export async function saveMedication(actor: Actor, input: MedicationInput): Prom
   return { ok: true, id: data.id as string };
 }
 
+/**
+ * Deletes a medication for good, for one added by mistake. Its history goes with it (the history
+ * rows are deleted with the medication), so the list and "Recent changes" no longer show it. A
+ * medication that was taken and has ended should be stopped instead, which keeps the record.
+ */
+export async function deleteMedication(actor: Actor, circleId: string, id: string): Promise<{ ok: true } | { ok: false; error: string }> {
+  if (actor.kind !== "caregiver" || !can(actor, "medications:edit", { circleId })) {
+    return { ok: false, error: "Only the caregiver can delete a medication." };
+  }
+  const { data, error } = await clientFor(actor).from("medications").delete().eq("circle_id", circleId).eq("id", id).select("id").maybeSingle();
+  if (error || !data) return { ok: false, error: "The medication could not be deleted. Try again." };
+  return { ok: true };
+}
+
 /** Stopping keeps the medication on the record with today's date. Restarting clears it. */
 export async function setMedicationStatus(
   actor: Actor,

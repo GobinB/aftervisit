@@ -1,13 +1,14 @@
 "use client";
 
-import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useState } from "react";
 import { setMedicationStatusAction } from "@/app/actions/medications";
 
 /** Stop keeps the medication on the record, dated. Restart puts it back on the list. */
 export function StatusButton({ circleId, id, name, status }: { circleId: string; id: string; name: string; status: "active" | "stopped" }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
+  // Its own flag rather than useTransition, and no router.refresh(): the action refreshes the
+  // medication pages itself (app/actions/medications.ts). Tied to a transition, the button could stay
+  // on "Saving" for good in a production build.
+  const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const next = status === "active" ? "stopped" : "active";
   return (
@@ -20,11 +21,17 @@ export function StatusButton({ circleId, id, name, status }: { circleId: string;
         onClick={() => {
           if (next === "stopped" && !window.confirm(`Mark ${name} as stopped? It stays on the record with today's date.`)) return;
           setError(null);
-          start(async () => {
-            const result = await setMedicationStatusAction({ circleId, id, status: next });
-            if (!result.ok) setError(result.error);
-            else router.refresh();
-          });
+          setPending(true);
+          void (async () => {
+            try {
+              const result = await setMedicationStatusAction({ circleId, id, status: next });
+              if (!result.ok) setError(result.error);
+            } catch {
+              setError("That did not save. Check your connection and try again.");
+            } finally {
+              setPending(false);
+            }
+          })();
         }}
       >
         {pending ? "Saving" : next === "stopped" ? "Stop" : "Restart"}
