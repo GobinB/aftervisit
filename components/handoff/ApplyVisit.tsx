@@ -21,6 +21,10 @@ import { AddSomeone, HelperChips, isNewHelper, type Helper } from "@/components/
 import { TellHelpers, type TellPerson } from "@/components/handoff/TellHelpers";
 import { addMemberAction } from "@/app/actions/members";
 import { HELPER_ROLE_LABELS, type HelperRole } from "@/lib/schema/circles";
+import { SEE_PRESETS } from "@/lib/share-message";
+
+/** What someone added on this page sees: the calendar and reminders, like the People page's preset. */
+const CALENDAR_ONLY = SEE_PRESETS.find((preset) => preset.key === "calendar")!.hidden;
 import { ensureCircleKey } from "@/components/circles/circle-key";
 import { generateFileKey, sealPage, wrapFileKey } from "@/lib/crypto";
 
@@ -156,16 +160,28 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
     const eventAppts = appointments.filter((appt) => on(appt.id, true) && when(appt).date);
     start(async () => {
       // Someone added on this page joins the circle first, so the appointments and reminders can be theirs.
+      // Only those still picked for something: a name added by mistake and then unpicked is never saved.
+      // They see the calendar and reminders, which is what they were added for; People can open up more.
       const made = { ...created };
-      for (const person of added) {
+      const picked = added.filter((person) => eventAppts.some((appt) => going[appt.id] === person.value) || todoTasks.some((task) => assignees[task.id] === person.value));
+      for (const person of picked) {
         if (made[person.value]) continue;
-        const result = await addMemberAction({ circleId, name: person.name, role: person.role ?? "family", ...(person.phone ? { phone: person.phone } : {}) }).catch(() => ({
+        const result = await addMemberAction({
+          circleId,
+          name: person.name,
+          role: person.role ?? "family",
+          ...(person.phone ? { phone: person.phone } : {}),
+          visibility: { hidden: [...CALENDAR_ONLY] },
+        }).catch(() => ({
           ok: false as const,
           error: "Check your connection and try again.",
         }));
         if (!result.ok) {
           setCreated(made);
-          setError(`${person.name} could not be added. ${result.error} Nothing from the visit is saved yet.`);
+          const saved = added.filter((other) => made[other.value]).map((other) => other.name);
+          setError(
+            `${person.name} could not be added. ${result.error} Nothing from the visit is saved yet${saved.length ? `; ${saved.join(" and ")} ${saved.length === 1 ? "is" : "are"} in the circle already and will not be added twice` : ""}.`,
+          );
           return;
         }
         made[person.value] = { memberId: result.memberId, token: result.token };
@@ -194,7 +210,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         notes,
       }).catch(() => ({ ok: false as const, error: "The circle could not be updated. Check your connection and try again." }));
       if (!result.ok) {
-        setError(added.length ? `${result.error} The people you added are in the circle already; pressing the button again will not add them twice.` : result.error);
+        setError(Object.keys(made).length ? `${result.error} The people you added are in the circle already; pressing the button again will not add them twice.` : result.error);
         return;
       }
       // Everyone put down for something, and everyone added here, gets a row to text them their part.

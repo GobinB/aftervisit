@@ -151,6 +151,14 @@ test.describe("Update the circle: who helps, and texting them", () => {
     // Nothing is saved yet.
     expect(await rest(`/rest/v1/members?select=id&circle_id=eq.${seeded.circleId}&name=eq.Anna%20Lee`)).toHaveLength(0);
 
+    // Someone added by mistake and then unpicked is never saved.
+    const lab = page.getByRole("list", { name: "Who does Blood test at the lab" });
+    await lab.getByRole("button", { name: "Add someone" }).click();
+    await page.getByRole("form", { name: "Add someone" }).getByLabel("Name").fill("Ben Typo");
+    await page.getByRole("form", { name: "Add someone" }).getByRole("button", { name: "Add Ben" }).click();
+    await expect(lab.getByRole("button", { name: "Ben Typo (Family)" })).toHaveAttribute("aria-pressed", "true");
+    await lab.getByRole("button", { name: "Ben Typo (Family)" }).click();
+
     // The new person can be picked for the reminders too.
     await page.getByRole("list", { name: "Who does Blood test at the lab" }).getByRole("button", { name: "Joy Banda (Home aide)" }).click();
     await page.getByRole("list", { name: "Who does Pick up the new prescription" }).getByRole("button", { name: "Anna Lee (Family)" }).click();
@@ -159,8 +167,11 @@ test.describe("Update the circle: who helps, and texting them", () => {
     await expect(page.getByRole("heading", { name: "Teodora's circle is up to date" })).toBeVisible();
 
     // Anna joined the circle, and the appointment and reminders are theirs.
-    const [anna] = await rest(`/rest/v1/members?select=id,role,phone&circle_id=eq.${seeded.circleId}&name=eq.Anna%20Lee`);
+    const [anna] = await rest(`/rest/v1/members?select=id,role,phone,visibility&circle_id=eq.${seeded.circleId}&name=eq.Anna%20Lee`);
     expect(anna).toMatchObject({ role: "family", phone: "555-010-0142" });
+    // Added for the calendar and reminders, so that is what they see.
+    expect([...anna.visibility.hidden].sort()).toEqual(["handoff", "medications", "summary"]);
+    expect(await rest(`/rest/v1/members?select=id&circle_id=eq.${seeded.circleId}&name=eq.Ben%20Typo`)).toHaveLength(0);
     const [event] = await rest(`/rest/v1/events?select=going_member_id,going_caregiver,needs_volunteer&circle_id=eq.${seeded.circleId}&title=eq.Cardiology%20follow-up`);
     expect(event).toMatchObject({ going_member_id: anna.id, going_caregiver: false, needs_volunteer: false });
     const todos = (await rest(`/rest/v1/todos?select=title,assignee_member_id&circle_id=eq.${seeded.circleId}`)) as { title: string; assignee_member_id: string | null }[];
@@ -186,6 +197,7 @@ test.describe("Update the circle: who helps, and texting them", () => {
     expect(joyBody).toContain(`/i/${tokenFor(seeded.joyId)}`);
     // Joy is not offered twice in "Let people know what changed".
     await expect(page.getByRole("button", { name: "Tell Joy" })).toHaveCount(0);
+    await expect(tell.getByText("Ben Typo")).toHaveCount(0);
 
     // Anna's link opens the circle on a phone that has never seen it.
     const phone = await browser.newContext();

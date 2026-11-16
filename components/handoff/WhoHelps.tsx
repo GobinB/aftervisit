@@ -128,7 +128,7 @@ export function AddSomeone({ onAdd, onCancel }: { onAdd: (person: { name: string
           {problem}
         </p>
       ) : null}
-      <p className="text-[13px] text-ink-500">They get their own link when you update the circle, and you can text it to them right after. Change what they see any time on People.</p>
+      <p className="text-[13px] text-ink-500">They get their own link when you update the circle, and you can text it to them right after. They see the calendar and reminders; change that any time on People.</p>
       <div className="flex flex-wrap gap-2">
         <button type="submit" className="inline-flex min-h-12 items-center rounded-lg bg-primary-700 px-5 text-[15px] font-semibold text-white hover:bg-primary-900">
           Add {name.trim() ? name.trim().split(/\s+/)[0] : "them"}
