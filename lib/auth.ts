@@ -74,7 +74,7 @@ const loadCaregiver = cache(async function loadCaregiver(): Promise<CaregiverRec
   try {
     const supabase = await createSupabaseServerClient();
     // getClaims verifies the session's signature locally (ES256 public key, cached), so a page
-    // does not wait on the auth server. The middleware has already refreshed an expired session.
+    // does not wait on the auth server. proxy.ts has already refreshed an expired session.
     const { data: claimsData, error: claimsError } = await supabase.auth.getClaims();
     const claims = claimsData?.claims;
     if (claimsError || !claims?.sub) return null;

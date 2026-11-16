@@ -13,7 +13,7 @@ Every request moves through the same four layers, in one direction:
 
 ESLint enforces the direction with `no-restricted-imports` (`eslint.config.mjs`):
 
-- Only `store/` imports `@supabase/supabase-js`. `app/(auth)/` and `middleware.ts` may use `@supabase/ssr` for the session.
+- Only `store/` imports `@supabase/supabase-js`. `app/(auth)/` and `proxy.ts` may use `@supabase/ssr` for the session.
 - `app/` and `components/` never import `store/`.
 - `lib/crypto/` runs in the browser only. Server code (`services/`, `store/`, actions, API routes, `app/(auth)/`) cannot import it. The server's own key handling is `lib/key-custody.ts`.
 - Files that read secrets start with `import "server-only"`.

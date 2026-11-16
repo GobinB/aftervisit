@@ -1,13 +1,6 @@
-import { dirname } from "path";
-import { fileURLToPath } from "url";
-import { FlatCompat } from "@eslint/eslintrc";
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
-
-const compat = new FlatCompat({
-  baseDirectory: __dirname,
-});
+import { defineConfig, globalIgnores } from "eslint/config";
+import nextVitals from "eslint-config-next/core-web-vitals";
+import nextTs from "eslint-config-next/typescript";
 
 const storeBan = {
   group: ["@/store", "@/store/*", "@/store/**"],
@@ -16,7 +9,7 @@ const storeBan = {
 
 const supabaseBan = {
   group: ["@supabase/*", "@supabase/**"],
-  message: "Only store/ may import @supabase packages. app/(auth) and middleware.ts may import @supabase/ssr.",
+  message: "Only store/ may import @supabase packages. app/(auth) and proxy.ts may import @supabase/ssr.",
 };
 
 const supabaseJsBan = {
@@ -29,14 +22,23 @@ const cryptoBan = {
   message: "lib/crypto is browser-only. Server code must not import it. The server's own key handling is lib/key-custody.ts.",
 };
 
-const eslintConfig = [
-  ...compat.extends("next/core-web-vitals", "next/typescript"),
+const eslintConfig = defineConfig([
+  ...nextVitals,
+  ...nextTs,
+  globalIgnores(["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"]),
   {
-    ignores: ["node_modules/**", ".next/**", "out/**", "build/**", "next-env.d.ts"],
+    // New in eslint-config-next 16: rules written for the React Compiler. The code here predates them
+    // and works (an effect that sets today's date after load, a ref read during render), so they are off
+    // until they are taken on as their own change, not switched on blind in an upgrade.
+    rules: {
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/refs": "off",
+    },
   },
   {
     files: ["**/*.{ts,tsx}"],
-    ignores: ["store/**", "app/(auth)/**", "middleware.ts"],
+    ignores: ["store/**", "app/(auth)/**", "proxy.ts"],
     rules: {
       "no-restricted-imports": ["error", { patterns: [supabaseBan] }],
     },
@@ -48,7 +50,7 @@ const eslintConfig = [
     },
   },
   {
-    files: ["app/(auth)/**/*.{ts,tsx}", "middleware.ts"],
+    files: ["app/(auth)/**/*.{ts,tsx}", "proxy.ts"],
     rules: {
       "no-restricted-imports": ["error", { patterns: [supabaseJsBan, storeBan, cryptoBan] }],
     },
@@ -72,6 +74,6 @@ const eslintConfig = [
       "no-restricted-imports": ["error", { patterns: [cryptoBan] }],
     },
   },
-];
+]);
 
 export default eslintConfig;

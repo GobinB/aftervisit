@@ -6,8 +6,8 @@ import { SESSION_COOKIE_OPTIONS } from "@/lib/session-cookie";
 
 /**
  * Caregiver session for Server Components and server actions.
- * Cookie writes here can fail during render. middleware.ts refreshes the session.
- * Keep the cookie adapter in step with middleware.ts and app/(auth)/session.ts.
+ * Cookie writes here can fail during render. proxy.ts refreshes the session.
+ * Keep the cookie adapter in step with proxy.ts and app/(auth)/session.ts.
  */
 export async function createSupabaseServerClient() {
   if (!env.supabaseUrl || !env.anonKey) throw new Error("Supabase auth is not configured");
@@ -22,7 +22,7 @@ export async function createSupabaseServerClient() {
         try {
           cookiesToSet.forEach(({ name, value, options }) => cookieStore.set(name, value, options));
         } catch {
-          // Render cannot set cookies. The middleware refresh already did.
+          // Render cannot set cookies. The refresh in proxy.ts already did.
         }
       },
     },

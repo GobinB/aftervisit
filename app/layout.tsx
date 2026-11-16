@@ -3,7 +3,6 @@ import { DM_Serif_Display, Geist } from "next/font/google";
 import { Analytics } from "@/components/Analytics";
 import { RegisterServiceWorker } from "@/components/pwa/RegisterServiceWorker";
 import { ToastProvider } from "@/components/Toast";
-import { WholeResponses } from "@/components/WholeResponses";
 import "./globals.css";
 
 // Body: Geist, a compact sans with a plain zero, so doses read "20 mg", never "2Ø mg".
@@ -39,7 +38,6 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <ToastProvider>{children}</ToastProvider>
         <Analytics />
         <RegisterServiceWorker />
-        <WholeResponses />
       </body>
     </html>
   );

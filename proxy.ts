@@ -9,7 +9,7 @@ import { SESSION_COOKIE_OPTIONS } from "@/lib/session-cookie";
  * Helper cookies are checked in getActor.
  * When auth env is unset, the public demo keeps working.
  */
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   // A Google sign-in that Supabase rejects (for example, one left open too long) comes back
   // to the site address with the error only in the query. Show it on the sign-in page.
   const { pathname, searchParams } = request.nextUrl;
