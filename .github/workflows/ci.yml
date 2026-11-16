@@ -67,7 +67,7 @@ jobs:
 
       # Local Supabase CLI database only. These values are fake. No project ref, no production keys.
       - name: Setup Supabase CLI
-        uses: supabase/setup-cli@v1
+        uses: supabase/setup-cli@v3
         with:
           version: 2.72.7
 
