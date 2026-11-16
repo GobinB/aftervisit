@@ -7,6 +7,25 @@ import { Button } from "@/components/ui/Button";
 import { personNameError } from "@/lib/circle-form";
 import { CONSENT_TEXT, CONSENT_TYPES, type ConsentType } from "@/lib/schema/circles";
 
+/** Read before ticking. They open in a new tab so the form is not lost. */
+const CONSENT_LINKS: Partial<Record<ConsentType, { href: string; label: string }>> = {
+  terms: { href: "/terms", label: "Read the terms" },
+  privacy: { href: "/privacy", label: "Read the privacy policy" },
+};
+
+function links(type: ConsentType) {
+  const link = CONSENT_LINKS[type];
+  if (!link) return null;
+  return (
+    <>
+      {" "}
+      <a href={link.href} target="_blank" rel="noreferrer" className="font-medium text-primary-700 underline underline-offset-4">
+        {link.label}
+      </a>
+    </>
+  );
+}
+
 const field =
   "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500";
 
@@ -94,7 +113,10 @@ export function CircleForm() {
                 if (CONSENT_TYPES.every((item) => next[item]) && !personNameError(name)) setError(null);
               }}
             />
-            <span>{CONSENT_TEXT[type]}</span>
+            <span>
+              {CONSENT_TEXT[type]}
+              {links(type)}
+            </span>
           </label>
         ))}
       </fieldset>

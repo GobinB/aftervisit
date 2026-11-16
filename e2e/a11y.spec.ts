@@ -18,6 +18,8 @@ test("no WCAG 2.1 AA violations on any screen", async ({ page }, info) => {
   await audit(page, "intake paste");
   await page.goto("/privacy");
   await audit(page, "privacy");
+  await page.goto("/terms");
+  await audit(page, "terms");
   await page.goto("/h/demo");
   await audit(page, "handoff demo");
   await page.goto("/");

@@ -42,6 +42,10 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
             <Link href="/privacy" className="font-medium text-primary-700 underline decoration-primary-700/30 underline-offset-4 hover:text-primary-900">
               Privacy
             </Link>
+            <span aria-hidden="true" className="mx-2 text-ink-500">·</span>
+            <Link href="/terms" className="font-medium text-primary-700 underline decoration-primary-700/30 underline-offset-4 hover:text-primary-900">
+              Terms
+            </Link>
           </p>
         </div>
       </main>

@@ -76,7 +76,9 @@ export const VisibilitySchema = z
   .strict();
 export type Visibility = z.infer<typeof VisibilitySchema>;
 
-export const CONSENT_VERSION = "2026-11-03";
+/** The date on the terms page. The consents saved with a new circle carry it as their version. */
+export const TERMS_EFFECTIVE = "November 16, 2026";
+export const CONSENT_VERSION = "2026-11-16";
 export const CONSENT_TYPES = ["authorized_to_share", "terms", "privacy"] as const;
 export type ConsentType = (typeof CONSENT_TYPES)[number];
 
@@ -84,7 +86,7 @@ export type ConsentType = (typeof CONSENT_TYPES)[number];
 export const CONSENT_TEXT: Record<ConsentType, string> = {
   authorized_to_share:
     "I am this person, or they or their legal representative have authorized me to store and share information about their care in All Hands Care.",
-  terms: "I agree to use All Hands Care to store what I enter. All Hands Care does not provide medical advice.",
+  terms: "I agree to the terms of use. All Hands Care does not give medical advice and is not for emergencies.",
   privacy: "I understand the people I add see only what I allow, and I can delete the circle.",
 };
 

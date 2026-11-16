@@ -38,6 +38,8 @@ Each circle has an Emergency page, for the caregiver and from every person's lin
 - Creating a handoff requires confirming the caregiver is the patient or is authorized to share.
 - Every handoff expires after 30 days; the creator can delete it any time from the manage link.
 - The privacy page reads the active extraction provider from the same code that selects it, so it always names any outside service in use.
+- The terms of use (`/terms`) are linked from the footer, the sign-in page and the "terms" tick when a circle is started; the consent saved with a circle records the version of the wording it agreed to (`CONSENT_VERSION`).
+- Security problems go to the address in [SECURITY.md](SECURITY.md), which also sets out what happens if information is exposed.
 - All Hands Care has not completed a formal privacy, security or HIPAA compliance review.
 
 ## Stack
