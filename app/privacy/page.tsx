@@ -473,7 +473,7 @@ export default function PrivacyPage() {
                   <p>
                     <strong>Latest change, {TIME_ZONE_EFFECTIVE}:</strong> we now keep the time zone where the person you look after
                     lives (such as Eastern Time), taken from your phone or computer, so dates are right and the calendar link shows each
-                    medicine and appointment at the right time. It is not a location: only the zone.
+                    medicine and appointment at the right time. Only the zone is kept, never an address.
                   </p>
                   <p>
                     <strong>Before that, {PHONES_EFFECTIVE}:</strong> you can add a phone number for yourself and for the people you
