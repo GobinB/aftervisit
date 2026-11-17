@@ -91,19 +91,20 @@
   }
 }
 
-/* 15 px on phones, 14 px on wider screens, like a working app rather than a poster. */
+/* 14 px everywhere, like a working app rather than a poster; phones no longer read zoomed in. */
 html {
-  font-size: 15px;
+  font-size: 14px;
   -webkit-text-size-adjust: 100%;
 }
-@media (min-width: 768px) {
-  html { font-size: 14px; }
+/* iPhone zooms the whole page into any text box under 16 px when it is tapped, and stays zoomed.
+   Text boxes on phones are 16 px, so tapping one never zooms. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    font-size: 16px;
+  }
 }
 /* Large-text mode on the handoff page (120%). */
-html.av-large { font-size: 18px; }
-@media (min-width: 768px) {
-  html.av-large { font-size: 16.8px; }
-}
+html.av-large { font-size: 16.8px; }
 
 /* The title face has one weight; never fake a bold one. */
 .font-display {

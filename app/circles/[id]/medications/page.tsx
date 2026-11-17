@@ -94,9 +94,11 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
           ) : null}
           {scheduled.length ? (
             <section aria-labelledby="scheduled-title">
-              <SectionLabel>
-                <span id="scheduled-title">Taking now</span>
-              </SectionLabel>
+              {/* Bold and green, so what is taken now stands out from what was stopped. */}
+              <h2 id="scheduled-title" className="mb-2 flex items-center gap-2 text-name font-bold text-ok-ink">
+                <span className="size-2.5 rounded-full bg-ok" aria-hidden="true" />
+                Taking now ({scheduled.length})
+              </h2>
               <Card>
                 <MedicationList medications={scheduled} circleId={id} canEdit={canEdit} />
               </Card>
@@ -124,30 +126,31 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
           ) : null}
         </div>
         {canEdit ? (
-          <section aria-labelledby="changes-title" className="no-print">
-            <SectionLabel>
-              <span id="changes-title">Recent changes</span>
-            </SectionLabel>
-            <Card>
-              {changes.length ? (
-                <ul className="divide-y divide-border-200">
-                  {changes.map((change) => (
-                    <li key={change.id} className="flex items-start gap-3 px-4 py-2.5">
-                      <span className="min-w-0 flex-1">
-                        <span className="block text-[12px] font-semibold text-ink-500 uppercase">{CHANGE_LABEL[change.change]}</span>
-                        <span className="block text-[13px] text-ink-900">{change.summary}</span>
-                      </span>
-                      <time dateTime={change.at} className="shrink-0 text-[12px] text-ink-500 tabular-nums">
-                        <LocalDay iso={change.at} />
-                      </time>
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="px-4 py-3 text-[13px] text-ink-500">Every change will be listed here with its date.</p>
-              )}
-            </Card>
-          </section>
+          // Folded away; opened when wanted.
+          <details className="no-print group self-start rounded-lg border border-border-200 bg-white">
+            <summary className="flex min-h-12 cursor-pointer items-center justify-between gap-2 px-4 text-label font-semibold text-ink-900">
+              Recent changes{changes.length ? ` (${changes.length})` : ""}
+              <span className="text-hint font-medium text-primary-700 group-open:hidden">Show</span>
+              <span className="hidden text-hint font-medium text-primary-700 group-open:inline">Hide</span>
+            </summary>
+            {changes.length ? (
+              <ul className="divide-y divide-border-200 border-t border-border-200">
+                {changes.map((change) => (
+                  <li key={change.id} className="flex items-start gap-3 px-4 py-2.5">
+                    <span className="min-w-0 flex-1">
+                      <span className="block text-badge font-semibold text-ink-500 uppercase">{CHANGE_LABEL[change.change]}</span>
+                      <span className="block text-hint text-ink-900">{change.summary}</span>
+                    </span>
+                    <time dateTime={change.at} className="shrink-0 text-badge text-ink-500 tabular-nums">
+                      <LocalDay iso={change.at} />
+                    </time>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="border-t border-border-200 px-4 py-3 text-hint text-ink-500">Every change will be listed here with its date.</p>
+            )}
+          </details>
         ) : null}
       </div>
     </>

@@ -1,9 +1,9 @@
 "use client";
 
-import { Loader2, Send } from "lucide-react";
+import { Link2, Loader2, Send } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
-import { markToldAction, memberLinkAction, pendingUpdatesAction } from "@/app/actions/members";
+import { currentMemberLinkAction, markToldAction, memberLinkAction, pendingUpdatesAction } from "@/app/actions/members";
 import { memberUrl } from "@/components/circles/member-link";
 import { ShareLink, type ShareableLink } from "@/components/circles/ShareLink";
 import { changedWords, type UpdateArea } from "@/lib/link-life";
@@ -21,7 +21,8 @@ function names(people: readonly Pending[]): string {
 /**
  * Shown to the caregiver after they change medicines, the calendar, reminders or the care summary
  * (by hand or from a visit summary) while someone who can see that has not heard about it. Each
- * name sends that person their same link with a message saying what changed. It goes away once
+ * name sends that person their same link with a message saying what changed. Opening it never
+ * replaces an older link; "Make a new link" does, on a tap, since that stops the old one working. It goes away once
  * everyone is told, or opens their link, or the caregiver skips it.
  *
  * `pending` comes from the server (the circle's pages). Without it, the list is fetched here (the
@@ -34,6 +35,8 @@ export function ShareUpdates({ circleId, personName, pending: initial, skip }: {
   const [share, setShare] = useState<{ link: ShareableLink; memberId: string } | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Someone whose older link only a tap may replace (it stops the one they have working).
+  const [old, setOld] = useState<{ person: Pending; message: string } | null>(null);
   const [, start] = useTransition();
 
   useEffect(() => {
@@ -65,18 +68,21 @@ export function ShareUpdates({ circleId, personName, pending: initial, skip }: {
     });
   }
 
-  async function open(person: Pending) {
+  /** Their current link, never replaced by opening it. `replace` only after "Make a new link". */
+  async function open(person: Pending, replace = false) {
     setError(null);
+    setOld(null);
     setBusy(person.memberId);
     try {
-      const result = await memberLinkAction({ circleId, memberId: person.memberId });
+      const result = replace ? await memberLinkAction({ circleId, memberId: person.memberId }) : await currentMemberLinkAction({ circleId, memberId: person.memberId });
       if (!result.ok) {
-        setError(result.error);
+        if ("oldLink" in result) setOld({ person, message: result.error });
+        else setError(result.error);
         return;
       }
       setShare({
         memberId: person.memberId,
-        link: { url: memberUrl(result.token), name: result.name, email: result.email, phone: result.phone, hasPin: result.hasPin, personName, changed: changedWords(person.areas) },
+        link: { url: memberUrl(result.token), name: result.name, email: result.email, phone: result.phone, hasPin: result.hasPin, personName, changed: changedWords(person.areas), newLink: replace },
       });
     } catch {
       setError("The link could not be opened. Try again.");
@@ -101,16 +107,29 @@ export function ShareUpdates({ circleId, personName, pending: initial, skip }: {
 
   return (
     <section aria-labelledby="share-updates-title" className="mb-5 rounded-lg border border-primary-700/25 bg-sky-100/60 p-4">
-      <h2 id="share-updates-title" className="text-[15px] font-semibold text-primary-900">
+      <h2 id="share-updates-title" className="text-label font-semibold text-primary-900">
         Let people know what changed
       </h2>
-      <p className="mt-0.5 text-[14px] text-ink-900">
-        You changed {changedWords(areas)}. {names(list)} {list.length === 1 ? "has" : "have"} not seen it yet. Send them their link with a note; it is the same link they already have.
+      <p className="mt-0.5 text-note text-ink-900">
+        {names(list)} {list.length === 1 ? "has" : "have"} not seen the new {changedWords(areas)}.
       </p>
       {error ? (
-        <p role="alert" className="mt-2 rounded-md bg-attn-bg px-3 py-2 text-[13px] text-attn-ink">
+        <p role="alert" className="mt-2 rounded-md bg-attn-bg px-3 py-2 text-hint text-attn-ink">
           {error}
         </p>
+      ) : null}
+      {old ? (
+        <div className="mt-2 rounded-md bg-white px-3 py-2">
+          <p className="text-note text-ink-900">{old.message}</p>
+          <button
+            type="button"
+            disabled={busy !== null}
+            onClick={() => open(old.person, true)}
+            className="mt-2 inline-flex min-h-11 items-center gap-2 rounded-lg border border-border-200 bg-white px-4 text-note font-semibold text-primary-700 hover:bg-sky-100 disabled:opacity-50"
+          >
+            <Link2 className="size-4" aria-hidden="true" /> Make a new link
+          </button>
+        </div>
       ) : null}
       <div className="mt-3 flex flex-wrap items-center gap-2">
         {list.map((person) => (
@@ -119,7 +138,7 @@ export function ShareUpdates({ circleId, personName, pending: initial, skip }: {
             type="button"
             disabled={busy !== null}
             onClick={() => open(person)}
-            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary-700 px-4 text-[14px] font-semibold text-white hover:bg-primary-900 disabled:opacity-50"
+            className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-primary-700 px-4 text-note font-semibold text-white hover:bg-primary-900 disabled:opacity-50"
           >
             {busy === person.memberId ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : <Send className="size-4" aria-hidden="true" />}
             Tell {firstName(person.name)}
@@ -129,7 +148,7 @@ export function ShareUpdates({ circleId, personName, pending: initial, skip }: {
           type="button"
           disabled={busy !== null}
           onClick={() => told(list.map((person) => person.memberId))}
-          className="inline-flex min-h-11 items-center rounded-lg px-3 text-[14px] font-medium text-ink-500 hover:bg-white hover:text-ink-900 disabled:opacity-50"
+          className="inline-flex min-h-11 items-center rounded-lg px-3 text-note font-medium text-ink-500 hover:bg-white hover:text-ink-900 disabled:opacity-50"
         >
           Skip this time
         </button>

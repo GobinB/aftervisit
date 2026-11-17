@@ -101,6 +101,14 @@ export async function claimTodo(actor: Actor, circleId: string, id: string): Pro
   return { ok: true };
 }
 
+/** Gives a to-do to someone (or back to nobody). Only the caregiver. */
+export async function assignTodo(actor: Actor, circleId: string, id: string, assignee: TodoInput["assignee"]): Promise<Result> {
+  if (actor.kind !== "caregiver" || !can(actor, "tasks:manage", { circleId })) return { ok: false, error: denied };
+  const { data, error } = await clientFor(actor).from("todos").update(assigneeColumns(assignee)).eq("circle_id", circleId).eq("id", id).select("id").maybeSingle();
+  if (error || !data) return { ok: false, error: generic };
+  return { ok: true };
+}
+
 /** Marks a to-do done, or open again. The caregiver can for any; a helper only for their own. */
 export async function setTodoDone(actor: Actor, circleId: string, id: string, done: boolean): Promise<Result> {
   const any = can(actor, "tasks:update", { circleId });

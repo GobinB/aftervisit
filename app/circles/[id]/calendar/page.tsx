@@ -112,7 +112,7 @@ export default async function CalendarPage({ params, searchParams }: { params: P
     <>
       <PageHead
         title="Calendar"
-        subtitle={`${personName} · appointments, reminders and medicines`}
+        subtitle={personName}
         help="Your week at a glance, coloured by kind: appointments, ones that need someone to go, reminders and medicines. Tap a card to open it, or a day to see everything on it."
         actions={
           <>
@@ -177,6 +177,11 @@ export default async function CalendarPage({ params, searchParams }: { params: P
 
       {view === "week" ? (
         <>
+          {/* Phones: the week as a plain list by day, instead of a grid to slide sideways. */}
+          <Card className="md:hidden">
+            <Agenda items={items} circleId={id} canEdit={canEdit} fromToday={false} empty="Nothing this week." dayBase={base} medCounts={medCounts} />
+          </Card>
+          <div className="hidden md:block">
           <div className="no-print mb-2">
             <WeekKey kinds={seesMeds ? ["event", "needs", "reminder", "meds"] : ["event", "needs", "reminder"]} />
           </div>
@@ -191,7 +196,8 @@ export default async function CalendarPage({ params, searchParams }: { params: P
             base={base}
             canEdit={canEdit}
           />
-          <p className="mt-2 text-[13px] text-ink-500 lg:hidden">Slide sideways to see the whole week. Tap a day to see everything on it.</p>
+          <p className="mt-2 text-hint text-ink-500 lg:hidden">Slide sideways to see the whole week. Tap a day to see everything on it.</p>
+          </div>
         </>
       ) : view === "month" ? (
         <>

@@ -12,7 +12,7 @@ import { useToast } from "@/components/Toast";
 import { COPY } from "@/lib/copy";
 import { shortDate } from "@/lib/format";
 import { itemId } from "@/lib/parse/util";
-import { itemsWaiting, medNeedsLook } from "@/lib/review";
+import { itemsWaiting, medNeedsLook, reviewState, type ReviewSection } from "@/lib/review";
 import type { HandoffDraft, MedicationChange, Task } from "@/lib/schema";
 import { getOriginalPages, useFlow } from "@/lib/store";
 
@@ -30,7 +30,7 @@ const isPhone = () => window.matchMedia("(max-width: 1023px)").matches;
 export default function ReviewPage() {
   const router = useRouter();
   const toast = useToast();
-  const { draft, isSample, unsorted, recipients, updateDraft, confirmReview, circleId, reader } = useFlow();
+  const { draft, reviewed, isSample, unsorted, recipients, updateDraft, setReviewed, circleId, reader } = useFlow();
   // The photos taken on the first step, still in this tab's memory (gone after a reload).
   const [pages] = useState(() => getOriginalPages());
   const [hydrated, setHydrated] = useState(false);
@@ -67,6 +67,10 @@ export default function ReviewPage() {
 
   const set = (fn: (d: HandoffDraft) => HandoffDraft) => updateDraft(fn);
   const waitingIds = itemsWaiting(draft);
+  const state = reviewState(draft, reviewed);
+  /** The "I reviewed it" button for a section that needs one. */
+  const review = (section: ReviewSection) =>
+    state.sections.includes(section) ? { done: state.done[section], blocked: state.blocked[section], onToggle: (value: boolean) => setReviewed(section, value) } : undefined;
   const next = circleId ? "/new/apply" : "/new/share";
 
   /** Delete with a 4-second Undo toast. */
@@ -174,22 +178,21 @@ export default function ReviewPage() {
     );
   const visitLine = [shortDate(v.date), v.provider, v.specialty].filter(Boolean).join(" · ");
 
-  // The bar at the bottom: one button. While something needs a look it goes there; then "Looks right".
+  // The bar at the bottom: while something needs a look, "Show me" goes there; then Continue, once
+  // Medicines (and Next steps and Watch for, when there are any) are marked reviewed.
   const waiting = waitingIds.length;
+  const left = state.sections.length - state.doneCount;
+  const NAMES: Record<string, string> = { medications: "Medicines", tasks: "Next steps", watchFor: "Watch for" };
   const bar = waiting
-    ? {
-        hint: `${waiting} ${waiting === 1 ? "item needs" : "items need"} a look first`,
-        button: waiting === 1 ? "Show me" : "Show me the first",
-        onClick: showNextWaiting,
-      }
-    : {
-        hint: "Matches the original?",
-        button: "Looks right",
-        onClick: () => {
-          confirmReview();
-          router.push(next);
-        },
-      };
+    ? { hint: `${waiting} ${waiting === 1 ? "item needs" : "items need"} a look first`, button: "Show me", onClick: showNextWaiting, blocked: false }
+    : left
+      ? {
+          hint: `Review: ${state.sections.filter((section) => !state.done[section]).map((section) => NAMES[section]).join(", ")}`,
+          button: "Continue",
+          onClick: () => document.getElementById(`${state.sections.find((section) => !state.done[section])}-title`)?.scrollIntoView({ behavior: "smooth", block: "center" }),
+          blocked: true,
+        }
+      : { hint: "All reviewed", button: "Continue", onClick: () => router.push(next), blocked: false };
   // Empty lists stay out of the way; a small button adds the first item.
   const emptyLists = (
     [
@@ -205,7 +208,7 @@ export default function ReviewPage() {
         <BackLink href={circleId ? `/circles/${circleId}` : "/"} label={circleId ? "Today" : "Home"} />
         <StepHeader current="Review" circle={Boolean(circleId)} />
         <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Review the draft</h1>
-        <p className="mt-1 text-ink-500">Check it against the original. Nothing is saved yet.</p>
+        <p className="mt-1 text-ink-500">Check each part against the original. Nothing is saved yet.</p>
         <ReaderNote reader={reader} />
       </div>
 
@@ -233,7 +236,7 @@ export default function ReviewPage() {
             <div className="mb-4 flex gap-3 rounded-xl bg-sky-100 px-4 py-3 text-primary-900">
               <Info size={20} className="mt-0.5 shrink-0" aria-hidden="true" />
               <p>
-                This is a sample visit for Margaret, who is fictional. Press Looks right to continue, or{" "}
+                This is a sample visit for Margaret, who is fictional. Review each part to continue, or{" "}
                 <Link href="/h/demo" className="font-medium text-primary-700 underline underline-offset-4">
                   see the finished handoff page
                 </Link>
@@ -254,7 +257,7 @@ export default function ReviewPage() {
           </datalist>
 
           <div className="space-y-3">
-            <Section id="medications" icon={<Pill size={20} />} title="Medicines" count={draft.medications.length} onAdd={addMed} addLabel="Add a medicine">
+            <Section id="medications" tone="meds" icon={<Pill size={20} />} title="Medicines" count={draft.medications.length} review={review("medications")} onAdd={addMed} addLabel="Add a medicine">
               {!draft.medications.length ? (
                 <p className="my-2 rounded-lg border border-med/40 bg-med-bg/30 px-3 py-2 text-label text-med-ink">
                   No medicines were read. If the summary names any, add them.
@@ -269,7 +272,7 @@ export default function ReviewPage() {
               {settled.length ? <ul>{settled.map(medRow)}</ul> : null}
             </Section>
 
-            <Section id="visit" icon={<Stethoscope size={20} />} title="The visit">
+            <Section id="visit" tone="visit" icon={<Stethoscope size={20} />} title="The visit">
               <div className="flex items-start justify-between gap-2 py-1">
                 <div className="min-w-0 flex-1">
                   <p className="text-ink-900">{visitLine || <span className="text-ink-500">No date or clinician was read.</span>}</p>
@@ -352,7 +355,7 @@ export default function ReviewPage() {
               ) : null}
             </Section>
 
-            <Section id="tasks" icon={<CalendarCheck size={20} />} title="Next steps" count={draft.tasks.length} onAdd={addTask} addLabel="Add a next step">
+            <Section id="tasks" tone="steps" icon={<CalendarCheck size={20} />} title="Next steps" count={draft.tasks.length} review={review("tasks")} onAdd={addTask} addLabel="Add a next step">
               {draft.tasks.length ? (
                 <ul>
                   {draft.tasks.map((t, i) => (
@@ -375,17 +378,17 @@ export default function ReviewPage() {
             </Section>
 
             {draft.watchFor.length ? (
-              <Section id="watchFor" icon={<Eye size={20} />} title="Watch for" count={draft.watchFor.length} onAdd={() => addText("watchFor")}>
+              <Section id="watchFor" tone="watch" icon={<Eye size={20} />} title="Watch for" review={review("watchFor")} count={draft.watchFor.length} onAdd={() => addText("watchFor")}>
                 {textList("watchFor", "Watch-for item")}
               </Section>
             ) : null}
             {draft.otherNotes.length ? (
-              <Section id="otherNotes" icon={<Lightbulb size={20} />} title="Good to know" count={draft.otherNotes.length} onAdd={() => addText("otherNotes")}>
+              <Section id="otherNotes" tone="know" icon={<Lightbulb size={20} />} title="Good to know" count={draft.otherNotes.length} onAdd={() => addText("otherNotes")}>
                 {textList("otherNotes", "Good-to-know item")}
               </Section>
             ) : null}
             {draft.questions.length ? (
-              <Section id="questions" icon={<HelpCircle size={20} />} title="Questions for the next visit" count={draft.questions.length} onAdd={() => addText("questions")}>
+              <Section id="questions" tone="ask" icon={<HelpCircle size={20} />} title="Questions for the next visit" count={draft.questions.length} onAdd={() => addText("questions")}>
                 {textList("questions", "Question")}
               </Section>
             ) : null}
@@ -446,9 +449,10 @@ export default function ReviewPage() {
           <button
             type="button"
             aria-describedby="confirm-hint"
+            aria-disabled={bar.blocked || undefined}
             onClick={bar.onClick}
             className={`min-h-[48px] shrink-0 rounded-xl px-5 font-semibold ${
-              waiting ? "border-2 border-med bg-white text-med-ink hover:bg-med-bg" : "bg-primary-700 text-white hover:bg-primary-900"
+              waiting ? "border-2 border-med bg-white text-med-ink hover:bg-med-bg" : bar.blocked ? "bg-primary-700/45 text-white" : "bg-primary-700 text-white hover:bg-primary-900"
             } ${view === "original" ? "max-lg:hidden" : ""}`}
           >
             {bar.button}

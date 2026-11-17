@@ -50,7 +50,8 @@ export function CircleShell({
             <HeaderTitle fallback={signedIn ? "Your circles" : "Care circle"} personName={personName} tabs={tabs} />
             <nav aria-label="Account" className="flex items-center gap-1 text-[13px]">
               <InstallButton />
-              <Link href="/privacy" className="rounded-lg px-2 py-2 font-medium text-ink-500 hover:text-ink-900">
+              {/* On phones Privacy sits in the note at the foot of the page, so the top bar stays on one line. */}
+              <Link href="/privacy" className="rounded-lg px-2 py-2 font-medium text-ink-500 hover:text-ink-900 max-sm:hidden">
                 Privacy
               </Link>
               {signedIn ? <SignOut /> : null}
@@ -60,7 +61,10 @@ export function CircleShell({
             {children}
           </main>
           <p className={`no-print mx-auto w-full ${width} border-t border-border-200 px-4 py-5 text-xs text-ink-500 sm:px-6 ${circle ? "mb-20 lg:mb-0" : ""}`}>
-            {COPY.notMedicalAdvice}
+            {COPY.notMedicalAdvice}{" "}
+            <Link href="/privacy" className="font-medium underline underline-offset-2 sm:hidden">
+              Privacy
+            </Link>
           </p>
         </div>
         {circle ? <BottomBar tabs={tabs} /> : null}
