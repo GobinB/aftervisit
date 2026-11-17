@@ -20,6 +20,10 @@ test("no WCAG 2.1 AA violations on any screen", async ({ page }, info) => {
   await audit(page, "privacy");
   await page.goto("/terms");
   await audit(page, "terms");
+  for (const path of ["/about", "/contact", "/care-teams", "/guides/share-the-care"]) {
+    await page.goto(path);
+    await audit(page, path);
+  }
   await page.goto("/h/demo");
   await audit(page, "handoff demo");
   await page.goto("/");

@@ -22,6 +22,9 @@ export function AppBar({ minimal = false }: { minimal?: boolean }) {
             <Link href="/privacy" className="hidden rounded-lg px-3 py-2 font-medium text-ink-900/80 hover:text-primary-900 lg:inline-block">
               Privacy
             </Link>
+            <Link href="/about" className="hidden rounded-lg px-3 py-2 font-medium text-ink-900/80 hover:text-primary-900 lg:inline-block">
+              About
+            </Link>
             <StartSample label="Try a sample visit" variant="secondary" className="max-lg:hidden" />
             <SiteMenu />
             <Link
