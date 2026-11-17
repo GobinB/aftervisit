@@ -195,6 +195,14 @@ test.describe("Update the circle: who helps, and texting them", () => {
     const joyBody = decodeURIComponent((await textJoy.getAttribute("href"))!.split("&body=")[1]);
     expect(joyBody).toContain("same link as before");
     expect(joyBody).toContain(`/i/${tokenFor(seeded.joyId)}`);
+
+    // When copying fails, the message is shown to copy by hand instead of nothing happening.
+    await page.evaluate(() => {
+      Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: () => Promise.reject(new Error("blocked")) } });
+    });
+    await tell.getByRole("button", { name: "Copy the message for Joy" }).click();
+    await expect(tell.getByRole("alert")).toContainText("Copying did not work");
+    await expect(tell.getByRole("textbox", { name: "The message for Joy" })).toHaveValue(joyBody);
     // Joy is not offered twice in "Let people know what changed".
     await expect(page.getByRole("button", { name: "Tell Joy" })).toHaveCount(0);
     await expect(tell.getByText("Ben Typo")).toHaveCount(0);

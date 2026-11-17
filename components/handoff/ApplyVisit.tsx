@@ -23,10 +23,11 @@ import { addMemberAction } from "@/app/actions/members";
 import { HELPER_ROLE_LABELS, type HelperRole } from "@/lib/schema/circles";
 import { SEE_PRESETS } from "@/lib/share-message";
 
-/** What someone added on this page sees: the calendar and reminders, like the People page's preset. */
-const CALENDAR_ONLY = SEE_PRESETS.find((preset) => preset.key === "calendar")!.hidden;
 import { ensureCircleKey } from "@/components/circles/circle-key";
 import { generateFileKey, sealPage, wrapFileKey } from "@/lib/crypto";
+
+/** What someone added on this page sees: the calendar and reminders, like the People page's preset. */
+const CALENDAR_ONLY = SEE_PRESETS.find((preset) => preset.key === "calendar")!.hidden;
 
 type Done = { added: number; changed: number; stopped: number; todos: number; events: number; failed: number; visitId: string | null; notes: number };
 

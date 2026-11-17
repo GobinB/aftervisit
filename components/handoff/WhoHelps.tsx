@@ -13,7 +13,7 @@ export type Helper = { value: string; label: string; name: string; phone: string
 
 export const isNewHelper = (value: string) => value.startsWith("new:");
 
-const chip = "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-[15px] font-semibold";
+const chip = "inline-flex min-h-11 items-center gap-1.5 rounded-full border px-4 text-label font-semibold";
 
 /**
  * Who is going, or whose reminder it is: Me, each person in the circle, or someone new. Nobody is
@@ -96,13 +96,13 @@ export function AddSomeone({ onAdd, onCancel }: { onAdd: (person: { name: string
   return (
     <form onSubmit={add} aria-label="Add someone" noValidate className="mt-3 space-y-3 rounded-lg border border-border-200 bg-surface-50 p-3">
       <div>
-        <label htmlFor={ids.name} className="text-[15px] font-semibold text-ink-900">
+        <label htmlFor={ids.name} className="text-label font-semibold text-ink-900">
           Name
         </label>
         <input id={ids.name} className={field} value={name} maxLength={80} autoComplete="off" autoFocus placeholder="e.g. Anna" onChange={(event) => setName(event.target.value)} />
       </div>
       <fieldset>
-        <legend className="text-[15px] font-semibold text-ink-900">Who they are</legend>
+        <legend className="text-label font-semibold text-ink-900">Who they are</legend>
         <div className="mt-1 flex flex-wrap gap-2">
           {HELPER_ROLES.map((item) => (
             <button
@@ -118,22 +118,22 @@ export function AddSomeone({ onAdd, onCancel }: { onAdd: (person: { name: string
         </div>
       </fieldset>
       <div>
-        <label htmlFor={ids.phone} className="text-[15px] font-semibold text-ink-900">
+        <label htmlFor={ids.phone} className="text-label font-semibold text-ink-900">
           Phone <span className="font-normal text-ink-500">(to text them their link)</span>
         </label>
         <input id={ids.phone} className={field} value={phone} maxLength={40} inputMode="tel" autoComplete="off" placeholder="e.g. 555-010-0142" onChange={(event) => setPhone(event.target.value)} />
       </div>
       {problem ? (
-        <p role="alert" className="rounded-lg bg-attn-bg px-3 py-2 text-[14px] text-attn-ink">
+        <p role="alert" className="rounded-lg bg-attn-bg px-3 py-2 text-note text-attn-ink">
           {problem}
         </p>
       ) : null}
-      <p className="text-[13px] text-ink-500">They get their own link when you update the circle, and you can text it to them right after. They see the calendar and reminders; change that any time on People.</p>
+      <p className="text-hint text-ink-500">They get their own link when you update the circle, and you can text it to them right after. They see the calendar and reminders; change that any time on People.</p>
       <div className="flex flex-wrap gap-2">
-        <button type="submit" className="inline-flex min-h-12 items-center rounded-lg bg-primary-700 px-5 text-[15px] font-semibold text-white hover:bg-primary-900">
+        <button type="submit" className="inline-flex min-h-12 items-center rounded-lg bg-primary-700 px-5 text-label font-semibold text-white hover:bg-primary-900">
           Add {name.trim() ? name.trim().split(/\s+/)[0] : "them"}
         </button>
-        <button type="button" onClick={onCancel} className="inline-flex min-h-12 items-center rounded-lg px-4 text-[15px] font-semibold text-ink-500 hover:bg-paper-100">
+        <button type="button" onClick={onCancel} className="inline-flex min-h-12 items-center rounded-lg px-4 text-label font-semibold text-ink-500 hover:bg-paper-100">
           Cancel
         </button>
       </div>
