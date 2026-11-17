@@ -36,7 +36,7 @@ export function TodoList({ todos, circleId, canEdit, people = [] }: { todos: Tod
           <li key={todo.id} className="px-4 py-3">
             <span className={`block text-label font-medium ${done ? "text-ink-500 line-through decoration-ink-500/60" : "text-ink-900"}`}>{todo.title}</span>
             {todo.note ? <span className="mt-0.5 block text-hint whitespace-pre-line text-ink-500">{todo.note}</span> : null}
-            <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-badge text-ink-500">
+            <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-hint text-ink-500">
               <span className={`rounded px-1.5 py-0.5 font-medium ${unassigned ? "bg-med-bg text-med-ink" : "bg-sky-100 text-primary-900"}`}>{owner}</span>
               {todo.dueDate ? <DueLabel date={todo.dueDate} done={done} /> : null}
             </span>

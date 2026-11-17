@@ -32,13 +32,13 @@ export function MedicationList({ medications, circleId, canEdit }: { medications
               <p className={`mt-0.5 text-hint ${stopped ? `text-ink-500 ${struck}` : "text-ink-900"}`}>{scheduleText(med)}</p>
               {med.reason ? <p className="text-hint text-ink-500">For {forText(med.reason)}</p> : null}
               {med.instructions ? <p className={`text-hint text-ink-500 ${struck}`}>{med.instructions}</p> : null}
-              {meta.length ? <p className={`mt-1 text-badge ${stopped ? "font-semibold text-attn-ink" : "text-ink-500"}`}>{meta.join(" · ")}</p> : null}
+              {meta.length ? <p className={`mt-1 text-hint ${stopped ? "font-semibold text-attn-ink" : "text-ink-500"}`}>{meta.join(" · ")}</p> : null}
             </div>
             {canEdit && circleId ? (
               <div className="no-print flex shrink-0 items-center gap-1.5">
                 <Link
                   href={`/circles/${circleId}/medications/${med.id}`}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border-200 bg-white px-2.5 text-badge font-medium text-ink-900 hover:bg-paper-100"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border-200 bg-white px-2.5 text-hint font-medium text-ink-900 hover:bg-paper-100"
                   aria-label={`Edit ${med.name}`}
                 >
                   <Pencil className="size-3.5" aria-hidden="true" /> Edit

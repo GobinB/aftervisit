@@ -17,7 +17,7 @@ const TONES: Record<SectionTone, { card: string; title: string }> = {
   visit: { card: "border-border-200 bg-white border-l-primary-700", title: "text-primary-900" },
   steps: { card: "border-med/30 bg-med-bg/30 border-l-med", title: "text-med-ink" },
   watch: { card: "border-attn/30 bg-attn-bg/30 border-l-attn", title: "text-attn-ink" },
-  know: { card: "border-violet-200 bg-violet-50/60 border-l-violet-600", title: "text-violet-800" },
+  know: { card: "border-know/30 bg-know-bg/60 border-l-know", title: "text-know-ink" },
   ask: { card: "border-border-200 bg-white border-l-ink-500", title: "text-ink-900" },
 };
 
@@ -80,7 +80,7 @@ function ReviewedButton({ section, done, blocked, onToggle }: SectionReview & { 
         aria-describedby={blocked ? hintId : undefined}
         disabled={!!blocked && !done}
         onClick={() => onToggle(!done)}
-        className={`inline-flex min-h-[48px] items-center gap-1.5 rounded-lg border-2 px-4 text-label font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+        className={`inline-flex min-h-12 items-center gap-1.5 rounded-lg border-2 px-4 text-label font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
           done ? "border-ok bg-ok text-white hover:bg-ok-ink" : "border-ok bg-white text-ok-ink hover:bg-ok-bg"
         }`}
       >

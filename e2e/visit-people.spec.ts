@@ -356,6 +356,19 @@ test.describe("Update the circle: who helps, and texting them", () => {
     await page.getByRole("button", { name: "Give to…" }).first().click();
     await page.getByRole("list", { name: 'Give "Eye doctor visit" to' }).getByRole("button", { name: /Sam Ortiz/ }).click();
     await expect.poll(async () => (await todoStatus("Eye doctor visit")).assignee_member_id).toBe(seeded.samId);
+
+    // At 375 px wide (a small phone): the calendar's week is a list by day, not the grid, and no
+    // circle screen scrolls sideways.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(`/circles/${seeded.circleId}/calendar?week=2026-12-06`);
+    await expect(page.getByRole("region", { name: "This week" }).getByText("Cardiology follow-up")).toBeVisible();
+    await expect(page.getByText("Slide sideways to see the whole week.")).toBeHidden();
+    for (const path of ["", "/calendar", "/todos", "/medications", "/members", "/emergency"]) {
+      await page.goto(`/circles/${seeded.circleId}${path}`);
+      await page.waitForLoadState("networkidle");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(overflow, path || "Today").toBeLessThanOrEqual(0);
+    }
     await expect(tell.getByText("Ben Typo")).toHaveCount(0);
 
     // Anna's link opens the circle on a phone that has never seen it.

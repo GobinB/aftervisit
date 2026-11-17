@@ -452,7 +452,7 @@ export default function ReviewPage() {
             aria-disabled={bar.blocked || undefined}
             onClick={bar.onClick}
             className={`min-h-[48px] shrink-0 rounded-xl px-5 font-semibold ${
-              waiting ? "border-2 border-med bg-white text-med-ink hover:bg-med-bg" : bar.blocked ? "bg-primary-700/45 text-white" : "bg-primary-700 text-white hover:bg-primary-900"
+              waiting ? "border-2 border-med bg-white text-med-ink hover:bg-med-bg" : bar.blocked ? "bg-primary-700/60 text-white" : "bg-primary-700 text-white hover:bg-primary-900"
             } ${view === "original" ? "max-lg:hidden" : ""}`}
           >
             {bar.button}

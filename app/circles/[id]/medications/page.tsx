@@ -47,7 +47,7 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
         help="What is being taken now. Tap a medicine to change it, or scan an after-visit summary to update the list for you."
         actions={
           <>
-            {medications.length ? <PrintButton /> : null}
+            {medications.length ? <PrintButton className="max-sm:hidden" /> : null}
             {canEdit ? (
               <Link
                 href={`/new?circle=${id}`}
@@ -114,6 +114,8 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
               </Card>
             </section>
           ) : null}
+          {/* On phones, Print sits under the list rather than among the buttons at the top. */}
+          {medications.length ? <PrintButton className="sm:hidden" /> : null}
           {stopped.length ? (
             <section aria-labelledby="stopped-title" className="no-print">
               <SectionLabel>
@@ -138,10 +140,10 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
                 {changes.map((change) => (
                   <li key={change.id} className="flex items-start gap-3 px-4 py-2.5">
                     <span className="min-w-0 flex-1">
-                      <span className="block text-badge font-semibold text-ink-500 uppercase">{CHANGE_LABEL[change.change]}</span>
+                      <span className="block text-hint font-semibold text-ink-500 uppercase">{CHANGE_LABEL[change.change]}</span>
                       <span className="block text-hint text-ink-900">{change.summary}</span>
                     </span>
-                    <time dateTime={change.at} className="shrink-0 text-badge text-ink-500 tabular-nums">
+                    <time dateTime={change.at} className="shrink-0 text-hint text-ink-500 tabular-nums">
                       <LocalDay iso={change.at} />
                     </time>
                   </li>

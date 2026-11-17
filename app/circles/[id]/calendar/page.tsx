@@ -178,9 +178,11 @@ export default async function CalendarPage({ params, searchParams }: { params: P
       {view === "week" ? (
         <>
           {/* Phones: the week as a plain list by day, instead of a grid to slide sideways. */}
-          <Card className="md:hidden">
-            <Agenda items={items} circleId={id} canEdit={canEdit} fromToday={false} empty="Nothing this week." dayBase={base} medCounts={medCounts} />
-          </Card>
+          <section aria-label="This week" className="md:hidden">
+            <Card>
+              <Agenda items={items} circleId={id} canEdit={canEdit} fromToday={false} empty="Nothing this week." dayBase={base} medCounts={medCounts} />
+            </Card>
+          </section>
           <div className="hidden md:block">
           <div className="no-print mb-2">
             <WeekKey kinds={seesMeds ? ["event", "needs", "reminder", "meds"] : ["event", "needs", "reminder"]} />
