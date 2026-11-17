@@ -13,10 +13,10 @@ import { isUnsorted } from "@/lib/parse";
 import { canReadScan, scanCircleAnswered, scanCircleFrom, scanCircleHref, scanCircleId, type ScanCircle } from "@/lib/scan-circle";
 import type { HandoffDraft } from "@/lib/schema";
 import { type DraftReader, setOriginalFile, setOriginalPages, useFlow } from "@/lib/store";
+import { pdfLimitMb } from "@/lib/upload-limits";
 
 const MAX_MB = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB || 10);
-/** A PDF goes to the server in one request, and Vercel turns away bodies over 4.5 MB. Photos are sent in smaller parts. */
-const MAX_PDF_MB = Math.min(MAX_MB, 4);
+const MAX_PDF_MB = pdfLimitMb(MAX_MB);
 const PHOTO_TYPES = "image/jpeg,image/png,image/heic,image/heif,.heic,.heif,image/webp";
 const MIN_TEXT = 50;
 const MAX_PAGES = 15;
@@ -435,7 +435,7 @@ export default function IntakePage() {
                 <FileText size={28} aria-hidden="true" /> Choose photos / files
               </button>
             </div>
-            <p className="mt-3 text-center text-[13px] text-ink-500">One photo per page, laid flat in good light. Or a PDF.</p>
+            <p className="mt-3 text-center text-hint text-ink-500">One photo per page, laid flat in good light. Or a PDF.</p>
           </div>
         )}
         {!pasteMode && !pageCount && kind !== "pdf" ? (

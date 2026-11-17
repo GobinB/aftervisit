@@ -256,13 +256,13 @@ export default function ReviewPage() {
           <div className="space-y-3">
             <Section id="medications" icon={<Pill size={20} />} title="Medicines" count={draft.medications.length} onAdd={addMed} addLabel="Add a medicine">
               {!draft.medications.length ? (
-                <p className="my-2 rounded-lg border border-med/40 bg-med-bg/30 px-3 py-2 text-[15px] text-med-ink">
+                <p className="my-2 rounded-lg border border-med/40 bg-med-bg/30 px-3 py-2 text-label text-med-ink">
                   No medicines were read. If the summary names any, add them.
                 </p>
               ) : null}
               {medsWaiting.length ? (
                 <div className="my-2 rounded-lg border border-med/40 bg-med-bg/30 px-3 pt-2">
-                  <h3 className="text-[15px] font-bold text-med-ink">Check {medsWaiting.length === 1 ? "this" : "these"} first</h3>
+                  <h3 className="text-label font-bold text-med-ink">Check {medsWaiting.length === 1 ? "this" : "these"} first</h3>
                   <ul>{medsWaiting.map(medRow)}</ul>
                 </div>
               ) : null}
@@ -273,7 +273,7 @@ export default function ReviewPage() {
               <div className="flex items-start justify-between gap-2 py-1">
                 <div className="min-w-0 flex-1">
                   <p className="text-ink-900">{visitLine || <span className="text-ink-500">No date or clinician was read.</span>}</p>
-                  {v.summary && !editVisit ? <p className="mt-1 text-[15px] text-ink-500">{v.summary}</p> : null}
+                  {v.summary && !editVisit ? <p className="mt-1 text-label text-ink-500">{v.summary}</p> : null}
                 </div>
                 <button
                   type="button"
@@ -390,7 +390,7 @@ export default function ReviewPage() {
               </Section>
             ) : null}
             {emptyLists.length ? (
-              <div className="flex flex-wrap items-center gap-x-1 gap-y-1 pt-1 text-[15px]">
+              <div className="flex flex-wrap items-center gap-x-1 gap-y-1 pt-1 text-label">
                 <span className="text-ink-500">Missed something?</span>
                 {emptyLists.map(([key, label]) => (
                   <button
@@ -431,7 +431,7 @@ export default function ReviewPage() {
       {/* The bar: one button. On a phone looking at the original, the way back. */}
       <div data-review-bar className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-border-200 bg-white pb-[env(safe-area-inset-bottom)]">
         <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-3 px-4 py-3">
-          <p id="confirm-hint" aria-live="polite" className={`min-w-0 text-[15px] ${waiting ? "font-semibold text-med-ink" : "text-ink-500"} ${view === "original" ? "max-lg:hidden" : ""}`}>
+          <p id="confirm-hint" aria-live="polite" className={`min-w-0 text-label ${waiting ? "font-semibold text-med-ink" : "text-ink-500"} ${view === "original" ? "max-lg:hidden" : ""}`}>
             {bar.hint}
           </p>
           {view === "original" ? (

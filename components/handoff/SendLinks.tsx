@@ -14,7 +14,7 @@ export type TellPerson = { memberId: string; name: string; phone: string | null;
 type Row = { memberId: string; name: string; phone: string | null; isNew: boolean; token?: string; assigned: Assigned | null; changed: string | null };
 
 /** Their link (and email, when the circle has one); an older link only a tap may replace (it stops the old one working); or why it could not be loaded. */
-type LinkState = { url: string; hasPin: boolean; email: string | null; replaced?: boolean } | { old: string } | { error: string };
+type LinkState = { url: string; hasPin: boolean; email: string | null; phone: string | null; replaced?: boolean } | { old: string } | { error: string };
 
 const firstName = (name: string) => name.trim().split(/\s+/)[0] || name.trim();
 
@@ -30,7 +30,7 @@ const action = "inline-flex min-h-[48px] items-center justify-center gap-1.5 rou
 export function SendLinks({ circleId, personName, people }: { circleId: string; personName: string; people: TellPerson[] }) {
   const [others, setOthers] = useState<Row[]>([]);
   const [links, setLinks] = useState<Record<string, LinkState>>(() =>
-    Object.fromEntries(people.filter((person) => person.token).map((person) => [person.memberId, { url: memberUrl(person.token!), hasPin: false, email: null }])),
+    Object.fromEntries(people.filter((person) => person.token).map((person) => [person.memberId, { url: memberUrl(person.token!), hasPin: false, email: null, phone: person.phone }])),
   );
   // Text, Email or Copy was tapped: the row asks "Sent it?", since opening Messages or copying the link is not sending it.
   const [asking, setAsking] = useState<Record<string, "texted" | "emailed" | "copied">>({});
@@ -69,7 +69,7 @@ export function SendLinks({ circleId, personName, people }: { circleId: string; 
       currentMemberLinkAction({ circleId, memberId: row.memberId })
         .then((result) => {
           const link: LinkState = result.ok
-            ? { url: memberUrl(result.token), hasPin: result.hasPin, email: result.email }
+            ? { url: memberUrl(result.token), hasPin: result.hasPin, email: result.email, phone: result.phone }
             : "oldLink" in result
               ? { old: result.error }
               : { error: result.error };
@@ -98,7 +98,7 @@ export function SendLinks({ circleId, personName, people }: { circleId: string; 
     setMaking(memberId);
     try {
       const result = await memberLinkAction({ circleId, memberId });
-      setLinks((all) => ({ ...all, [memberId]: result.ok ? { url: memberUrl(result.token), hasPin: result.hasPin, email: result.email, replaced: true } : { error: result.error } }));
+      setLinks((all) => ({ ...all, [memberId]: result.ok ? { url: memberUrl(result.token), hasPin: result.hasPin, email: result.email, phone: result.phone, replaced: true } : { error: result.error } }));
     } catch {
       setLinks((all) => ({ ...all, [memberId]: { error: "Their link could not be made. Check your connection and try again." } }));
     } finally {
@@ -140,6 +140,8 @@ export function SendLinks({ circleId, personName, people }: { circleId: string; 
           const msg = ready ? message(row, ready) : null;
           const first = firstName(row.name);
           const what = row.assigned ? assignedSummary(row.assigned) || "Added to the circle" : "Has not seen the changes yet";
+          // People not picked on this visit come without a number; their link brings it.
+          const phone = row.phone ?? ready?.phone ?? null;
           return (
             <li key={row.memberId} className="px-3 py-3">
               <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
@@ -155,7 +157,7 @@ export function SendLinks({ circleId, personName, people }: { circleId: string; 
               </div>
               <p className="text-hint text-ink-500">
                 {what}
-                {row.phone ? ` · ${row.phone}` : ""}
+                {phone ? ` · ${phone}` : ""}
               </p>
 
               {ready && msg ? (
@@ -168,7 +170,7 @@ export function SendLinks({ circleId, personName, people }: { circleId: string; 
                     className="mt-2 w-full truncate rounded-md border border-border-200 bg-surface-50 px-2.5 py-2 text-note text-ink-900 outline-none focus:border-action-500"
                   />
                   <div className="mt-2 grid grid-cols-3 gap-2">
-                    <a href={smsTo(row.phone, msg.body)} onClick={() => opened(row.memberId, "texted")} className={`${action} bg-primary-700 text-white hover:bg-primary-900`}>
+                    <a href={smsTo(phone, msg.body)} onClick={() => opened(row.memberId, "texted")} className={`${action} bg-primary-700 text-white hover:bg-primary-900`}>
                       <MessageSquare className="size-4 shrink-0" aria-hidden="true" /> Text<span className="sr-only"> {first}</span>
                     </a>
                     <a

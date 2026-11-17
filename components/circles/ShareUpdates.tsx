@@ -76,7 +76,7 @@ export function ShareUpdates({ circleId, personName, pending: initial, skip }: {
       }
       setShare({
         memberId: person.memberId,
-        link: { url: memberUrl(result.token), name: result.name, email: result.email, hasPin: result.hasPin, personName, changed: changedWords(person.areas) },
+        link: { url: memberUrl(result.token), name: result.name, email: result.email, phone: result.phone, hasPin: result.hasPin, personName, changed: changedWords(person.areas) },
       });
     } catch {
       setError("The link could not be opened. Try again.");
@@ -91,11 +91,9 @@ export function ShareUpdates({ circleId, personName, pending: initial, skip }: {
         <ShareLink
           link={share.link}
           fresh={false}
+          // Only "Yes, sent" counts. Done without it keeps them on the list, to tell later.
           onSent={() => told([share.memberId])}
-          onDone={() => {
-            told([share.memberId]);
-            setShare(null);
-          }}
+          onDone={() => setShare(null)}
         />
       </div>
     );

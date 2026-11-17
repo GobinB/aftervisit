@@ -30,12 +30,12 @@ export function Section({
 }) {
   return (
     <section aria-labelledby={`${id}-title`} className="animate-fade-in scroll-mt-36 rounded-xl border border-border-200 bg-white px-4 pt-3 pb-1.5">
-      <h2 id={`${id}-title`} className="flex items-center gap-2 text-[17px] font-semibold text-primary-900">
+      <h2 id={`${id}-title`} className="flex items-center gap-2 text-item font-semibold text-primary-900">
         <span className="text-primary-700" aria-hidden="true">
           {icon}
         </span>
         {title}
-        {count !== undefined ? <span className="text-[15px] font-normal text-ink-500">({count})</span> : null}
+        {count !== undefined ? <span className="text-label font-normal text-ink-500">({count})</span> : null}
       </h2>
       <div className="mt-0.5">{children}</div>
       {onAdd ? (

@@ -2,19 +2,26 @@
 
 import { Check, Copy, Mail, MessageSquare } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { mailtoHref, smsHref } from "@/lib/share-message";
+import { mailtoHref, shareMessage, smsTo } from "@/lib/share-message";
 
-export type ShareableLink = { url: string; name: string; email: string | null; pin?: string | null; hasPin?: boolean; personName?: string; changed?: string };
+export type ShareableLink = { url: string; name: string; email: string | null; phone?: string | null; pin?: string | null; hasPin?: boolean; personName?: string; changed?: string };
 
 const choice =
   "flex min-h-16 w-full items-center gap-3 rounded-xl border-2 px-4 text-left text-[17px] font-bold transition-colors focus-visible:outline-offset-2";
 
 /**
  * One screen with three choices for sending a person their link: Email, Text, or Copy.
- * Email and Text open the phone's own apps with a ready-written message holding the link and the PIN.
+ * Email and Text open the phone's own apps with a ready-written message holding the link and the PIN,
+ * to their address or number when the circle has one. Opening an app or copying is not sending, so
+ * with `onSent` the screen then asks "Sent it?", and only "Yes, sent" calls it. Done just closes.
  */
 export function ShareLink({ link, onDone, onSent, fresh = true }: { link: ShareableLink; onDone: () => void; onSent?: () => void; fresh?: boolean }) {
   const [copied, setCopied] = useState(false);
+  const [asking, setAsking] = useState(false);
+  const [sent, setSent] = useState(false);
+  const opened = () => {
+    if (onSent && !sent) setAsking(true);
+  };
   const heading = useRef<HTMLHeadingElement>(null);
   const first = link.name.trim().split(/\s+/)[0] || link.name;
   const details = { name: link.name, personName: link.personName, url: link.url, pin: link.pin, hasPin: link.hasPin, changed: link.changed };
@@ -28,7 +35,7 @@ export function ShareLink({ link, onDone, onSent, fresh = true }: { link: Sharea
     try {
       await navigator.clipboard.writeText(link.url);
       setCopied(true);
-      onSent?.();
+      opened();
     } catch {
       setCopied(false);
     }
@@ -48,14 +55,14 @@ export function ShareLink({ link, onDone, onSent, fresh = true }: { link: Sharea
         Pick one. A message is written for you{link.pin ? ", with the PIN in it" : link.changed ? ", with the same link as before" : ""}.
       </p>
       <div className="mt-4 grid gap-2.5">
-        <a href={mailtoHref(link.email, details)} onClick={() => onSent?.()} className={`${choice} border-primary-700 bg-primary-700 text-white hover:bg-primary-900`}>
+        <a href={mailtoHref(link.email, details)} onClick={opened} className={`${choice} border-primary-700 bg-primary-700 text-white hover:bg-primary-900`}>
           <Mail className="size-6 shrink-0" aria-hidden="true" />
           <span className="flex-1">
             Email
             {link.email ? <span className="block text-[13px] font-medium text-white/80">{link.email}</span> : null}
           </span>
         </a>
-        <a href={smsHref(details)} onClick={() => onSent?.()} className={`${choice} border-primary-700 bg-white text-primary-700 hover:bg-sky-100`}>
+        <a href={smsTo(link.phone, shareMessage(details).body)} onClick={opened} className={`${choice} border-primary-700 bg-white text-primary-700 hover:bg-sky-100`}>
           <MessageSquare className="size-6 shrink-0" aria-hidden="true" />
           <span className="flex-1">Text message</span>
         </a>
@@ -67,6 +74,34 @@ export function ShareLink({ link, onDone, onSent, fresh = true }: { link: Sharea
       {link.pin ? (
         <p className="mt-3 text-[14px] text-ink-500">
           {first}&apos;s PIN is <span className="font-bold tracking-[0.15em] text-ink-900 tabular-nums">{link.pin}</span>
+        </p>
+      ) : null}
+      {asking ? (
+        <div role="group" aria-label={`Sent it to ${first}?`} className="mt-3 flex flex-wrap items-center gap-2 rounded-lg bg-sky-100/70 px-3 py-2">
+          <p className="mr-auto text-note text-primary-900">Sent it to {first}?</p>
+          <button
+            type="button"
+            onClick={() => {
+              setAsking(false);
+              setSent(true);
+              onSent?.();
+            }}
+            className="inline-flex min-h-11 items-center rounded-lg bg-primary-700 px-4 text-label font-semibold text-white hover:bg-primary-900"
+          >
+            Yes, sent
+          </button>
+          <button
+            type="button"
+            onClick={() => setAsking(false)}
+            className="inline-flex min-h-11 items-center rounded-lg px-3 text-label font-semibold text-ink-500 hover:bg-white hover:text-ink-900"
+          >
+            Not yet
+          </button>
+        </div>
+      ) : null}
+      {sent ? (
+        <p role="status" className="mt-3 inline-flex items-center gap-1 text-note font-semibold text-ok-ink">
+          <Check className="size-4" aria-hidden="true" /> Sent
         </p>
       ) : null}
       <p aria-live="polite" className="sr-only">

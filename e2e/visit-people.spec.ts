@@ -279,6 +279,31 @@ test.describe("Update the circle: who helps, and texting them", () => {
     await samRow.getByRole("group", { name: "Sent it to Sam?" }).getByRole("button", { name: "Yes, sent" }).click();
     await expect(samRow.getByRole("status")).toHaveText("Sent");
     await expect.poll(() => toldAt(seeded.samId)).not.toBeNull();
+
+    // On Today, "Let people know what changed" works the same: Done without "Yes, sent" keeps Anna on the list.
+    await page.goto(`/circles/${seeded.circleId}`);
+    await page.evaluate(() =>
+      document.addEventListener("click", (event) => {
+        if ((event.target as Element).closest('a[href^="sms:"], a[href^="mailto:"]')) event.preventDefault();
+      }, true),
+    );
+    const updates = page.getByRole("region", { name: "Let people know what changed" });
+    await updates.getByRole("button", { name: "Tell Anna" }).click();
+    const panel = page.getByRole("region", { name: "Tell Anna what changed" });
+    // Text goes to Anna's number.
+    await expect(panel.getByRole("link", { name: /Text message/ })).toHaveAttribute("href", /^sms:5550100142\?&body=/);
+    await panel.getByRole("link", { name: /Text message/ }).click();
+    await expect(panel.getByRole("group", { name: "Sent it to Anna?" })).toBeVisible();
+    await panel.getByRole("button", { name: "Done" }).click();
+    await expect(updates.getByRole("button", { name: "Tell Anna" })).toBeVisible();
+    expect(await toldAt(anna.id)).toBeNull();
+    await updates.getByRole("button", { name: "Tell Anna" }).click();
+    await panel.getByRole("link", { name: /Email/ }).click();
+    await panel.getByRole("group", { name: "Sent it to Anna?" }).getByRole("button", { name: "Yes, sent" }).click();
+    await expect(panel.getByRole("status")).toHaveText("Sent");
+    await expect.poll(() => toldAt(anna.id)).not.toBeNull();
+    await panel.getByRole("button", { name: "Done" }).click();
+    await expect(page.getByRole("button", { name: "Tell Anna" })).toHaveCount(0);
     await expect(tell.getByText("Ben Typo")).toHaveCount(0);
 
     // Anna's link opens the circle on a phone that has never seen it.

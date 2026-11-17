@@ -312,7 +312,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         <div className="flex items-start gap-3">
           <CheckCircle2 className="mt-1 size-7 shrink-0 text-ok" aria-hidden="true" />
           <div className="min-w-0">
-            <h1 className="font-display text-[26px] leading-tight text-primary-900">{context.personName}&apos;s circle is up to date</h1>
+            <h1 className="font-display text-page text-primary-900">{context.personName}&apos;s circle is up to date</h1>
             <p className="mt-1 text-ink-500">{parts.length ? `${parts.join(" · ")}.` : "Nothing was changed."}</p>
           </div>
         </div>

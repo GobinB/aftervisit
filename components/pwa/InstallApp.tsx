@@ -43,7 +43,7 @@ function ShareSpot({ platform }: { platform: InstallPlatform }) {
   );
 }
 
-const stepNumber = "flex size-7 shrink-0 items-center justify-center rounded-full bg-[#FCEDEA] text-[14px] font-bold text-attn-ink";
+const stepNumber = "flex size-7 shrink-0 items-center justify-center rounded-full bg-[#FCEDEA] text-note font-bold text-attn-ink";
 
 /** This device's platform, read after the page loads (the server cannot know it). */
 export function useInstallPlatform(): InstallPlatform | null {
@@ -67,7 +67,7 @@ export function InstallSteps({ platform, signedIn = true }: { platform: InstallP
     return (
       <div className="flex items-start gap-4">
         <ShareSpot platform={platform} />
-        <ol className="min-w-0 flex-1 space-y-3 text-[15px] text-ink-900">
+        <ol className="min-w-0 flex-1 space-y-3 text-label text-ink-900">
           <li className="flex gap-2.5">
             <span className={stepNumber}>1</span>
             <span>
@@ -91,7 +91,7 @@ export function InstallSteps({ platform, signedIn = true }: { platform: InstallP
     );
   }
   return (
-    <ol className="space-y-3 text-[15px] text-ink-900">
+    <ol className="space-y-3 text-label text-ink-900">
       <li className="flex gap-2.5">
         <span className={stepNumber}>1</span>
         <span>
@@ -123,7 +123,7 @@ export function InstallApp() {
 
   return (
     <section aria-label="Put the app on your Home Screen" className="no-print relative rounded-2xl border border-border-200 bg-white p-4 sm:p-5">
-      <h2 className="font-display text-[20px] leading-tight text-primary-900">Put it on your Home Screen</h2>
+      <h2 className="font-display text-section leading-tight text-primary-900">Put it on your Home Screen</h2>
       {prompt ? (
         <>
           <p className="mt-1 text-[15px] text-ink-500">It opens like an app, one tap away. Nothing to download from an app store.</p>
