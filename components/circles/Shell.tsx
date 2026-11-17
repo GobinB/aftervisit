@@ -52,9 +52,6 @@ export function CircleShell({
             <Link href={homeHref} className="-ml-1 rounded-lg p-1 lg:hidden" aria-label={signedIn ? "All Hands Care, your circles" : "All Hands Care home"}>
               <Logo size={34} />
             </Link>
-            <div className="min-w-0 flex-1 lg:hidden">
-              <CircleSwitcher circles={circles} tone="light" />
-            </div>
             <HeaderTitle fallback={signedIn ? "Your circles" : "Care circle"} personName={personName} tabs={tabs} />
             <nav aria-label="Account" className="flex items-center gap-1 text-[13px]">
               <InstallButton />
@@ -65,6 +62,10 @@ export function CircleShell({
               {signedIn ? <SignOut /> : null}
             </nav>
           </header>
+          {/* Phones: the switcher gets a row of its own under the top bar, so the name fits and the list has room. */}
+          <div className="no-print border-b border-border-200 bg-white px-4 py-2 empty:hidden sm:px-6 lg:hidden">
+            <CircleSwitcher circles={circles} tone="light" />
+          </div>
           <main id="main" data-shell="sidebar" className={`group/shell mx-auto w-full min-w-0 ${width} flex-1 px-4 pt-5 sm:px-6 ${circle ? "pb-28 lg:pb-12" : "pb-12"}`}>
             {children}
           </main>

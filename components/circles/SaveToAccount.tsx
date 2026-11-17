@@ -30,13 +30,18 @@ export function SaveToAccount({ circleId, email }: { circleId: string; email: st
   const [error, setError] = useState<string | null>(null);
   return (
     <div className="mt-5">
+      {email ? (
+        <p className="mb-2 text-[14px] text-ink-500">
+          Signed in as <strong className="break-all text-ink-900">{email}</strong>
+        </p>
+      ) : null}
       {error ? (
         <p role="alert" className="mb-3 rounded-xl bg-attn-bg px-3 py-2 text-attn-ink">
           {error}
         </p>
       ) : null}
       <Button
-        className="w-full whitespace-normal"
+        className="w-full"
         disabled={pending}
         onClick={() =>
           start(async () => {
@@ -46,7 +51,7 @@ export function SaveToAccount({ circleId, email }: { circleId: string; email: st
           })
         }
       >
-        {pending ? "Saving" : email ? `Save to ${email}` : "Save to my Google account"}
+        {pending ? "Saving" : "Save to my Google account"}
       </Button>
     </div>
   );

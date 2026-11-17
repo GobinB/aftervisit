@@ -163,7 +163,8 @@ test.describe("signing in as a person in the circle", () => {
     // Google sends her back here signed in (a password session stands in for Google).
     await signIn(own.context, ivy);
     await own.page.reload();
-    await own.page.getByRole("button", { name: `Save to ${ivy.email}` }).click();
+    await expect(own.page.getByText(`Signed in as ${ivy.email}`)).toBeVisible();
+    await own.page.getByRole("button", { name: "Save to my Google account" }).click();
     await expect(own.page.getByRole("heading", { name: "Saved to your account" })).toBeVisible();
     await expect(own.page.getByText("Your link now opens only when you are signed in with this account.")).toBeVisible();
 
@@ -187,7 +188,7 @@ test.describe("signing in as a person in the circle", () => {
     // The second circle: already signed in, so it is one tap.
     await openLink(own.page, ivyAtWalter.token, walter);
     await own.page.goto(`/circles/${walter}/account`);
-    await own.page.getByRole("button", { name: `Save to ${ivy.email}` }).click();
+    await own.page.getByRole("button", { name: "Save to my Google account" }).click();
     await expect(own.page.getByRole("heading", { name: "Saved to your account" })).toBeVisible();
 
     // One home for both. She runs nothing, so there is no start tile as if she did, but she can start her own.
@@ -248,7 +249,7 @@ test.describe("signing in as a person in the circle", () => {
     // She saves it again from that phone, then the caregiver removes her: neither her link nor her account opens it.
     await signIn(linkOnly.context, ivy);
     await linkOnly.page.goto(`/circles/${teodora}/account`);
-    await linkOnly.page.getByRole("button", { name: `Save to ${ivy.email}` }).click();
+    await linkOnly.page.getByRole("button", { name: "Save to my Google account" }).click();
     await expect(linkOnly.page.getByRole("heading", { name: "Saved to your account" })).toBeVisible();
     await caregiver.page.reload();
     await caregiver.page.getByRole("button", { name: /Ivy Chen/ }).click();
