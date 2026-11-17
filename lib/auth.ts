@@ -9,6 +9,7 @@ import { serviceClient, userClient } from "@/store/db";
 import { createSupabaseServerClient } from "@/store/supabase-server";
 import { caregiverHome, LAST_CIRCLE_COOKIE } from "@/lib/home-path";
 import { linkExpiry } from "@/lib/link-life";
+import { secureCookies } from "@/lib/session-cookie";
 
 /** One caregiver signs in per circle: its owner. Everyone else uses a personal link. */
 export type CaregiverRole = "owner";
@@ -44,7 +45,7 @@ function cookieOptions() {
   return {
     httpOnly: true,
     sameSite: "lax" as const,
-    secure: process.env.NODE_ENV === "production",
+    secure: secureCookies(),
     path: "/",
     maxAge: COOKIE_MAX_AGE,
   };

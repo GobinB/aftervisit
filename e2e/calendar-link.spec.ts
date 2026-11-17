@@ -81,7 +81,7 @@ async function signIn(context: BrowserContext, request: APIRequestContext, s: Se
   const name = `sb-${new URL(API).hostname.split(".")[0]}-auth-token`;
   const value = `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`;
   const pieces = value.length <= 3180 ? [[name, value]] : (value.match(/.{1,3180}/g) ?? []).map((part, i) => [`${name}.${i}`, part]);
-  await context.addCookies(pieces.map(([n, v]) => ({ name: n, value: v, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" as const })));
+  await context.addCookies(pieces.map(([n, v]) => ({ name: n, value: v, url: test.info().project.use.baseURL, httpOnly: true, sameSite: "Lax" as const })));
   const own = { apikey: ANON, authorization: `Bearer ${session.access_token}`, "content-type": "application/json" };
   const row = await request.post(`${API}/rest/v1/circle_caregivers`, { headers: own, data: { circle_id: s.circleId, user_id: s.userId, role: "owner" } });
   expect(row.ok(), await row.text()).toBe(true);

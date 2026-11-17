@@ -16,10 +16,18 @@ import { keepPages } from "@/lib/page-image";
 import { MAX_PAGE_BYTES } from "@/lib/schema/documents";
 import { visitLines } from "@/lib/schema/visits";
 import { getOriginalPages } from "@/lib/store";
-import { WhoChips } from "@/components/todos/TodoForm";
 import { ShareUpdates } from "@/components/circles/ShareUpdates";
+import { AddSomeone, HelperChips, isNewHelper, type Helper } from "@/components/handoff/WhoHelps";
+import { TellHelpers, type TellPerson } from "@/components/handoff/TellHelpers";
+import { addMemberAction } from "@/app/actions/members";
+import { HELPER_ROLE_LABELS, type HelperRole } from "@/lib/schema/circles";
+import { SEE_PRESETS } from "@/lib/share-message";
+
 import { ensureCircleKey } from "@/components/circles/circle-key";
 import { generateFileKey, sealPage, wrapFileKey } from "@/lib/crypto";
+
+/** What someone added on this page sees: the calendar and reminders, like the People page's preset. */
+const CALENDAR_ONLY = SEE_PRESETS.find((preset) => preset.key === "calendar")!.hidden;
 
 type Done = { added: number; changed: number; stopped: number; todos: number; events: number; failed: number; visitId: string | null; notes: number };
 
@@ -127,6 +135,13 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
   ].filter((list) => list.lines.length);
   const [dates, setDates] = useState<Record<string, { date: string; time: string }>>({});
   const [going, setGoing] = useState<Record<string, string>>({});
+  // People added on this page. They join the circle when it is updated, not before.
+  const [added, setAdded] = useState<Helper[]>([]);
+  const [addingFor, setAddingFor] = useState<string | null>(null);
+  // Those already saved, so pressing the button again after a problem never adds anyone twice.
+  const [created, setCreated] = useState<Record<string, { memberId: string; token: string }>>({});
+  const [tell, setTell] = useState<TellPerson[]>([]);
+  const people: Helper[] = useMemo(() => [...context.people, ...added], [context.people, added]);
   const when = (appt: Appointment) => dates[appt.id] ?? { date: appt.date, time: appt.time };
   const actionable = (plan: MedPlan) => plan.action === "add" || plan.action === "update" || plan.action === "stop" || plan.action === "missing";
   const on = (key: string, fallback: boolean) => include[key] ?? fallback;
@@ -142,23 +157,50 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         if (plan.action === "update") return { action: "update" as const, medId: plan.medId, detail: plan.detail, dose: plan.to };
         return { action: "stop" as const, medId: (plan as Extract<MedPlan, { action: "stop" }>).medId };
       });
-    const todos = tasks
-      .filter((task) => on(task.id, true))
-      .map((task) => ({
+    const todoTasks = tasks.filter((task) => on(task.id, true));
+    const eventAppts = appointments.filter((appt) => on(appt.id, true) && when(appt).date);
+    start(async () => {
+      // Someone added on this page joins the circle first, so the appointments and reminders can be theirs.
+      // Only those still picked for something: a name added by mistake and then unpicked is never saved.
+      // They see the calendar and reminders, which is what they were added for; People can open up more.
+      const made = { ...created };
+      const picked = added.filter((person) => eventAppts.some((appt) => going[appt.id] === person.value) || todoTasks.some((task) => assignees[task.id] === person.value));
+      for (const person of picked) {
+        if (made[person.value]) continue;
+        const result = await addMemberAction({
+          circleId,
+          name: person.name,
+          role: person.role ?? "family",
+          ...(person.phone ? { phone: person.phone } : {}),
+          visibility: { hidden: [...CALENDAR_ONLY] },
+        }).catch(() => ({
+          ok: false as const,
+          error: "Check your connection and try again.",
+        }));
+        if (!result.ok) {
+          setCreated(made);
+          const saved = added.filter((other) => made[other.value]).map((other) => other.name);
+          setError(
+            `${person.name} could not be added. ${result.error} Nothing from the visit is saved yet${saved.length ? `; ${saved.join(" and ")} ${saved.length === 1 ? "is" : "are"} in the circle already and will not be added twice` : ""}.`,
+          );
+          return;
+        }
+        made[person.value] = { memberId: result.memberId, token: result.token };
+      }
+      setCreated(made);
+      const who = (value: string | undefined) => (value && isNewHelper(value) ? (made[value]?.memberId ?? "none") : (value ?? "none"));
+      const todos = todoTasks.map((task) => ({
         title: task.title.trim().slice(0, 200),
         ...(task.dueDate ? { dueDate: task.dueDate } : {}),
         ...(task.dueText ? { note: `Due ${task.dueText}` } : {}),
-        assignee: assignees[task.id] ?? "none",
+        assignee: who(assignees[task.id]),
       }));
-    const events = appointments
-      .filter((appt) => on(appt.id, true) && when(appt).date)
-      .map((appt) => ({
+      const events = eventAppts.map((appt) => ({
         title: appt.title,
         date: when(appt).date,
         ...(when(appt).time ? { startTime: when(appt).time } : {}),
-        going: going[appt.id] ?? "none",
+        going: who(going[appt.id]),
       }));
-    start(async () => {
       const result = await applyVisitAction({
         circleId,
         ...(draft.visit.date ? { visitDate: draft.visit.date } : {}),
@@ -167,15 +209,40 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         todos,
         events,
         notes,
-      });
+      }).catch(() => ({ ok: false as const, error: "The circle could not be updated. Check your connection and try again." }));
       if (!result.ok) {
-        setError(result.error);
+        setError(Object.keys(made).length ? `${result.error} The people you added are in the circle already; pressing the button again will not add them twice.` : result.error);
         return;
       }
+      // Everyone put down for something, and everyone added here, gets a row to text them their part.
+      setTell(
+        people
+          .map((person): TellPerson | null => {
+            const memberId = isNewHelper(person.value) ? made[person.value]?.memberId : person.value;
+            if (!memberId) return null;
+            const assigned = {
+              appointments: eventAppts.filter((appt) => going[appt.id] === person.value).map((appt) => ({ date: when(appt).date, time: when(appt).time || null })),
+              reminders: todoTasks.filter((task) => assignees[task.id] === person.value).length,
+            };
+            const isNew = isNewHelper(person.value);
+            if (!isNew && !assigned.appointments.length && !assigned.reminders) return null;
+            return { memberId, name: person.name, phone: person.phone, isNew, ...(isNew ? { token: made[person.value].token } : {}), assigned };
+          })
+          .filter((person): person is TellPerson => person !== null),
+      );
       setDone(result);
       if (keep && pages.length && canKeep) await keepTheSummary(result.visitId);
     });
   };
+
+  /** Adds someone typed in on this page, picked for the item the form was opened from. */
+  function addPerson(itemId: string, kind: "appointment" | "reminder", person: { name: string; role: HelperRole; phone: string | null }) {
+    const value = `new:${added.length + 1}`;
+    setAdded([...added, { value, label: `${person.name} (${HELPER_ROLE_LABELS[person.role]})`, name: person.name, phone: person.phone, role: person.role, isNew: true }]);
+    if (kind === "appointment") setGoing({ ...going, [itemId]: value });
+    else setAssignees({ ...assignees, [itemId]: value });
+    setAddingFor(null);
+  }
 
   /**
    * Saves the photos (or PDF) after the circle is updated, page by page with a count on screen.
@@ -256,8 +323,13 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
               {done.failed} change{done.failed === 1 ? "" : "s"} could not be saved. Check the Medications and Reminders pages.
             </p>
           ) : null}
+          {tell.length ? (
+            <div className="mt-5 border-t border-border-200 pt-5">
+              <TellHelpers circleId={circleId} personName={context.personName} people={tell} />
+            </div>
+          ) : null}
           <div className="mt-5 border-t border-border-200 pt-5">
-            <ShareUpdates circleId={circleId} personName={context.personName} />
+            <ShareUpdates circleId={circleId} personName={context.personName} skip={tell.map((person) => person.memberId)} />
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
             <Link href={`/circles/${circleId}`} className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary-700 px-4 text-[14px] font-semibold text-white hover:bg-primary-900">
@@ -283,7 +355,10 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
       <BackLink href="/new/review" label="Review" />
       <StepHeader current="Share" circle />
       <h1 className="font-display text-[28px] leading-tight text-primary-900">Update {context.personName}&apos;s circle</h1>
-      <p className="mt-1 text-[14px] text-ink-500">Untick anything you don&apos;t want. Nothing is saved until you press the button.</p>
+      <p className="mt-1 text-note text-ink-500">
+        Untick anything you don&apos;t want, and pick who helps with each appointment and reminder (or leave it for later). Nothing is saved until you press the button; then you can text each
+        person their part.
+      </p>
 
       <section aria-labelledby="meds-title" className="mt-6">
         <h2 id="meds-title" className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-500 uppercase">
@@ -371,17 +446,16 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
                         </label>
                       </div>
                       <div>
-                        <p className="text-[13px] font-medium text-ink-500">Who&apos;s going?</p>
-                        <WhoChips
+                        <p className="text-hint font-medium text-ink-500">Who&apos;s going with {context.personName}?</p>
+                        <HelperChips
+                          label={`Who's going to ${appt.title}`}
                           value={going[appt.id] ?? "none"}
                           onPick={(value) => setGoing({ ...going, [appt.id]: value })}
-                          people={context.people}
-                          options={[
-                            { value: "none", label: "Decide later" },
-                            { value: "volunteer", label: "Needs someone" },
-                            { value: "caregiver", label: "Me" },
-                          ]}
+                          people={people}
+                          adding={addingFor === appt.id}
+                          onAdd={() => setAddingFor(addingFor === appt.id ? null : appt.id)}
                         />
+                        {addingFor === appt.id ? <AddSomeone onAdd={(person) => addPerson(appt.id, "appointment", person)} onCancel={() => setAddingFor(null)} /> : null}
                       </div>
                     </div>
                   ) : null}
@@ -412,9 +486,20 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
                     {task.title}
                     {task.dueDate || task.dueText ? <span className="block text-[12px] text-ink-500">Due {task.dueDate ?? task.dueText}</span> : null}
                   </span>
-                  <div className="w-full pl-7">
-                    <WhoChips value={assignees[task.id] ?? "none"} onPick={(value) => setAssignees({ ...assignees, [task.id]: value })} people={context.people} />
-                  </div>
+                  {on(task.id, true) ? (
+                    <div className="w-full pl-7">
+                      <p className="text-hint font-medium text-ink-500">Who does it?</p>
+                      <HelperChips
+                        label={`Who does ${task.title}`}
+                        value={assignees[task.id] ?? "none"}
+                        onPick={(value) => setAssignees({ ...assignees, [task.id]: value })}
+                        people={people}
+                        adding={addingFor === task.id}
+                        onAdd={() => setAddingFor(addingFor === task.id ? null : task.id)}
+                      />
+                      {addingFor === task.id ? <AddSomeone onAdd={(person) => addPerson(task.id, "reminder", person)} onCancel={() => setAddingFor(null)} /> : null}
+                    </div>
+                  ) : null}
                 </li>
               ))}
             </ul>

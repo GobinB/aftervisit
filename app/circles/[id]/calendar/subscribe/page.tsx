@@ -4,6 +4,7 @@ import { CalendarLink } from "@/components/calendar/CalendarLink";
 import { TimeZoneNote } from "@/components/calendar/TimeZoneNote";
 import { PageHead } from "@/components/circles/PageHead";
 import { getActor } from "@/lib/auth";
+import { can } from "@/lib/permissions";
 import { getFeed } from "@/services/calendar-feed";
 import { getCircle } from "@/services/circles";
 
@@ -26,7 +27,7 @@ export default async function SubscribePage({ params }: { params: Promise<{ id: 
         help="Turn on the link once, then tap your calendar app. Appointments, reminders and medicine times appear there and keep up to date by themselves."
       />
       <CalendarLink circleId={id} personName={content.person_name} initialUrl={feed?.url ?? null} initialIncludeMedicines={feed?.includeMedicines ?? true} />
-      <TimeZoneNote circleId={id} timeZone={content.time_zone ?? null} personName={content.person_name} />
+      <TimeZoneNote circleId={id} timeZone={content.time_zone ?? null} personName={content.person_name} canEdit={actor.kind === "caregiver" && can(actor, "summary:edit", { circleId: id })} />
     </>
   );
 }

@@ -34,7 +34,96 @@ export function mailtoHref(email: string | null | undefined, details: ShareDetai
 
 /** "sms:?&body=" opens the Messages app with the text filled in on both iPhone and Android. */
 export function smsHref(details: ShareDetails): string {
-  return `sms:?&body=${encodeURIComponent(shareMessage(details).body)}`;
+  return smsTo(null, shareMessage(details).body);
+}
+
+/**
+ * A text with the body filled in, to a number when there is one ("sms:5550100142?&body=" works on
+ * iPhone and Android). Without a number the caregiver picks who it goes to.
+ */
+export function smsTo(phone: string | null | undefined, body: string): string {
+  const digits = (phone ?? "").replace(/\D/g, "");
+  const to = digits.length >= 7 ? `${(phone ?? "").trim().startsWith("+") ? "+" : ""}${digits}` : "";
+  return `sms:${to}?&body=${encodeURIComponent(body)}`;
+}
+
+const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+/** "Tuesday, November 24 at 10:30 AM" for "2026-11-24" and "10:30"; the day alone when there is no time. */
+export function whenText(date: string, time?: string | null): string {
+  const d = new Date(`${date}T12:00:00Z`);
+  if (Number.isNaN(d.getTime())) return "";
+  const day = `${DAYS[d.getUTCDay()]}, ${MONTH_NAMES[d.getUTCMonth()]} ${d.getUTCDate()}`;
+  const match = /^(\d{2}):(\d{2})/.exec(time ?? "");
+  if (!match) return day;
+  const hour24 = Number(match[1]);
+  const hour = hour24 % 12 === 0 ? 12 : hour24 % 12;
+  return `${day} at ${hour}:${match[2]} ${hour24 < 12 ? "AM" : "PM"}`;
+}
+
+/**
+ * What one person was put down for when a visit updated the circle: appointments they are going to
+ * (by date and time) and how many reminders are theirs.
+ */
+export type Assigned = { appointments: { date: string; time?: string | null }[]; reminders: number };
+
+/** "Going to 1 appointment · 2 reminders", for the caregiver's own screen. */
+export function assignedSummary({ appointments, reminders }: Assigned): string {
+  const parts = [
+    appointments.length ? `Going to ${appointments.length} appointment${appointments.length === 1 ? "" : "s"}` : null,
+    reminders ? `${reminders} reminder${reminders === 1 ? "" : "s"}` : null,
+  ].filter(Boolean);
+  return parts.join(" · ");
+}
+
+/**
+ * The text a person gets after a visit puts them down for something. It says when, never what the
+ * appointment is for or what a reminder says: a text message is not private, so the health details
+ * stay behind their link. A person added just now gets a welcome; someone already in the circle is
+ * told it is the same link as before.
+ */
+export function assignedMessage({
+  name,
+  personName,
+  url,
+  isNew,
+  hasPin,
+  newLink,
+  assigned,
+}: {
+  name: string;
+  personName: string;
+  url: string;
+  isNew: boolean;
+  hasPin?: boolean;
+  /** Someone already in the circle whose older link was just replaced, so the one they had stopped working. */
+  newLink?: boolean;
+  assigned: Assigned;
+}): string {
+  const first = name.trim().split(/\s+/)[0] || name.trim();
+  const circle = `${personName}'s care circle`;
+  const items = [
+    ...assigned.appointments.map((appt) => `- Going with ${personName} to an appointment on ${whenText(appt.date, appt.time)}`),
+    ...(assigned.reminders ? [`- ${assigned.reminders} reminder${assigned.reminders === 1 ? "" : "s"} to take care of`] : []),
+  ];
+  const lines = [`Hi ${first},`, ""];
+  if (items.length) {
+    lines.push(isNew ? `I added you to ${circle} on All Hands Care and put you down for:` : `I updated ${circle} on All Hands Care and put you down for:`, ...items, "");
+    lines.push(
+      isNew
+        ? "The details are on your own link. No account or password needed:"
+        : newLink
+          ? "The details are on your new link. The one you had before no longer works:"
+          : "The details are on your link (the same link as before):",
+    );
+  } else {
+    lines.push(`I added you to ${circle} on All Hands Care. This is your own link. No account or password needed:`);
+  }
+  lines.push(url);
+  if (hasPin) lines.push("", "Use the same PIN as before.");
+  if (isNew) lines.push("", "Tip: open it on your phone and add it to your Home Screen to find it again.");
+  return lines.join("\n");
 }
 
 /** Simple choices for what a person sees, instead of a row of bare checkboxes. */

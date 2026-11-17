@@ -72,13 +72,22 @@ export async function newLinkAction(input: unknown) {
   return { ok: true as const, memberId: result.memberId, name: result.name, email: result.email, token: result.token, hasPin: result.hasPin };
 }
 
-/** A person's current link, to share again. It is the same link they already have. */
+/** A person's current link, to share again: the same link they already have, unless theirs is an older one, which is replaced (see memberLink). */
 export async function memberLinkAction(input: unknown) {
   const parsed = MemberChangeSchema.safeParse(input);
   if (!parsed.success) return { ok: false as const, error: "Check the form and try again." };
   const actor = await getActor(parsed.data.circleId);
   if (!actor) return { ok: false as const, error: "Sign in to continue." };
   return memberLink(actor, parsed.data.circleId, parsed.data.memberId);
+}
+
+/** A person's own link if it can be shared as it is. Never replaces an older link (see memberLink). */
+export async function currentMemberLinkAction(input: unknown) {
+  const parsed = MemberChangeSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Check the form and try again." };
+  const actor = await getActor(parsed.data.circleId);
+  if (!actor) return { ok: false as const, error: "Sign in to continue." };
+  return memberLink(actor, parsed.data.circleId, parsed.data.memberId, { replace: false });
 }
 
 const MarkToldSchema = z.object({ circleId: z.string().uuid(), memberIds: z.array(z.string().uuid()).max(200) }).strict();

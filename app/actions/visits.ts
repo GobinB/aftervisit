@@ -20,7 +20,8 @@ export type VisitContext =
       ok: true;
       personName: string;
       medications: Medication[];
-      people: { value: string; label: string }[];
+      /** The circle's people: a member id, "Sam Rivera (Family)", and their name and number for texting them their link. */
+      people: { value: string; label: string; name: string; phone: string | null }[];
       /** Where the circle's key for files stands. Photos are encrypted with that key on this device before they are kept. */
       key: CircleKeyState | null;
     }
@@ -40,7 +41,7 @@ export async function visitContextAction(circleId: unknown): Promise<VisitContex
   const medications = (await listMedications(actor, parsed.data)) ?? [];
   const listed = await listPeople(actor, parsed.data);
   const active = (listed.ok ? listed.people : []).filter((person) => person.kind === "member" && !person.revokedAt);
-  const people = active.map((person) => ({ value: person.id, label: `${person.name} (${person.roleLabel})` }));
+  const people = active.map((person) => ({ value: person.id, label: `${person.name} (${person.roleLabel})`, name: person.name, phone: person.phone ?? null }));
   const key = await getCircleKeyState(actor, parsed.data);
   return { ok: true, personName: content.person_name, medications, people, key };
 }

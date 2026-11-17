@@ -83,32 +83,63 @@ jobs:
           SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-dummy-google-client
           SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-dummy-google-secret
 
-  # Playwright (e2e/) is not run. The suite creates handoffs through
-  # /api/handoffs, which needs a real Supabase project. Do not add secrets
-  # to this file. A later pull request can uncomment the job below and pass
-  # SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, IP_HASH_SALT, and CRON_SECRET
-  # from repository secrets. Playwright 1.64 ships a newer WebKit, so install
-  # browsers with deps instead of reusing an older browser cache:
-  #   npx playwright install --with-deps
-  # (desktop Chrome and Pixel 7 use Chromium; iPhone 14 uses WebKit.)
-  #
-  # e2e:
-  #   name: playwright
-  #   runs-on: ubuntu-latest
-  #   timeout-minutes: 30
-  #   steps:
-  #     - name: Checkout
-  #       uses: actions/checkout@v7
-  #       with:
-  #         persist-credentials: false
-  #     - name: Setup Node
-  #       uses: actions/setup-node@v7
-  #       with:
-  #         node-version: 22
-  #         cache: npm
-  #     - name: Install
-  #       run: npm ci
-  #     - name: Install Playwright browsers
-  #       run: npx playwright install --with-deps
-  #     - name: End-to-end tests
-  #       run: npm run test:e2e
+  # Playwright (e2e/) on a throwaway local Supabase stack, on every pull request. No secrets: the
+  # stack's keys come from `supabase status`, the app's own secrets are random for this run only,
+  # and the fictional caregivers sign in with a password that only this runner's database allows.
+  # Desktop Chrome and Pixel 7 use Chromium; iPhone 14 uses WebKit.
+  e2e:
+    name: playwright
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      NEXT_TELEMETRY_DISABLED: "1"
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_CLIENT_ID: ci-dummy-google-client
+      SUPABASE_AUTH_EXTERNAL_GOOGLE_SECRET: ci-dummy-google-secret
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+
+      - name: Setup Node
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Setup Supabase CLI
+        uses: supabase/setup-cli@v3
+        with:
+          version: 2.72.7
+
+      # Password sign-in on this runner's database only (the committed config keeps it off), so the
+      # tests can sign in a fictional caregiver without Google.
+      - name: Start Supabase
+        run: |
+          sed -i '/^\[auth.email\]/,/^\[/ s/^enable_signup = false/enable_signup = true/' supabase/config.toml
+          supabase start -x studio,imgproxy,vector,logflare,supavisor,edge-runtime,inbucket,realtime
+
+      - name: Test settings
+        run: |
+          eval "$(supabase status -o env | grep -E '^(API_URL|ANON_KEY|SERVICE_ROLE_KEY)=')"
+          {
+            echo "SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_URL=$API_URL"
+            echo "NEXT_PUBLIC_SUPABASE_ANON_KEY=$ANON_KEY"
+            echo "SUPABASE_SERVICE_ROLE_KEY=$SERVICE_ROLE_KEY"
+            echo "HELPER_SESSION_SECRET=$(openssl rand -hex 32)"
+            echo "CIRCLE_KEY_SECRET=$(openssl rand -hex 32)"
+            echo "CRON_SECRET=$(openssl rand -hex 16)"
+            echo "IP_HASH_SALT=$(openssl rand -hex 16)"
+            echo "NEXT_PUBLIC_APP_URL=http://localhost:3005"
+          } > .env.local
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: End-to-end tests
+        run: npm run test:e2e

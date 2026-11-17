@@ -88,7 +88,7 @@ async function seed(): Promise<Seeded | null> {
 async function signInAsCaregiver(page: Page, session: Record<string, unknown>) {
   const name = `sb-${new URL(URL_).hostname.split(".")[0]}-auth-token`;
   const value = `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`;
-  await page.context().addCookies([{ name, value, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }]);
+  await page.context().addCookies([{ name, value, url: test.info().project.use.baseURL, httpOnly: true, sameSite: "Lax" }]);
 }
 
 async function openLink(page: Page, token: string, circleId: string) {
@@ -260,7 +260,7 @@ test.describe("Emergency page and phone numbers, through people's links", () => 
     await page.goto(`/circles/${seeded.circleId}/settings`);
     const zone = page.getByLabel("Teodora Ruiz lives in");
     await expect(zone).toBeVisible();
-    // A son in Chicago looking after his mother there: he picks Central Time, and it is kept.
+    // A caregiver whose mother lives in Chicago picks Central Time, and it is kept.
     await zone.selectOption("America/Chicago");
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await expect(page.getByText("Saved: Central Time.")).toBeVisible();
@@ -275,5 +275,22 @@ test.describe("Emergency page and phone numbers, through people's links", () => 
     test.skip(info.project.name !== "desktop-chrome", "access check; run once");
     await page.goto(`/circles/${seeded.circleId}/emergency`);
     await page.waitForURL(/\/login\?next=/);
+  });
+
+  test("signed out, Change allergies comes back to just allergies after signing in, with Back to Emergency", async ({ page }) => {
+    const edit = `/circles/${seeded.circleId}/summary/edit?part=allergies&from=emergency`;
+    await page.goto(edit);
+    await page.waitForURL(/\/login\?next=/);
+    // The sign-in form carries the whole address, part and all, through Google and back.
+    const next = await page.locator('input[name="next"]').inputValue();
+    expect(next).toBe(edit);
+    // Google itself cannot run here: sign in with the session cookie and open where Google would return.
+    await signInAsCaregiver(page, seeded.ownerSession);
+    await page.goto(next);
+    await expect(page.getByRole("heading", { level: 1, name: "Allergies" })).toBeVisible();
+    const back = page.getByRole("main").getByRole("link", { name: "Emergency", exact: true });
+    await expect(back).toHaveAttribute("href", `/circles/${seeded.circleId}/emergency`);
+    await back.click();
+    await page.waitForURL(`**/circles/${seeded.circleId}/emergency`);
   });
 });

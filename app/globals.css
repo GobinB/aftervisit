@@ -34,6 +34,12 @@
   --text-section: 1.4rem;
   --text-section--line-height: 1.15;
   --text-ui: 0.95rem;
+  /* The app's working sizes, in px so they hold steady while the root size changes (15px phone, 14px wide). */
+  --text-name: 16px; /* a person's name, a row title */
+  --text-label: 15px; /* field labels, choice chips, buttons */
+  --text-note: 14px; /* alerts and short explanations */
+  --text-hint: 13px; /* helper text and one-line summaries under a name */
+  --text-badge: 12px; /* small pills such as "New" */
   --text-item: 1.15rem; /* titles of list items: modules, steps, promises */
   --text-item--line-height: 1.5;
   --text-tag: 0.75rem; /* small uppercase status labels */

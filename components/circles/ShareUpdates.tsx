@@ -25,9 +25,10 @@ function names(people: readonly Pending[]): string {
  * everyone is told, or opens their link, or the caregiver skips it.
  *
  * `pending` comes from the server (the circle's pages). Without it, the list is fetched here (the
- * end of a visit, which is not inside the circle's pages).
+ * end of a visit, which is not inside the circle's pages). `skip` leaves out people told some other way
+ * on the same screen (at the end of a visit, the people it put down for something).
  */
-export function ShareUpdates({ circleId, personName, pending: initial }: { circleId: string; personName: string; pending?: Pending[] }) {
+export function ShareUpdates({ circleId, personName, pending: initial, skip }: { circleId: string; personName: string; pending?: Pending[]; skip?: readonly string[] }) {
   const router = useRouter();
   const [pending, setPending] = useState<Pending[] | null>(initial ?? null);
   const [share, setShare] = useState<{ link: ShareableLink; memberId: string } | null>(null);
@@ -52,8 +53,8 @@ export function ShareUpdates({ circleId, personName, pending: initial }: { circl
     };
   }, [circleId, initial]);
 
-  if (!pending?.length && !share) return null;
-  const list = pending ?? [];
+  const list = (pending ?? []).filter((person) => !skip?.includes(person.memberId));
+  if (!list.length && !share) return null;
   const areas = [...new Set(list.flatMap((person) => person.areas))];
 
   function told(memberIds: string[]) {
