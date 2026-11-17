@@ -1,10 +1,10 @@
 import type { HandoffDraft, MedicationChange, Task } from "./schema";
 
 /**
- * The rules of the review screen, in one place. Each section has its own check mark, ticked once the
- * caregiver has compared it with the original. Nothing is saved or shared until every section that
- * needs one is ticked, and a section cannot be ticked while an item in it the reader was unsure of is
- * still waiting to be looked at.
+ * The rules of the review screen, in one place. The caregiver compares the draft with the original
+ * and presses one button, "Looks right", which marks every section checked (confirmAll). Nothing is
+ * saved or shared until then, and the button cannot be pressed while an item the reader was unsure
+ * of is still waiting to be looked at.
  */
 export const REVIEW_SECTIONS = ["medications", "visit", "tasks", "watchFor", "otherNotes", "questions"] as const;
 export type ReviewSection = (typeof REVIEW_SECTIONS)[number];
@@ -80,4 +80,14 @@ export function reviewState(draft: ReviewDraft, reviewed: Reviewed): ReviewState
 /** True when the draft may go on to be saved or shared. Checked again on the pages that save. */
 export function reviewComplete(draft: ReviewDraft | null, reviewed: Reviewed): boolean {
   return !!draft && reviewState(draft, reviewed).complete;
+}
+
+/** Every section marked checked: what pressing "Looks right" on Review records. */
+export function confirmAll(): Reviewed {
+  return Object.fromEntries(REVIEW_SECTIONS.map((section) => [section, true])) as Reviewed;
+}
+
+/** The ids of the items still waiting for a look, medicines first, so the button can take the caregiver to the next one. */
+export function itemsWaiting(draft: Pick<HandoffDraft, "medications" | "tasks">): string[] {
+  return [...draft.medications.filter(medNeedsLook).map((med) => med.id), ...draft.tasks.filter(taskNeedsLook).map((task) => task.id)];
 }

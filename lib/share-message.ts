@@ -29,6 +29,11 @@ export function shareMessage({ name, personName, url, pin, hasPin, changed }: Sh
 
 export function mailtoHref(email: string | null | undefined, details: ShareDetails): string {
   const { subject, body } = shareMessage(details);
+  return mailTo(email, subject, body);
+}
+
+/** An email with the subject and message filled in, to the address when there is one. Without it the caregiver types who it goes to. */
+export function mailTo(email: string | null | undefined, subject: string, body: string): string {
   return `mailto:${email ? encodeURIComponent(email) : ""}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 

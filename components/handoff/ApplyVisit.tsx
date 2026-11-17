@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, CheckCircle2, Eye, HelpCircle, Lightbulb, Loader2 } from "lucide-react";
+import { ArrowRight, CheckCircle2, Loader2 } from "lucide-react";
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { applyVisitAction, type VisitContext } from "@/app/actions/visits";
@@ -16,9 +16,8 @@ import { keepPages } from "@/lib/page-image";
 import { MAX_PAGE_BYTES } from "@/lib/schema/documents";
 import { visitLines } from "@/lib/schema/visits";
 import { getOriginalPages } from "@/lib/store";
-import { ShareUpdates } from "@/components/circles/ShareUpdates";
 import { AddSomeone, HelperChips, isNewHelper, type Helper } from "@/components/handoff/WhoHelps";
-import { TellHelpers, type TellPerson } from "@/components/handoff/TellHelpers";
+import { SendLinks, type TellPerson } from "@/components/handoff/SendLinks";
 import { addMemberAction } from "@/app/actions/members";
 import { HELPER_ROLE_LABELS, type HelperRole } from "@/lib/schema/circles";
 import { SEE_PRESETS } from "@/lib/share-message";
@@ -35,15 +34,14 @@ type Appointment = { id: string; title: string; date: string; time: string; loca
 
 
 function MedLine({ plan }: { plan: MedPlan }) {
+  const sub = (text: string) => <span className="block text-hint text-ink-500">{text}</span>;
   switch (plan.action) {
     case "add":
       return (
         <>
           <span className="font-semibold">Add</span> {plan.name}
           {plan.dose ? ` ${plan.dose}` : ""}
-          <span className="block text-[12px] text-ink-500">
-            {plan.detail} · starts as “{MED_SCHEDULE_LABELS[plan.schedule]}”, check the schedule after
-          </span>
+          {sub([plan.detail, MED_SCHEDULE_LABELS[plan.schedule]].filter(Boolean).join(" · "))}
         </>
       );
     case "missing":
@@ -51,7 +49,7 @@ function MedLine({ plan }: { plan: MedPlan }) {
         <>
           <span className="font-semibold">Add</span> {plan.name}
           {plan.dose ? ` ${plan.dose}` : ""}
-          <span className="block text-[12px] text-ink-500">The visit says to keep taking it, and it is not on the list yet.</span>
+          {sub("Keep taking it; not on the list yet.")}
         </>
       );
     case "update":
@@ -59,28 +57,28 @@ function MedLine({ plan }: { plan: MedPlan }) {
         <>
           <span className="font-semibold">Change</span> {plan.name}
           {plan.from !== plan.to && plan.to ? ` · ${plan.from ?? "no strength"} → ${plan.to}` : ""}
-          <span className="block text-[12px] text-ink-500">{plan.detail}</span>
+          {plan.detail ? sub(plan.detail) : null}
         </>
       );
     case "stop":
       return (
         <>
           <span className="font-semibold">Stop</span> {plan.current}
-          <span className="block text-[12px] text-ink-500">It stays on the record, dated the day of the visit.</span>
+          {sub("Kept on the record as stopped.")}
         </>
       );
     case "keep":
       return (
         <>
           <span className="font-semibold">No change</span> {plan.name}
-          <span className="block text-[12px] text-ink-500">Already on the list.</span>
+          {sub("Already on the list.")}
         </>
       );
     case "absent":
       return (
         <>
           <span className="font-semibold">Nothing to stop</span> {plan.name}
-          <span className="block text-[12px] text-ink-500">It is not on the list.</span>
+          {sub("Not on the list.")}
         </>
       );
   }
@@ -128,12 +126,11 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
     }),
     [draft],
   );
-  const noteLists = [
-    { key: "watch", title: "Watch for", icon: Eye, lines: notes.watchFor },
-    { key: "know", title: "Good to know", icon: Lightbulb, lines: notes.goodToKnow },
-    { key: "ask", title: "Questions for the next visit", icon: HelpCircle, lines: notes.questions },
-  ].filter((list) => list.lines.length);
+  const hasNotes = Boolean(notes.summary || notes.watchFor.length || notes.goodToKnow.length || notes.questions.length);
   const [dates, setDates] = useState<Record<string, { date: string; time: string }>>({});
+  // A reminder's "by when", picked here with who does it (Review no longer asks).
+  const [dueDates, setDueDates] = useState<Record<string, string>>({});
+  const dueOf = (task: HandoffDraft["tasks"][number]) => dueDates[task.id] ?? task.dueDate ?? "";
   const [going, setGoing] = useState<Record<string, string>>({});
   // People added on this page. They join the circle when it is updated, not before.
   const [added, setAdded] = useState<Helper[]>([]);
@@ -191,7 +188,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
       const who = (value: string | undefined) => (value && isNewHelper(value) ? (made[value]?.memberId ?? "none") : (value ?? "none"));
       const todos = todoTasks.map((task) => ({
         title: task.title.trim().slice(0, 200),
-        ...(task.dueDate ? { dueDate: task.dueDate } : {}),
+        ...(dueOf(task) ? { dueDate: dueOf(task) } : {}),
         ...(task.dueText ? { note: `Due ${task.dueText}` } : {}),
         assignee: who(assignees[task.id]),
       }));
@@ -286,115 +283,114 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
   if (done) {
     const parts = [
       done.added ? `${done.added} medication${done.added === 1 ? "" : "s"} added` : null,
-      done.changed ? `${done.changed} medication${done.changed === 1 ? "" : "s"} changed` : null,
-      done.stopped ? `${done.stopped} medication${done.stopped === 1 ? "" : "s"} stopped` : null,
-      done.todos ? `${done.todos} reminder${done.todos === 1 ? "" : "s"} added` : null,
-      done.events ? `${done.events} appointment${done.events === 1 ? "" : "s"} on the calendar` : null,
-      done.visitId && (done.notes || notes.summary) ? "the visit notes kept" : null,
+      done.changed ? `${done.changed} changed` : null,
+      done.stopped ? `${done.stopped} stopped` : null,
+      done.todos ? `${done.todos} reminder${done.todos === 1 ? "" : "s"}` : null,
+      done.events ? `${done.events} appointment${done.events === 1 ? "" : "s"}` : null,
+      done.visitId && (done.notes || notes.summary) ? "visit notes kept" : null,
     ].filter(Boolean);
     return (
       <div className="mx-auto max-w-[720px]">
         <StepHeader current="Done" circle />
-        <div className="rounded-lg border border-border-200 bg-white p-6">
-          <CheckCircle2 className="size-8 text-ok" aria-hidden="true" />
-          <h1 className="font-display mt-3 text-[26px] text-primary-900">{context.personName}&apos;s circle is up to date</h1>
-          <p className="mt-2 text-ink-500">{parts.length ? `${parts.join(", ")}.` : "Nothing was changed."}</p>
-          {kept ? (
-            <p role="status" className={`mt-3 rounded-md px-3 py-2 text-[14px] ${kept.status === "failed" ? "bg-attn-bg text-attn-ink" : "bg-sky-100 text-primary-900"}`}>
-              {kept.status === "saving" ? (
-                <>
-                  <Loader2 className="mr-1.5 inline size-4 animate-spin align-[-3px]" aria-hidden="true" />
-                  Keeping the {pdf ? "PDF" : "photos"}… {pdf ? "" : `${kept.done} of ${pages.length}`}
-                </>
-              ) : kept.status === "kept" ? (
-                <>
-                  The {pdf ? "PDF is" : `${pages.length === 1 ? "photo is" : "photos are"}`} kept with this visit.{" "}
-                  <Link href={`/circles/${circleId}/visits/${kept.id}`} className="font-semibold underline underline-offset-2">
-                    See {pdf ? "it" : "them"}
-                  </Link>
-                </>
-              ) : (
-                <>The circle is updated, but the {pdf ? "PDF" : "photos"} could not be kept: {kept.error}</>
-              )}
-            </p>
-          ) : null}
-          {done.failed ? (
-            <p role="alert" className="mt-3 rounded-md bg-attn-bg px-3 py-2 text-[13px] text-attn-ink">
-              {done.failed} change{done.failed === 1 ? "" : "s"} could not be saved. Check the Medications and Reminders pages.
-            </p>
-          ) : null}
-          {tell.length ? (
-            <div className="mt-5 border-t border-border-200 pt-5">
-              <TellHelpers circleId={circleId} personName={context.personName} people={tell} />
-            </div>
-          ) : null}
-          <div className="mt-5 border-t border-border-200 pt-5">
-            <ShareUpdates circleId={circleId} personName={context.personName} skip={tell.map((person) => person.memberId)} />
+        <div className="flex items-start gap-3">
+          <CheckCircle2 className="mt-1 size-7 shrink-0 text-ok" aria-hidden="true" />
+          <div className="min-w-0">
+            <h1 className="font-display text-[26px] leading-tight text-primary-900">{context.personName}&apos;s circle is up to date</h1>
+            <p className="mt-1 text-ink-500">{parts.length ? `${parts.join(" · ")}.` : "Nothing was changed."}</p>
           </div>
-          <div className="mt-5 flex flex-wrap gap-2">
-            <Link href={`/circles/${circleId}`} className="inline-flex h-10 items-center gap-1.5 rounded-md bg-primary-700 px-4 text-[14px] font-semibold text-white hover:bg-primary-900">
-              Go to Today <ArrowRight className="size-4" aria-hidden="true" />
+        </div>
+        {kept ? (
+          <p role="status" className={`mt-3 rounded-md px-3 py-2 text-note ${kept.status === "failed" ? "bg-attn-bg text-attn-ink" : "bg-sky-100 text-primary-900"}`}>
+            {kept.status === "saving" ? (
+              <>
+                <Loader2 className="mr-1.5 inline size-4 animate-spin align-[-3px]" aria-hidden="true" />
+                Keeping the {pdf ? "PDF" : "photos"}… {pdf ? "" : `${kept.done} of ${pages.length}`}
+              </>
+            ) : kept.status === "kept" ? (
+              <>
+                The {pdf ? "PDF is" : `${pages.length === 1 ? "photo is" : "photos are"}`} kept with this visit.{" "}
+                <Link href={`/circles/${circleId}/visits/${kept.id}`} className="font-semibold underline underline-offset-2">
+                  See {pdf ? "it" : "them"}
+                </Link>
+              </>
+            ) : (
+              <>The circle is updated, but the {pdf ? "PDF" : "photos"} could not be kept: {kept.error}</>
+            )}
+          </p>
+        ) : null}
+        {done.failed ? (
+          <p role="alert" className="mt-3 rounded-md bg-attn-bg px-3 py-2 text-hint text-attn-ink">
+            {done.failed} change{done.failed === 1 ? "" : "s"} could not be saved. Check the Medications and Reminders pages.
+          </p>
+        ) : null}
+        <div className="mt-6">
+          <SendLinks circleId={circleId} personName={context.personName} people={tell} />
+        </div>
+        <div className="mt-6 flex flex-wrap gap-2">
+          <Link href={`/circles/${circleId}`} className="inline-flex min-h-[48px] items-center gap-1.5 rounded-lg bg-primary-700 px-5 text-label font-semibold text-white hover:bg-primary-900">
+            Go to Today <ArrowRight className="size-4" aria-hidden="true" />
+          </Link>
+          {done.visitId ? (
+            <Link
+              href={`/circles/${circleId}/visits/notes/${done.visitId}`}
+              className="inline-flex min-h-[48px] items-center rounded-lg border border-border-200 bg-white px-4 text-label font-medium text-ink-900 hover:bg-paper-100"
+            >
+              See the visit notes
             </Link>
-            <Link href={`/circles/${circleId}/medications`} className="inline-flex h-10 items-center rounded-md border border-border-200 bg-white px-4 text-[14px] font-medium text-ink-900 hover:bg-paper-100">
-              See medications
-            </Link>
-            {done.visitId ? (
-              <Link href={`/circles/${circleId}/visits/notes/${done.visitId}`} className="inline-flex h-10 items-center rounded-md border border-border-200 bg-white px-4 text-[14px] font-medium text-ink-900 hover:bg-paper-100">
-                See the visit notes
-              </Link>
-            ) : null}
-          </div>
+          ) : null}
         </div>
       </div>
     );
   }
 
   const current = context.medications.filter((med) => med.status === "active");
+  const sectionTitle = "mb-2 text-badge font-semibold tracking-[0.12em] text-ink-500 uppercase";
+  const box = "rounded-lg border border-border-200 bg-white";
+  const check = "mt-0.5 size-5 shrink-0 accent-primary-700";
   return (
-    <div className="mx-auto max-w-[820px] pb-8">
+    <div className="mx-auto max-w-[720px] pb-4">
       <BackLink href="/new/review" label="Review" />
       <StepHeader current="Share" circle />
       <h1 className="font-display text-[28px] leading-tight text-primary-900">Update {context.personName}&apos;s circle</h1>
-      <p className="mt-1 text-note text-ink-500">
-        Untick anything you don&apos;t want, and pick who helps with each appointment and reminder (or leave it for later). Nothing is saved until you press the button; then you can text each
-        person their part.
-      </p>
+      <p className="mt-1 text-ink-500">Untick what you don&apos;t want. Pick who helps.</p>
 
-      <section aria-labelledby="meds-title" className="mt-6">
-        <h2 id="meds-title" className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-500 uppercase">
+      <section aria-labelledby="meds-title" className="mt-5">
+        <h2 id="meds-title" className={sectionTitle}>
           Medications
         </h2>
-        <div className="rounded-lg border border-border-200 bg-white">
+        <div className={box}>
           {plans.length ? (
             <ul className="divide-y divide-border-200">
               {plans.map((plan) => {
                 const can = actionable(plan);
                 const checked = can && on(plan.draftId, plan.action !== "missing");
                 return (
-                  <li key={plan.draftId} className="flex items-start gap-3 px-4 py-3 text-[14px] text-ink-900">
-                    <input
-                      type="checkbox"
-                      className="mt-1 size-4 accent-primary-700"
-                      checked={checked}
-                      disabled={!can}
-                      onChange={(event) => setInclude({ ...include, [plan.draftId]: event.target.checked })}
-                      aria-label={`Include ${plan.name}`}
-                    />
-                    <span className={can ? "" : "text-ink-500"}>
-                      <MedLine plan={plan} />
-                    </span>
+                  <li key={plan.draftId}>
+                    <label className={`flex items-start gap-3 px-4 py-3 text-label ${can ? "cursor-pointer text-ink-900" : "text-ink-500"}`}>
+                      <input
+                        type="checkbox"
+                        className={check}
+                        checked={checked}
+                        disabled={!can}
+                        onChange={(event) => setInclude({ ...include, [plan.draftId]: event.target.checked })}
+                        aria-label={`Include ${plan.name}`}
+                      />
+                      <span className="min-w-0">
+                        <MedLine plan={plan} />
+                      </span>
+                    </label>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="px-4 py-3 text-[13px] text-ink-500">The visit has no medication changes.</p>
+            <p className="px-4 py-3 text-note text-ink-500">No medication changes.</p>
           )}
         </div>
         {current.length ? (
-          <details className="mt-2 text-[13px] text-ink-500">
-            <summary className="cursor-pointer">What is on the list now ({current.length})</summary>
-            <ul className="mt-1 space-y-0.5 pl-4">
+          <details className="mt-2 text-note text-ink-500">
+            <summary className="min-h-11 cursor-pointer py-2">On the list now ({current.length})</summary>
+            <ul className="space-y-0.5 pl-4">
               {current.map((med) => (
                 <li key={med.id}>
                   {med.name} {doseText(med)} · {scheduleText(med)}
@@ -406,57 +402,46 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
       </section>
 
       {appointments.length ? (
-        <section aria-labelledby="appts-title" className="mt-6">
-          <h2 id="appts-title" className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-500 uppercase">
-            Appointments for the calendar
+        <section aria-labelledby="appts-title" className="mt-5">
+          <h2 id="appts-title" className={sectionTitle}>
+            Appointments
           </h2>
-          <div className="rounded-lg border border-border-200 bg-white">
+          <div className={box}>
             <ul className="divide-y divide-border-200">
               {appointments.map((appt) => (
-                <li key={appt.id} className="space-y-3 px-4 py-3 text-[14px] text-ink-900">
-                  <label className="flex items-start gap-3">
-                    <input
-                      type="checkbox"
-                      className="mt-1 size-5 accent-primary-700"
-                      checked={on(appt.id, true)}
-                      onChange={(event) => setInclude({ ...include, [appt.id]: event.target.checked })}
-                    />
-                    <span className="text-[15px] font-semibold">{appt.title}</span>
+                <li key={appt.id} className="px-4 py-3 text-label text-ink-900">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input type="checkbox" className={check} checked={on(appt.id, true)} onChange={(event) => setInclude({ ...include, [appt.id]: event.target.checked })} />
+                    <span className="font-semibold">{appt.title}</span>
                   </label>
                   {on(appt.id, true) ? (
-                    <div className="space-y-3 pl-8">
+                    <div className="mt-2 space-y-2 pl-8">
                       <div className="flex flex-wrap gap-2">
-                        <label className="text-[13px] font-medium text-ink-500">
-                          Day
-                          <input
-                            type="date"
-                            className="mt-1 block h-11 rounded-lg border border-border-200 bg-white px-2 text-[16px] text-ink-900"
-                            value={when(appt).date}
-                            onChange={(event) => setDates({ ...dates, [appt.id]: { ...when(appt), date: event.target.value } })}
-                          />
-                        </label>
-                        <label className="text-[13px] font-medium text-ink-500">
-                          Time
-                          <input
-                            type="time"
-                            className="mt-1 block h-11 rounded-lg border border-border-200 bg-white px-2 text-[16px] text-ink-900"
-                            value={when(appt).time}
-                            onChange={(event) => setDates({ ...dates, [appt.id]: { ...when(appt), time: event.target.value } })}
-                          />
-                        </label>
-                      </div>
-                      <div>
-                        <p className="text-hint font-medium text-ink-500">Who&apos;s going with {context.personName}?</p>
-                        <HelperChips
-                          label={`Who's going to ${appt.title}`}
-                          value={going[appt.id] ?? "none"}
-                          onPick={(value) => setGoing({ ...going, [appt.id]: value })}
-                          people={people}
-                          adding={addingFor === appt.id}
-                          onAdd={() => setAddingFor(addingFor === appt.id ? null : appt.id)}
+                        <input
+                          type="date"
+                          aria-label={`Day of ${appt.title}`}
+                          className="h-11 rounded-lg border border-border-200 bg-white px-2 text-name text-ink-900"
+                          value={when(appt).date}
+                          onChange={(event) => setDates({ ...dates, [appt.id]: { ...when(appt), date: event.target.value } })}
                         />
-                        {addingFor === appt.id ? <AddSomeone onAdd={(person) => addPerson(appt.id, "appointment", person)} onCancel={() => setAddingFor(null)} /> : null}
+                        <input
+                          type="time"
+                          aria-label={`Time of ${appt.title}`}
+                          className="h-11 rounded-lg border border-border-200 bg-white px-2 text-name text-ink-900"
+                          value={when(appt).time}
+                          onChange={(event) => setDates({ ...dates, [appt.id]: { ...when(appt), time: event.target.value } })}
+                        />
                       </div>
+                      <p className="text-hint font-medium text-ink-500">Who&apos;s going?</p>
+                      <HelperChips
+                        label={`Who's going to ${appt.title}`}
+                        value={going[appt.id] ?? "none"}
+                        onPick={(value) => setGoing({ ...going, [appt.id]: value })}
+                        people={people}
+                        adding={addingFor === appt.id}
+                        onAdd={() => setAddingFor(addingFor === appt.id ? null : appt.id)}
+                      />
+                      {addingFor === appt.id ? <AddSomeone onAdd={(person) => addPerson(appt.id, "appointment", person)} onCancel={() => setAddingFor(null)} /> : null}
                     </div>
                   ) : null}
                 </li>
@@ -466,28 +451,40 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         </section>
       ) : null}
 
-      <section aria-labelledby="todos-title" className="mt-6">
-        <h2 id="todos-title" className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-500 uppercase">
-          Reminders
-        </h2>
-        <div className="rounded-lg border border-border-200 bg-white">
-          {tasks.length ? (
+      {tasks.length ? (
+        <section aria-labelledby="todos-title" className="mt-5">
+          <h2 id="todos-title" className={sectionTitle}>
+            Reminders
+          </h2>
+          <div className={box}>
             <ul className="divide-y divide-border-200">
               {tasks.map((task) => (
-                <li key={task.id} className="flex flex-wrap items-start gap-3 px-4 py-3 text-[14px] text-ink-900">
-                  <input
-                    type="checkbox"
-                    className="mt-1 size-4 accent-primary-700"
-                    checked={on(task.id, true)}
-                    onChange={(event) => setInclude({ ...include, [task.id]: event.target.checked })}
-                    aria-label={`Include ${task.title}`}
-                  />
-                  <span className="min-w-0 flex-1">
-                    {task.title}
-                    {task.dueDate || task.dueText ? <span className="block text-[12px] text-ink-500">Due {task.dueDate ?? task.dueText}</span> : null}
-                  </span>
+                <li key={task.id} className="px-4 py-3 text-label text-ink-900">
+                  <label className="flex cursor-pointer items-start gap-3">
+                    <input
+                      type="checkbox"
+                      className={check}
+                      checked={on(task.id, true)}
+                      onChange={(event) => setInclude({ ...include, [task.id]: event.target.checked })}
+                      aria-label={`Include ${task.title}`}
+                    />
+                    <span className="min-w-0">
+                      {task.title}
+                      {task.dueText ? <span className="block text-hint text-ink-500">Due {task.dueText}</span> : null}
+                    </span>
+                  </label>
                   {on(task.id, true) ? (
-                    <div className="w-full pl-7">
+                    <div className="mt-2 space-y-2 pl-8">
+                      <label className="flex items-center gap-2 text-hint font-medium text-ink-500">
+                        By
+                        <input
+                          type="date"
+                          aria-label={`By when: ${task.title}`}
+                          className="h-11 rounded-lg border border-border-200 bg-white px-2 text-name text-ink-900"
+                          value={dueOf(task)}
+                          onChange={(event) => setDueDates({ ...dueDates, [task.id]: event.target.value })}
+                        />
+                      </label>
                       <p className="text-hint font-medium text-ink-500">Who does it?</p>
                       <HelperChips
                         label={`Who does ${task.title}`}
@@ -503,76 +500,40 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
                 </li>
               ))}
             </ul>
-          ) : (
-            <p className="px-4 py-3 text-[13px] text-ink-500">No other next steps in this visit.</p>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      ) : null}
 
-      <section aria-labelledby="notes-title" className="mt-6">
-        <h2 id="notes-title" className="mb-2 text-[11px] font-semibold tracking-[0.12em] text-ink-500 uppercase">
-          Kept with this visit
-        </h2>
-        <div className="rounded-lg border border-border-200 bg-white px-4 py-3 text-[14px] text-ink-900">
-          {notes.summary || noteLists.length ? (
-            <>
-              {notes.summary ? <p>{notes.summary}</p> : null}
-              {noteLists.map((list) => (
-                <div key={list.key} className="mt-3 first:mt-0">
-                  <p className="flex items-center gap-1.5 text-[13px] font-semibold text-primary-900">
-                    <list.icon className="size-4 text-primary-700" aria-hidden="true" /> {list.title}
-                  </p>
-                  <ul className="mt-1 list-disc space-y-0.5 pl-6">
-                    {list.lines.map((line) => (
-                      <li key={line}>{line}</li>
-                    ))}
-                  </ul>
-                </div>
-              ))}
-              <p className="mt-3 border-t border-border-200 pt-2.5 text-[12px] text-ink-500">
-                Shown on Today. Family and care managers see all of it; home aides and day programs see what to watch for and good to know.
-              </p>
-            </>
-          ) : (
-            <p className="text-[13px] text-ink-500">This visit has no notes to keep beyond the changes above.</p>
-          )}
-        </div>
-      </section>
+      {hasNotes ? <p className="mt-5 text-note text-ink-500">The visit summary and notes are kept with the visit, on Today.</p> : null}
 
       {pages.length ? (
-        <section className="mt-6 rounded-lg border border-border-200 bg-white p-4">
+        <section className={`mt-5 p-4 ${box}`}>
           <Switch
             id="keep-original"
             checked={keep && canKeep}
             onChange={setKeep}
             label={pdf ? "Keep the PDF with this visit" : `Keep the ${pages.length === 1 ? "photo" : `${pages.length} photos`} with this visit`}
-            helper={
-              canKeep
-                ? `Locked on this device before ${pdf ? "it is" : "they are"} saved. In the app, only you can see ${pdf ? "it" : "them"}, and you can delete ${pdf ? "it" : "them"} any time.`
-                : "This PDF is too large to keep. The circle is still updated."
-            }
+            helper={canKeep ? `Locked on this device before ${pdf ? "it is" : "they are"} saved. Only you can see ${pdf ? "it" : "them"}.` : "This PDF is too large to keep. The circle is still updated."}
           />
         </section>
       ) : null}
 
       {error ? (
-        <p role="alert" className="mt-4 rounded-md bg-attn-bg px-3 py-2 text-[13px] text-attn-ink">
+        <p role="alert" className="mt-4 rounded-md bg-attn-bg px-3 py-2 text-note text-attn-ink">
           {error}
         </p>
       ) : null}
-      <div className="mt-6 flex flex-wrap items-center gap-2">
+      {/* On a phone the button stays at the bottom of the screen. */}
+      <div className="sticky bottom-0 z-10 -mx-4 mt-6 border-t border-border-200 bg-white/95 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] backdrop-blur sm:static sm:mx-0 sm:border-0 sm:bg-transparent sm:p-0">
         <button
           type="button"
           onClick={apply}
           disabled={pending}
-          className="inline-flex h-11 items-center gap-2 rounded-md bg-primary-700 px-5 text-[15px] font-semibold text-white hover:bg-primary-900 disabled:opacity-50"
+          className="inline-flex min-h-[48px] w-full items-center justify-center gap-2 rounded-xl bg-primary-700 px-6 text-name font-semibold text-white hover:bg-primary-900 disabled:opacity-50 sm:w-auto"
         >
           {pending ? <Loader2 className="size-4 animate-spin" aria-hidden="true" /> : null}
           {pending ? "Updating" : "Update the circle"}
         </button>
-        <Link href="/new/review" className="inline-flex h-11 items-center rounded-md px-3 text-[14px] font-medium text-ink-500 hover:text-ink-900">
-          Back to the review
-        </Link>
       </div>
     </div>
   );

@@ -1,10 +1,10 @@
 "use client";
 import { ReaderNote } from "@/components/review/ReaderNote";
-import { ArrowLeft, CalendarCheck, Eye, FileText, HelpCircle, Images, Info, Lightbulb, ListChecks, Pencil, Pill, Stethoscope } from "lucide-react";
+import { ArrowLeft, CalendarCheck, Eye, FileText, HelpCircle, Images, Info, Lightbulb, ListChecks, Pencil, Pill, Plus, Stethoscope } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import { AddButton, CheckToggle, EmptyNote, inputClass, MedRow, ReviewCard, SubSection, TaskRow, TextItemRow } from "@/components/review/parts";
+import { EmptyNote, inputClass, MedRow, Section, TaskRow, TextItemRow } from "@/components/review/parts";
 import { OriginalView, type SourceTarget } from "@/components/review/SourcePanel";
 import { BackLink } from "@/components/circles/PageHead";
 import { StepHeader } from "@/components/StepHeader";
@@ -12,7 +12,7 @@ import { useToast } from "@/components/Toast";
 import { COPY } from "@/lib/copy";
 import { shortDate } from "@/lib/format";
 import { itemId } from "@/lib/parse/util";
-import { medNeedsLook, reviewState, type ReviewSection } from "@/lib/review";
+import { itemsWaiting, medNeedsLook } from "@/lib/review";
 import type { HandoffDraft, MedicationChange, Task } from "@/lib/schema";
 import { getOriginalPages, useFlow } from "@/lib/store";
 
@@ -22,14 +22,15 @@ type TextKey = "watchFor" | "questions" | "otherNotes";
 const isPhone = () => window.matchMedia("(max-width: 1023px)").matches;
 
 /**
- * The draft, checked in two steps before anything is saved: the medicines, then everything else.
- * The original sits beside the draft on a computer; on a phone the two swap. The rules (what must be
- * looked at before each confirm) are in lib/review.ts.
+ * The draft, checked against the original before anything is saved, with one button at the end:
+ * "Looks right". Items the reader was unsure of must be looked at first; the button takes the
+ * caregiver to each. The original sits beside the draft on a computer; on a phone the two swap.
+ * The rules are in lib/review.ts.
  */
 export default function ReviewPage() {
   const router = useRouter();
   const toast = useToast();
-  const { draft, reviewed, isSample, unsorted, recipients, updateDraft, setReviewed, circleId, reader } = useFlow();
+  const { draft, isSample, unsorted, recipients, updateDraft, confirmReview, circleId, reader } = useFlow();
   // The photos taken on the first step, still in this tab's memory (gone after a reload).
   const [pages] = useState(() => getOriginalPages());
   const [hydrated, setHydrated] = useState(false);
@@ -65,7 +66,7 @@ export default function ReviewPage() {
   }
 
   const set = (fn: (d: HandoffDraft) => HandoffDraft) => updateDraft(fn);
-  const state = reviewState(draft, reviewed);
+  const waitingIds = itemsWaiting(draft);
   const next = circleId ? "/new/apply" : "/new/share";
 
   /** Delete with a 4-second Undo toast. */
@@ -128,16 +129,16 @@ export default function ReviewPage() {
     if (quote && !isPhone()) setTarget((now) => (now?.quote === quote && now.page === page ? now : { quote, page }));
   };
 
-  /** The check mark for one section. None for a section that does not need one (an empty list). */
-  const check = (section: ReviewSection, name: string) =>
-    state.sections.includes(section) ? (
-      <CheckToggle section={name} checked={state.done[section]} blocked={state.blocked[section]} onToggle={(value) => setReviewed(section, value)} />
-    ) : undefined;
-  const restSections = state.sections.filter((section) => section !== "medications");
+  /** Brings the next item that needs a look into view, so the caregiver is never left hunting for it. */
+  function showNextWaiting() {
+    const el = document.querySelector<HTMLElement>(`[data-item="${CSS.escape(waitingIds[0])}"]`);
+    el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    el?.querySelector<HTMLElement>("button")?.focus({ preventScroll: true });
+  }
 
   const photoCount = pages.filter((file) => !/pdf/i.test(file.type) && !/\.pdf$/i.test(file.name)).length;
   const v = draft.visit;
-  const waiting = draft.medications.filter(medNeedsLook);
+  const medsWaiting = draft.medications.filter(medNeedsLook);
   const settled = draft.medications.filter((m) => !medNeedsLook(m));
   const medRow = (m: MedicationChange) => {
     const i = draft.medications.indexOf(m);
@@ -173,15 +174,30 @@ export default function ReviewPage() {
     );
   const visitLine = [shortDate(v.date), v.provider, v.specialty].filter(Boolean).join(" · ");
 
-  // The bar at the bottom: how many sections are ticked, and Continue once all are.
-  const firstBlocked = state.sections.map((section) => state.blocked[section]).find(Boolean);
-  const bar = {
-    label: `${state.doneCount} of ${state.sections.length} checked`,
-    hint: state.complete ? (circleId ? "Next: choose what goes into the circle." : "Next: choose who sees it.") : (firstBlocked ?? "Tick each section once it matches the original"),
-    blocked: !state.complete,
-    button: "Continue",
-    onClick: () => router.push(next),
-  };
+  // The bar at the bottom: one button. While something needs a look it goes there; then "Looks right".
+  const waiting = waitingIds.length;
+  const bar = waiting
+    ? {
+        hint: `${waiting} ${waiting === 1 ? "item needs" : "items need"} a look first`,
+        button: waiting === 1 ? "Show me" : "Show me the first",
+        onClick: showNextWaiting,
+      }
+    : {
+        hint: "Matches the original?",
+        button: "Looks right",
+        onClick: () => {
+          confirmReview();
+          router.push(next);
+        },
+      };
+  // Empty lists stay out of the way; a small button adds the first item.
+  const emptyLists = (
+    [
+      ["watchFor", "Watch for"],
+      ["otherNotes", "Good to know"],
+      ["questions", "Question"],
+    ] as const
+  ).filter(([key]) => !draft[key].length);
 
   return (
     <div>
@@ -189,7 +205,7 @@ export default function ReviewPage() {
         <BackLink href={circleId ? `/circles/${circleId}` : "/"} label={circleId ? "Today" : "Home"} />
         <StepHeader current="Review" circle={Boolean(circleId)} />
         <h1 className="font-display text-[2.1rem] leading-tight font-medium text-primary-900">Review the draft</h1>
-        <p className="mt-2 text-ink-500">Compare each section with the original and tick it. Nothing is saved until you finish.</p>
+        <p className="mt-1 text-ink-500">Check it against the original. Nothing is saved yet.</p>
         <ReaderNote reader={reader} />
       </div>
 
@@ -213,27 +229,20 @@ export default function ReviewPage() {
 
       <div className="mt-4 lg:grid lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-6">
         <div className={`mx-auto w-full max-w-[720px] min-w-0 lg:mx-0 lg:max-w-none ${view === "original" ? "hidden lg:block" : ""}`}>
-          {!isSample ? (
-            <div className="rounded-xl border border-sky-100 bg-sky-100/60 px-4 py-3 text-[15px] text-primary-900">
-              <p className="font-semibold">The app read this summary, and it can make mistakes.</p>
-              <p className="mt-1">
-                Compare each medicine and date with the {photoCount ? "photos" : "original"}. Tap &ldquo;See it in the original&rdquo; on an item to see where it came from.
-              </p>
-            </div>
-          ) : (
-            <div className="flex gap-3 rounded-xl bg-sky-100 px-4 py-3 text-primary-900">
+          {isSample ? (
+            <div className="mb-4 flex gap-3 rounded-xl bg-sky-100 px-4 py-3 text-primary-900">
               <Info size={20} className="mt-0.5 shrink-0" aria-hidden="true" />
               <p>
-                This is a sample visit for Margaret, who is fictional. Tick each section to continue, or{" "}
+                This is a sample visit for Margaret, who is fictional. Press Looks right to continue, or{" "}
                 <Link href="/h/demo" className="font-medium text-primary-700 underline underline-offset-4">
                   see the finished handoff page
                 </Link>
                 .
               </p>
             </div>
-          )}
+          ) : null}
           {unsorted ? (
-            <p role="status" className="mt-4 rounded-xl bg-med-bg px-4 py-3 text-med-ink">
+            <p role="status" className="mb-4 rounded-xl bg-med-bg px-4 py-3 text-med-ink">
               {COPY.nothingParsed}
             </p>
           ) : null}
@@ -244,157 +253,157 @@ export default function ReviewPage() {
             ))}
           </datalist>
 
-          <div className="mt-5 space-y-5">
-            <ReviewCard id="medications" icon={<Pill size={20} />} title="Medicines" count={draft.medications.length} check={check("medications", "Medicines")} done={state.done.medications}>
+          <div className="space-y-3">
+            <Section id="medications" icon={<Pill size={20} />} title="Medicines" count={draft.medications.length} onAdd={addMed} addLabel="Add a medicine">
               {!draft.medications.length ? (
-                <p className="mb-2 rounded-xl border border-med/40 bg-med-bg/30 px-3 py-2 text-[15px] text-med-ink">
-                  No medicines were read. If the summary names any (even under &ldquo;Pick up these medications&rdquo;), add them below.
+                <p className="my-2 rounded-lg border border-med/40 bg-med-bg/30 px-3 py-2 text-[15px] text-med-ink">
+                  No medicines were read. If the summary names any, add them.
                 </p>
               ) : null}
-              <>
-                  {waiting.length ? (
-                    <div className="mb-3 rounded-xl border border-med/40 bg-med-bg/30 px-3 pt-2.5">
-                      <h3 className="text-[15px] font-bold text-med-ink">
-                        Check {waiting.length === 1 ? "this" : "these"} first ({waiting.length})
-                      </h3>
-                      <ul>{waiting.map(medRow)}</ul>
-                    </div>
-                  ) : null}
-                  {settled.length ? <ul>{settled.map(medRow)}</ul> : waiting.length ? null : <EmptyNote />}
-                  <AddButton label="Add a medicine" onAdd={addMed} />
-              </>
-            </ReviewCard>
+              {medsWaiting.length ? (
+                <div className="my-2 rounded-lg border border-med/40 bg-med-bg/30 px-3 pt-2">
+                  <h3 className="text-[15px] font-bold text-med-ink">Check {medsWaiting.length === 1 ? "this" : "these"} first</h3>
+                  <ul>{medsWaiting.map(medRow)}</ul>
+                </div>
+              ) : null}
+              {settled.length ? <ul>{settled.map(medRow)}</ul> : null}
+            </Section>
 
-            <ReviewCard id="rest" icon={<ListChecks size={20} />} title="Everything else" done={restSections.every((section) => state.done[section])}>
-              <div className="space-y-4">
-                <SubSection id="visit" icon={<Stethoscope size={18} />} title="The visit" check={check("visit", "The visit")}>
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="min-w-0 flex-1 text-ink-900">{visitLine || <span className="text-ink-500">No date or clinician was read.</span>}</p>
-                    <button
-                      type="button"
-                      onClick={() => setEditVisit(!editVisit)}
-                      aria-expanded={editVisit}
-                      className="inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100"
-                    >
-                      <Pencil size={16} aria-hidden="true" /> {editVisit ? "Done" : "Change the details"}
-                    </button>
+            <Section id="visit" icon={<Stethoscope size={20} />} title="The visit">
+              <div className="flex items-start justify-between gap-2 py-1">
+                <div className="min-w-0 flex-1">
+                  <p className="text-ink-900">{visitLine || <span className="text-ink-500">No date or clinician was read.</span>}</p>
+                  {v.summary && !editVisit ? <p className="mt-1 text-[15px] text-ink-500">{v.summary}</p> : null}
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setEditVisit(!editVisit)}
+                  aria-expanded={editVisit}
+                  aria-label={editVisit ? "Done changing the visit" : "Change the visit details"}
+                  className="-mr-2 inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100"
+                >
+                  {editVisit ? "Done" : <Pencil size={18} aria-hidden="true" />}
+                </button>
+              </div>
+              {editVisit ? (
+                <div className="mt-2 mb-3 grid gap-3 sm:grid-cols-2">
+                  <Field id={visitIds.date} label="Visit date">
+                    <input
+                      id={visitIds.date}
+                      type="date"
+                      value={v.date ?? ""}
+                      onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, date: e.target.value || undefined } }))}
+                      className={`h-[2.75rem] ${inputClass}`}
+                    />
+                  </Field>
+                  <Field id={visitIds.name} label="Who it was for (first name)">
+                    <input
+                      id={visitIds.name}
+                      value={v.patientFirstName ?? ""}
+                      maxLength={60}
+                      onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, patientFirstName: e.target.value || undefined } }))}
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field id={visitIds.provider} label="Clinician">
+                    <input
+                      id={visitIds.provider}
+                      value={v.provider ?? ""}
+                      maxLength={120}
+                      onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, provider: e.target.value || undefined } }))}
+                      className={inputClass}
+                    />
+                  </Field>
+                  <Field id={visitIds.specialty} label="Specialty">
+                    <input
+                      id={visitIds.specialty}
+                      value={v.specialty ?? ""}
+                      maxLength={120}
+                      onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, specialty: e.target.value || undefined } }))}
+                      className={inputClass}
+                    />
+                  </Field>
+                  <div className="sm:col-span-2">
+                    <Field id={visitIds.reason} label="Reason for the visit">
+                      <input
+                        id={visitIds.reason}
+                        value={v.reason ?? ""}
+                        maxLength={300}
+                        onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, reason: e.target.value || undefined } }))}
+                        className={inputClass}
+                      />
+                    </Field>
                   </div>
-                  {editVisit ? (
-                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
-                      <Field id={visitIds.name} label="Who the visit was for (first name)">
-                        <input
-                          id={visitIds.name}
-                          value={v.patientFirstName ?? ""}
-                          maxLength={60}
-                          onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, patientFirstName: e.target.value || undefined } }))}
-                          className={inputClass}
-                        />
-                      </Field>
-                      <Field id={visitIds.date} label="Visit date">
-                        <input
-                          id={visitIds.date}
-                          type="date"
-                          value={v.date ?? ""}
-                          onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, date: e.target.value || undefined } }))}
-                          className={`h-[2.75rem] ${inputClass}`}
-                        />
-                      </Field>
-                      <Field id={visitIds.provider} label="Clinician">
-                        <input
-                          id={visitIds.provider}
-                          value={v.provider ?? ""}
-                          maxLength={120}
-                          onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, provider: e.target.value || undefined } }))}
-                          className={inputClass}
-                        />
-                      </Field>
-                      <Field id={visitIds.specialty} label="Specialty">
-                        <input
-                          id={visitIds.specialty}
-                          value={v.specialty ?? ""}
-                          maxLength={120}
-                          onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, specialty: e.target.value || undefined } }))}
-                          className={inputClass}
-                        />
-                      </Field>
-                      <div className="sm:col-span-2">
-                        <Field id={visitIds.reason} label="Reason for the visit">
-                          <input
-                            id={visitIds.reason}
-                            value={v.reason ?? ""}
-                            maxLength={300}
-                            onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, reason: e.target.value || undefined } }))}
-                            className={inputClass}
-                          />
-                        </Field>
-                      </div>
-                    </div>
-                  ) : null}
-                  <div className="mt-3">
+                  <div className="sm:col-span-2">
                     <Field id={visitIds.summary} label="Short summary">
                       <textarea
                         id={visitIds.summary}
                         rows={3}
                         value={v.summary}
                         maxLength={2000}
-                        placeholder="In one or two sentences: why the visit happened and what the clinic decided."
+                        placeholder="Why the visit happened and what the clinic decided."
                         onChange={(e) => set((d) => ({ ...d, visit: { ...d.visit, summary: e.target.value } }))}
                         className={inputClass}
                       />
                     </Field>
                     {wordCount(v.summary) > 60 ? <p className="mt-1 text-sm text-ink-500">{wordCount(v.summary)} words. Try to keep it under 60.</p> : null}
                   </div>
-                </SubSection>
+                </div>
+              ) : null}
+            </Section>
 
-                <SubSection id="tasks" icon={<CalendarCheck size={18} />} title="Next steps" count={draft.tasks.length} check={check("tasks", "Next steps")} onAdd={addTask} addLabel="Add a next step">
-                  {draft.tasks.length ? (
-                    <ul>
-                      {draft.tasks.map((t, i) => (
-                        <TaskRow
-                          key={t.id}
-                          task={t}
-                          nameListId={nameListId}
-                          autoEdit={newItem === t.id}
-                          onFocusItem={() => follow(t.sourceQuote, t.sourcePage)}
-                          onShowSource={seeInOriginal}
-                          onChange={(value) => replaceAt("tasks", i, value)}
-                          onDelete={() => remove("tasks", i)}
-                        />
-                      ))}
-                    </ul>
-                  ) : (
-                    <EmptyNote />
-                  )}
-                </SubSection>
+            <Section id="tasks" icon={<CalendarCheck size={20} />} title="Next steps" count={draft.tasks.length} onAdd={addTask} addLabel="Add a next step">
+              {draft.tasks.length ? (
+                <ul>
+                  {draft.tasks.map((t, i) => (
+                    <TaskRow
+                      key={t.id}
+                      task={t}
+                      nameListId={nameListId}
+                      plan={!circleId}
+                      autoEdit={newItem === t.id}
+                      onFocusItem={() => follow(t.sourceQuote, t.sourcePage)}
+                      onShowSource={seeInOriginal}
+                      onChange={(value) => replaceAt("tasks", i, value)}
+                      onDelete={() => remove("tasks", i)}
+                    />
+                  ))}
+                </ul>
+              ) : (
+                <EmptyNote />
+              )}
+            </Section>
 
-                <SubSection id="watchFor" icon={<Eye size={18} />} title="Watch for" count={draft.watchFor.length} check={check("watchFor", "Watch for")} onAdd={() => addText("watchFor")}>
-                  {textList("watchFor", "Watch-for item")}
-                </SubSection>
-
-                <SubSection
-                  id="otherNotes"
-                  icon={<Lightbulb size={18} />}
-                  title="Good to know"
-                  count={draft.otherNotes.length}
-                  help="Instructions that are not a medicine or something to do once, like what to avoid."
-                  check={check("otherNotes", "Good to know")}
-                  onAdd={() => addText("otherNotes")}
-                >
-                  {textList("otherNotes", "Good-to-know item")}
-                </SubSection>
-
-                <SubSection
-                  id="questions"
-                  icon={<HelpCircle size={18} />}
-                  title="Questions for the next visit"
-                  count={draft.questions.length}
-                  check={check("questions", "Questions for the next visit")}
-                  onAdd={() => addText("questions")}
-                >
-                  {textList("questions", "Question")}
-                </SubSection>
+            {draft.watchFor.length ? (
+              <Section id="watchFor" icon={<Eye size={20} />} title="Watch for" count={draft.watchFor.length} onAdd={() => addText("watchFor")}>
+                {textList("watchFor", "Watch-for item")}
+              </Section>
+            ) : null}
+            {draft.otherNotes.length ? (
+              <Section id="otherNotes" icon={<Lightbulb size={20} />} title="Good to know" count={draft.otherNotes.length} onAdd={() => addText("otherNotes")}>
+                {textList("otherNotes", "Good-to-know item")}
+              </Section>
+            ) : null}
+            {draft.questions.length ? (
+              <Section id="questions" icon={<HelpCircle size={20} />} title="Questions for the next visit" count={draft.questions.length} onAdd={() => addText("questions")}>
+                {textList("questions", "Question")}
+              </Section>
+            ) : null}
+            {emptyLists.length ? (
+              <div className="flex flex-wrap items-center gap-x-1 gap-y-1 pt-1 text-[15px]">
+                <span className="text-ink-500">Missed something?</span>
+                {emptyLists.map(([key, label]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => addText(key)}
+                    className="inline-flex min-h-11 items-center gap-1 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100"
+                  >
+                    <Plus size={16} aria-hidden="true" /> {label}
+                  </button>
+                ))}
               </div>
-            </ReviewCard>
+            ) : null}
           </div>
         </div>
 
@@ -419,16 +428,11 @@ export default function ReviewPage() {
         </aside>
       </div>
 
-      {/* The bar: how many sections are ticked, and Continue. On a phone looking at the original, the way back. */}
-      <div data-review-bar className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-border-200 bg-white">
-        <div className="mx-auto flex max-w-[1280px] flex-col gap-2 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-          <p className={`text-sm text-ink-500 ${view === "original" ? "max-lg:hidden" : ""}`} aria-live="polite">
-            <span className="font-semibold text-ink-900">{bar.label}</span>
-            <span id="confirm-hint" className={bar.blocked ? "font-medium text-med-ink" : ""}>
-              {" · "}
-              {bar.hint}
-              {bar.blocked ? "." : ""}
-            </span>
+      {/* The bar: one button. On a phone looking at the original, the way back. */}
+      <div data-review-bar className="no-print fixed inset-x-0 bottom-0 z-20 border-t border-border-200 bg-white pb-[env(safe-area-inset-bottom)]">
+        <div className="mx-auto flex max-w-[1280px] items-center justify-between gap-3 px-4 py-3">
+          <p id="confirm-hint" aria-live="polite" className={`min-w-0 text-[15px] ${waiting ? "font-semibold text-med-ink" : "text-ink-500"} ${view === "original" ? "max-lg:hidden" : ""}`}>
+            {bar.hint}
           </p>
           {view === "original" ? (
             <button
@@ -441,12 +445,11 @@ export default function ReviewPage() {
           ) : null}
           <button
             type="button"
-            disabled={bar.blocked}
             aria-describedby="confirm-hint"
             onClick={bar.onClick}
-            className={`min-h-[48px] w-full rounded-xl bg-primary-700 px-5 font-semibold text-white hover:bg-primary-900 disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:bg-primary-700 sm:w-auto ${
-              view === "original" ? "max-lg:hidden" : ""
-            }`}
+            className={`min-h-[48px] shrink-0 rounded-xl px-5 font-semibold ${
+              waiting ? "border-2 border-med bg-white text-med-ink hover:bg-med-bg" : "bg-primary-700 text-white hover:bg-primary-900"
+            } ${view === "original" ? "max-lg:hidden" : ""}`}
           >
             {bar.button}
           </button>

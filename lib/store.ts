@@ -1,7 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import type { Reviewed, ReviewSection } from "./review";
+import { confirmAll, type Reviewed } from "./review";
 import type { HandoffDraft, RecipientShare, Role } from "./schema";
 
 /**
@@ -25,7 +25,7 @@ interface FlowState {
   isSample: boolean;
   /** Set when the parser could not place anything (shows the "Nothing parsed" message). */
   unsorted: boolean;
-  /** The check mark on each section of Review (lib/review.ts). */
+  /** What Review recorded as checked (lib/review.ts). "Looks right" marks every section at once. */
   reviewed: Reviewed;
   caregiverFirstName: string;
   recipients: RecipientShare[];
@@ -41,7 +41,8 @@ interface FlowState {
     opts: { isSample: boolean; unsorted?: boolean; caregiverFirstName?: string; recipients?: RecipientShare[]; circleId?: string | null; reader?: DraftReader | null },
   ) => void;
   updateDraft: (fn: (d: HandoffDraft) => HandoffDraft) => void;
-  setReviewed: (section: ReviewSection, value: boolean) => void;
+  /** "Looks right" on Review: the whole draft is checked. */
+  confirmReview: () => void;
   setRecipients: (r: RecipientShare[]) => void;
   setCaregiver: (name: string) => void;
   setCreated: (c: CreatedHandoff | null) => void;
@@ -80,7 +81,7 @@ export const useFlow = create<FlowState>()(
           reader: opts.reader ?? null,
         }),
       updateDraft: (fn) => set((s) => (s.draft ? { draft: fn(s.draft) } : s)),
-      setReviewed: (section, value) => set((s) => ({ reviewed: { ...s.reviewed, [section]: value } })),
+      confirmReview: () => set({ reviewed: confirmAll() }),
       setRecipients: (recipients) => set({ recipients }),
       setCaregiver: (caregiverFirstName) => set({ caregiverFirstName }),
       setCreated: (created) => set({ created }),

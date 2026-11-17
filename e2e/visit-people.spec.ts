@@ -164,6 +164,8 @@ test.describe("Update the circle: who helps, and texting them", () => {
     // The new person can be picked for the reminders too.
     await page.getByRole("list", { name: "Who does Blood test at the lab" }).getByRole("button", { name: "Joy Banda (Home aide)" }).click();
     await page.getByRole("list", { name: "Who does Pick up the new prescription" }).getByRole("button", { name: "Anna Lee (Family)" }).click();
+    // By when is picked here, beside who does it (Review no longer asks).
+    await page.getByLabel("By when: Pick up the new prescription").fill("2026-12-01");
 
     await page.getByRole("button", { name: "Update the circle" }).click();
     await expect(page.getByRole("heading", { name: "Teodora's circle is up to date" })).toBeVisible();
@@ -176,12 +178,13 @@ test.describe("Update the circle: who helps, and texting them", () => {
     expect(await rest(`/rest/v1/members?select=id&circle_id=eq.${seeded.circleId}&name=eq.Ben%20Typo`)).toHaveLength(0);
     const [event] = await rest(`/rest/v1/events?select=going_member_id,going_caregiver,needs_volunteer&circle_id=eq.${seeded.circleId}&title=eq.Cardiology%20follow-up`);
     expect(event).toMatchObject({ going_member_id: anna.id, going_caregiver: false, needs_volunteer: false });
-    const todos = (await rest(`/rest/v1/todos?select=title,assignee_member_id&circle_id=eq.${seeded.circleId}`)) as { title: string; assignee_member_id: string | null }[];
+    const todos = (await rest(`/rest/v1/todos?select=title,assignee_member_id,due_date&circle_id=eq.${seeded.circleId}`)) as { title: string; assignee_member_id: string | null; due_date: string | null }[];
+    expect(todos.find((todo) => todo.title === "Pick up the new prescription")?.due_date).toBe("2026-12-01");
     expect(todos.find((todo) => todo.title === "Blood test at the lab")?.assignee_member_id).toBe(seeded.joyId);
     expect(todos.find((todo) => todo.title === "Pick up the new prescription")?.assignee_member_id).toBe(anna.id);
 
-    // A text for each, to their number, with their link. It says when, not what the appointment is for.
-    const tell = page.getByRole("region", { name: "Text each person what they are down for" });
+    // Each person's link on screen, with Text, Email and Copy. The text says when, not what the appointment is for.
+    const tell = page.getByRole("region", { name: "Send each person their link" });
     const textAnna = tell.getByRole("link", { name: "Text Anna" });
     const annaHref = (await textAnna.getAttribute("href"))!;
     expect(annaHref.startsWith("sms:5550100142?&body=")).toBe(true);
@@ -191,6 +194,10 @@ test.describe("Update the circle: who helps, and texting them", () => {
     expect(annaBody).toContain("1 reminder to take care of");
     expect(annaBody).not.toMatch(/Cardiology|prescription/i);
     const annaUrl = annaBody.match(/http\S+\/i\/\S+/)![0];
+    await expect(tell.getByRole("textbox", { name: "Anna's link" })).toHaveValue(annaUrl);
+    const emailAnna = (await tell.getByRole("link", { name: "Email Anna" }).getAttribute("href"))!;
+    expect(emailAnna.startsWith("mailto:?subject=")).toBe(true);
+    expect(decodeURIComponent(emailAnna.split("&body=")[1])).toBe(annaBody);
 
     // Joy's older link is left alone when this screen opens: it still works, until "Make a new link".
     const joyRow = tell.getByRole("listitem").filter({ hasText: "Joy Banda" });
@@ -214,15 +221,15 @@ test.describe("Update the circle: who helps, and texting them", () => {
     expect(joyBody).toContain(`/i/${tokenFor(seeded.joyId)}`);
     expect(await joyHash()).toBe(hashOf(tokenFor(seeded.joyId)));
 
-    // When copying fails, the message is shown to copy by hand instead of nothing happening.
+    // When copying fails, the link on screen is there to copy by hand.
     await page.evaluate(() => {
       Object.defineProperty(navigator, "clipboard", { configurable: true, value: { writeText: () => Promise.reject(new Error("blocked")) } });
     });
-    await tell.getByRole("button", { name: "Copy the message for Joy" }).click();
+    await tell.getByRole("button", { name: "Copy Joy's link" }).click();
     await expect(tell.getByRole("alert")).toContainText("Copying did not work");
-    await expect(tell.getByRole("textbox", { name: "The message for Joy" })).toHaveValue(joyBody);
-    // Joy is not offered twice in "Let people know what changed".
-    await expect(page.getByRole("button", { name: "Tell Joy" })).toHaveCount(0);
+    await expect(tell.getByRole("textbox", { name: "Joy's link" })).toHaveValue(new RegExp(`/i/${tokenFor(seeded.joyId)}$`));
+    // Joy is listed once, not again as someone who has not seen the changes.
+    await expect(tell.getByText("Joy Banda", { exact: true })).toHaveCount(1);
     await expect(tell.getByText("Ben Typo")).toHaveCount(0);
 
     // Anna's link opens the circle on a phone that has never seen it.

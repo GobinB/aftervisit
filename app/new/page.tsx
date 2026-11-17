@@ -15,6 +15,9 @@ import type { HandoffDraft } from "@/lib/schema";
 import { type DraftReader, setOriginalFile, setOriginalPages, useFlow } from "@/lib/store";
 
 const MAX_MB = Number(process.env.NEXT_PUBLIC_MAX_UPLOAD_MB || 10);
+/** A PDF goes to the server in one request, and Vercel turns away bodies over 4.5 MB. Photos are sent in smaller parts. */
+const MAX_PDF_MB = Math.min(MAX_MB, 4);
+const PHOTO_TYPES = "image/jpeg,image/png,image/heic,image/heif,.heic,.heif,image/webp";
 const MIN_TEXT = 50;
 const MAX_PAGES = 15;
 
@@ -56,7 +59,6 @@ export default function IntakePage() {
   const [ocr, setOcr] = useState<number | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const cameraRef = useRef<HTMLInputElement>(null);
-  const pdfRef = useRef<HTMLInputElement>(null);
   const [ocrPage, setOcrPage] = useState<{ page: number; of: number } | null>(null);
   const errorRef = useRef<HTMLParagraphElement>(null);
   const ids = { file: useId(), patient: useId(), caregiver: useId(), text: useId() };
@@ -105,6 +107,7 @@ export default function IntakePage() {
     for (const f of arr) {
       if (!kindOf(f)) return setError(COPY.uploadType);
       if (f.size > MAX_MB * 1024 * 1024) return setError(COPY.uploadSize(MAX_MB));
+      if (kindOf(f) === "pdf" && f.size > MAX_PDF_MB * 1024 * 1024) return setError(COPY.uploadSize(MAX_PDF_MB));
     }
     const pdfs = arr.filter((f) => kindOf(f) === "pdf");
     if (pdfs.length) {
@@ -265,7 +268,7 @@ export default function IntakePage() {
       <StepHeader current="Upload" circle={fromCircle} />
       <h1 className="font-display text-[2rem] leading-tight font-medium text-primary-900">Scan after-visit summary</h1>
       <p className="mt-2 text-[16px] text-ink-500">
-        {pasteMode ? "Paste the text from the patient portal." : "Take a photo of each page. Add as many pages as there are, then tap Done."}
+        {pasteMode ? "Paste the text from the patient portal." : "Take a photo of each page, or choose a PDF from the patient portal."}
       </p>
       {circle ? (
         <p className="mt-4 rounded-lg border border-sky-100 bg-sky-100/60 px-4 py-3 text-[14px] text-primary-900">
@@ -274,7 +277,7 @@ export default function IntakePage() {
         </p>
       ) : null}
 
-      {/* Camera: one page per tap. Library: several at once. Both add to the same pages. */}
+      {/* Camera: one page per tap. Choose: several photos at once, or one PDF (the iPhone Files picker greys out any type not listed here). */}
       <input
         ref={cameraRef}
         type="file"
@@ -293,19 +296,8 @@ export default function IntakePage() {
         id={ids.file}
         type="file"
         multiple
-        accept="image/jpeg,image/png,image/heic,image/heif,.heic,.heif,image/webp"
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden="true"
-        onChange={(e) => {
-          if (e.target.files) addFiles(e.target.files);
-          e.target.value = "";
-        }}
-      />
-      <input
-        ref={pdfRef}
-        type="file"
-        accept="application/pdf,.pdf"
+        // Once there are photo pages, more photos only: a PDF would replace them.
+        accept={pageCount ? PHOTO_TYPES : `${PHOTO_TYPES},application/pdf,.pdf`}
         className="sr-only"
         tabIndex={-1}
         aria-hidden="true"
@@ -440,17 +432,14 @@ export default function IntakePage() {
                 onClick={choosePhotos}
                 className="flex min-h-20 items-center justify-center gap-3 rounded-xl border-2 border-primary-700 bg-white px-4 text-[18px] font-bold text-primary-700 hover:bg-sky-100"
               >
-                <ImageIcon size={28} aria-hidden="true" /> Choose photos
+                <FileText size={28} aria-hidden="true" /> Choose photos / files
               </button>
             </div>
-            <p className="mt-3 text-center text-[13px] text-ink-500">One photo per page. Lay the page flat, in good light. You can also drop files here.</p>
+            <p className="mt-3 text-center text-[13px] text-ink-500">One photo per page, laid flat in good light. Or a PDF.</p>
           </div>
         )}
         {!pasteMode && !pageCount && kind !== "pdf" ? (
           <p className="mt-3 flex flex-wrap gap-x-5 gap-y-1">
-            <button type="button" onClick={() => pdfRef.current?.click()} className="min-h-11 text-[15px] font-semibold text-primary-700 underline underline-offset-4">
-              Use a PDF instead
-            </button>
             <button
               type="button"
               className="min-h-11 text-[15px] font-semibold text-primary-700 underline underline-offset-4"

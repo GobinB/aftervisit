@@ -1,7 +1,7 @@
 import { ScanText, Sparkles } from "lucide-react";
 import type { DraftReader } from "@/lib/store";
 
-const CHECK = "It can make mistakes, so check each item against the original before you confirm.";
+const CHECK = "It can make mistakes.";
 
 /** Which reader read the summary, and to check its work. Nothing for the sample. */
 export const READER_TEXT: Record<DraftReader, string> = {

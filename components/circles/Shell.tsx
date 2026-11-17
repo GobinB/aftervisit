@@ -2,6 +2,7 @@ import Link from "next/link";
 import { BottomBar, CircleNavProvider, HeaderTitle, SidebarCircleNav, type NavTab } from "@/components/circles/CircleNav";
 import { Logo } from "@/components/Logo";
 import { SignOut } from "@/components/circles/SignOut";
+import { InstallButton } from "@/components/pwa/InstallButton";
 import { COPY } from "@/lib/copy";
 
 export type ShellCircle = { personName: string; tabs: NavTab[] };
@@ -48,6 +49,7 @@ export function CircleShell({
             </Link>
             <HeaderTitle fallback={signedIn ? "Your circles" : "Care circle"} personName={personName} tabs={tabs} />
             <nav aria-label="Account" className="flex items-center gap-1 text-[13px]">
+              <InstallButton />
               <Link href="/privacy" className="rounded-lg px-2 py-2 font-medium text-ink-500 hover:text-ink-900">
                 Privacy
               </Link>
