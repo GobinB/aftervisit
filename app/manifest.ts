@@ -1,6 +1,9 @@
 import type { MetadataRoute } from "next";
 
-const appUrl = (process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000").replace(/\/$/, "");
+// NEXT_PUBLIC_APP_URL is set on Vercel for production and previews. Without it, a Vercel build still names
+// its own production address (Vercel sets VERCEL_PROJECT_PRODUCTION_URL), never localhost.
+const vercelUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "";
+const appUrl = (process.env.NEXT_PUBLIC_APP_URL || vercelUrl || "http://localhost:3000").replace(/\/$/, "");
 
 /** Lets phones install the site as an app. Icons are drawn in app/icons. */
 export default function manifest(): MetadataRoute.Manifest {

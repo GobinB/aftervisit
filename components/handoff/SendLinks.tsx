@@ -23,15 +23,19 @@ const action = "inline-flex min-h-[48px] items-center justify-center gap-1.5 rou
 /**
  * The end of a visit: every person who should hear about it, each with their own link on screen and
  * three ways to send it: Text (the phone's Messages app, number and message filled in), Email (the
- * mail app, the same) and Copy link. The app sends nothing itself. Links load by themselves, so
- * there is nothing to tap first; an older link is only replaced on a tap, since that stops it working.
+ * mail app, the same) and Copy link. The app sends nothing itself, so after a tap the row asks
+ * "Sent it?"; only a yes marks the person as told. Links load by themselves, so there is nothing to
+ * tap first; an older link is only replaced on a tap, since that stops it working.
  */
 export function SendLinks({ circleId, personName, people }: { circleId: string; personName: string; people: TellPerson[] }) {
   const [others, setOthers] = useState<Row[]>([]);
   const [links, setLinks] = useState<Record<string, LinkState>>(() =>
     Object.fromEntries(people.filter((person) => person.token).map((person) => [person.memberId, { url: memberUrl(person.token!), hasPin: false, email: null }])),
   );
-  const [sent, setSent] = useState<Record<string, "texted" | "emailed" | "copied">>({});
+  // Text, Email or Copy was tapped: the row asks "Sent it?", since opening Messages or copying the link is not sending it.
+  const [asking, setAsking] = useState<Record<string, "texted" | "emailed" | "copied">>({});
+  // Said yes: marked as told, so they leave the "has not seen the changes" list.
+  const [sent, setSent] = useState<Record<string, boolean>>({});
   // Where copying is blocked, the link on screen is there to press and hold.
   const [copyFailed, setCopyFailed] = useState<Record<string, boolean>>({});
   const [making, setMaking] = useState<string | null>(null);
@@ -77,8 +81,15 @@ export function SendLinks({ circleId, personName, people }: { circleId: string; 
 
   if (!rows.length) return null;
 
-  function told(memberId: string, how: "texted" | "emailed" | "copied") {
-    setSent((all) => ({ ...all, [memberId]: how }));
+  function opened(memberId: string, how: "texted" | "emailed" | "copied") {
+    if (!sent[memberId]) setAsking((all) => ({ ...all, [memberId]: how }));
+  }
+
+  /** Only a yes marks them as told; "Not yet" leaves them on the list of people to tell. */
+  function answer(memberId: string, didSend: boolean) {
+    setAsking((all) => Object.fromEntries(Object.entries(all).filter(([id]) => id !== memberId)));
+    if (!didSend) return;
+    setSent((all) => ({ ...all, [memberId]: true }));
     markToldAction({ circleId, memberIds: [memberId] }).catch(() => undefined);
   }
 
@@ -100,7 +111,7 @@ export function SendLinks({ circleId, personName, people }: { circleId: string; 
       if (!navigator.clipboard) throw new Error("No clipboard here");
       await navigator.clipboard.writeText(url);
       setCopyFailed((all) => ({ ...all, [memberId]: false }));
-      told(memberId, "copied");
+      opened(memberId, "copied");
     } catch {
       setCopyFailed((all) => ({ ...all, [memberId]: true }));
     }
@@ -138,7 +149,7 @@ export function SendLinks({ circleId, personName, people }: { circleId: string; 
                 </p>
                 {sent[row.memberId] ? (
                   <span role="status" className="inline-flex items-center gap-1 text-note font-semibold text-ok-ink">
-                    <Check className="size-4" aria-hidden="true" /> {sent[row.memberId] === "texted" ? "Text opened" : sent[row.memberId] === "emailed" ? "Email opened" : "Link copied"}
+                    <Check className="size-4" aria-hidden="true" /> Sent
                   </span>
                 ) : null}
               </div>
@@ -157,12 +168,12 @@ export function SendLinks({ circleId, personName, people }: { circleId: string; 
                     className="mt-2 w-full truncate rounded-md border border-border-200 bg-surface-50 px-2.5 py-2 text-note text-ink-900 outline-none focus:border-action-500"
                   />
                   <div className="mt-2 grid grid-cols-3 gap-2">
-                    <a href={smsTo(row.phone, msg.body)} onClick={() => told(row.memberId, "texted")} className={`${action} bg-primary-700 text-white hover:bg-primary-900`}>
+                    <a href={smsTo(row.phone, msg.body)} onClick={() => opened(row.memberId, "texted")} className={`${action} bg-primary-700 text-white hover:bg-primary-900`}>
                       <MessageSquare className="size-4 shrink-0" aria-hidden="true" /> Text<span className="sr-only"> {first}</span>
                     </a>
                     <a
                       href={mailTo(ready.email, msg.subject, msg.body)}
-                      onClick={() => told(row.memberId, "emailed")}
+                      onClick={() => opened(row.memberId, "emailed")}
                       className={`${action} border border-primary-700 bg-white text-primary-700 hover:bg-sky-100`}
                     >
                       <Mail className="size-4 shrink-0" aria-hidden="true" /> Email<span className="sr-only"> {first}</span>
@@ -175,6 +186,27 @@ export function SendLinks({ circleId, personName, people }: { circleId: string; 
                     <p role="alert" className="mt-1.5 text-note text-attn-ink">
                       Copying did not work here. Tap the link above, then copy it.
                     </p>
+                  ) : null}
+                  {asking[row.memberId] ? (
+                    <div role="group" aria-label={`Sent it to ${first}?`} className="mt-2 flex flex-wrap items-center gap-2 rounded-lg bg-sky-100/70 px-3 py-2">
+                      <p className="mr-auto text-note text-primary-900">
+                        {asking[row.memberId] === "copied" ? "Link copied. " : ""}Sent it to {first}?
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => answer(row.memberId, true)}
+                        className="inline-flex min-h-11 items-center rounded-lg bg-primary-700 px-4 text-label font-semibold text-white hover:bg-primary-900"
+                      >
+                        Yes, sent
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => answer(row.memberId, false)}
+                        className="inline-flex min-h-11 items-center rounded-lg px-3 text-label font-semibold text-ink-500 hover:bg-white hover:text-ink-900"
+                      >
+                        Not yet
+                      </button>
+                    </div>
                   ) : null}
                 </>
               ) : link && "old" in link ? (

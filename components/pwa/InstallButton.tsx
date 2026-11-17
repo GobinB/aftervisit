@@ -51,7 +51,7 @@ export function InstallButton() {
       >
         <div className="p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
           <div className="flex items-start justify-between gap-3">
-            <h2 id="install-sheet-title" className="font-display text-[22px] leading-tight text-primary-900">
+            <h2 id="install-sheet-title" className="font-display text-section text-primary-900">
               Add to your Home Screen
             </h2>
             <button type="button" onClick={close} aria-label="Close" className="-mt-1 -mr-1 rounded-lg p-2 text-ink-500 hover:text-primary-900">

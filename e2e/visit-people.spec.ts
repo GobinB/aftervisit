@@ -260,6 +260,25 @@ test.describe("Update the circle: who helps, and texting them", () => {
     const samBody = decodeURIComponent((await samRow.getByRole("link", { name: "Text Sam" }).getAttribute("href"))!.split("&body=")[1]);
     expect(samBody).toMatch(/I updated Teodora's care circle on All Hands Care: .+ changed/);
     expect(samBody).toContain(`/i/${tokenFor(seeded.samId)}`);
+
+    // Opening Messages is not sending: a tap asks "Sent it?", and only a yes marks them as told.
+    await page.evaluate(() =>
+      document.addEventListener("click", (event) => {
+        if ((event.target as Element).closest('a[href^="sms:"], a[href^="mailto:"]')) event.preventDefault();
+      }, true),
+    );
+    const toldAt = async (id: string) => ((await rest(`/rest/v1/members?select=last_told_at&id=eq.${id}`)) as { last_told_at: string | null }[])[0].last_told_at;
+    const annaRow = tell.getByRole("listitem").filter({ hasText: "Anna Lee" });
+    await annaRow.getByRole("link", { name: "Text Anna" }).click();
+    await annaRow.getByRole("group", { name: "Sent it to Anna?" }).getByRole("button", { name: "Not yet" }).click();
+    await expect(annaRow.getByRole("group", { name: "Sent it to Anna?" })).toHaveCount(0);
+    await expect(annaRow.getByRole("status")).toHaveCount(0);
+    expect(await toldAt(anna.id)).toBeNull();
+    await samRow.getByRole("link", { name: "Email Sam" }).click();
+    expect(await toldAt(seeded.samId)).toBeNull();
+    await samRow.getByRole("group", { name: "Sent it to Sam?" }).getByRole("button", { name: "Yes, sent" }).click();
+    await expect(samRow.getByRole("status")).toHaveText("Sent");
+    await expect.poll(() => toldAt(seeded.samId)).not.toBeNull();
     await expect(tell.getByText("Ben Typo")).toHaveCount(0);
 
     // Anna's link opens the circle on a phone that has never seen it.
