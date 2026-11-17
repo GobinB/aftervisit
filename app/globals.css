@@ -106,10 +106,11 @@ html {
   html { font-size: 93.75%; }
 }
 /* iPhone zooms the whole page into any text box under 16 px when it is tapped, and stays zoomed.
-   Text boxes on phones are 16 px, so tapping one never zooms. */
+   Text boxes on phones are at least 16 px, so tapping one never zooms, and grow with the person's
+   own text size setting. */
 @media (max-width: 767px) {
   input:not([type="checkbox"]):not([type="radio"]), select, textarea {
-    font-size: 16px;
+    font-size: max(16px, 1rem);
   }
 }
 /* Large-text mode on the handoff page: 120% of the usual size. */

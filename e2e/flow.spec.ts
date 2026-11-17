@@ -382,11 +382,11 @@ test("no horizontal scroll at 360 px; buttons at least 48 px", async ({ page }, 
   await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
+  // Rounded: Android reports 3rem as 47.99994 px.
   const box = await page.getByRole("button", { name: "Continue", exact: true }).boundingBox();
-  expect(box!.height).toBeGreaterThanOrEqual(48);
+  expect(Math.round(box!.height)).toBeGreaterThanOrEqual(48);
   const mark = await page.getByRole("button", { name: "I reviewed it: Medicines" }).boundingBox();
-  expect(mark!.height).toBeGreaterThanOrEqual(48);
-  expect(box!.height).toBeGreaterThanOrEqual(48);
+  expect(Math.round(mark!.height)).toBeGreaterThanOrEqual(48);
 });
 
 test("demo handoff: large text toggle persists, print view hides chrome", async ({ page }) => {
