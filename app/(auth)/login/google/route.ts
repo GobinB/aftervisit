@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
   const fromApp = request.nextUrl.searchParams.get("app") === "1";
   let url: string | null;
   try {
-    url = await startGoogleSignIn(next, fromApp);
+    url = await startGoogleSignIn(next, fromApp, request.nextUrl.searchParams.get("choose") === "1");
   } catch {
     return NextResponse.redirect(new URL("/login?error=config", request.url));
   }

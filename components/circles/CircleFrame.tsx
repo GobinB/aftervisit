@@ -24,7 +24,7 @@ export function circleTabs(actor: Actor, circleId: string): { key: CircleTab; la
 }
 
 export function roleLine(actor: Actor): string {
-  if (actor.kind === "helper") return "Your personal link";
+  if (actor.kind === "helper") return actor.userId ? "Signed in" : "Your personal link";
   return "You run this circle";
 }
 

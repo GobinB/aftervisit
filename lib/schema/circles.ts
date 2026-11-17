@@ -197,4 +197,8 @@ export interface PersonView {
   phone?: string | null;
   /** Areas hidden from this person. Only for a viewer who may manage people. */
   hidden?: string[];
+  /** Saved their link to their Google account. Only for a viewer who may manage people. */
+  signedIn?: boolean;
+  /** That account's Google email. Only for a viewer who may manage people. */
+  accountEmail?: string | null;
 }

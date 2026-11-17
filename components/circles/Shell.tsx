@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BottomBar, CircleNavProvider, HeaderTitle, SidebarCircleNav, type NavTab } from "@/components/circles/CircleNav";
+import { CircleSwitcher, type SwitcherCircle } from "@/components/circles/CircleSwitcher";
 import { Logo } from "@/components/Logo";
 import { SignOut } from "@/components/circles/SignOut";
 import { InstallButton } from "@/components/pwa/InstallButton";
@@ -12,17 +13,20 @@ export type ShellCircle = { personName: string; tabs: NavTab[] };
  * and a slim header names the page; on phones the header shows the logo and the areas sit in a bottom bar.
  * Inside a circle it is drawn once by app/circles/[id]/layout.tsx and stays on screen between areas.
  * `narrow` suits one-column forms. `signedIn` shows Sign out and the list of circles.
+ * `circles` (someone signed in, with two or more circles) adds a switcher between them.
  */
 export function CircleShell({
   children,
   signedIn = false,
   narrow = false,
   circle,
+  circles = [],
 }: {
   children: React.ReactNode;
   signedIn?: boolean;
   narrow?: boolean;
   circle?: ShellCircle;
+  circles?: SwitcherCircle[];
 }) {
   const width = narrow ? "max-w-xl" : "max-w-6xl";
   const homeHref = signedIn ? "/circles" : "/";
@@ -39,6 +43,7 @@ export function CircleShell({
           >
             <Logo size={32} variant="onDark" />
           </Link>
+          <CircleSwitcher circles={circles} tone="dark" />
           <SidebarCircleNav signedIn={signedIn} personName={personName} tabs={tabs} />
         </aside>
 
@@ -47,6 +52,9 @@ export function CircleShell({
             <Link href={homeHref} className="-ml-1 rounded-lg p-1 lg:hidden" aria-label={signedIn ? "All Hands Care, your circles" : "All Hands Care home"}>
               <Logo size={34} />
             </Link>
+            <div className="min-w-0 flex-1 lg:hidden">
+              <CircleSwitcher circles={circles} tone="light" />
+            </div>
             <HeaderTitle fallback={signedIn ? "Your circles" : "Care circle"} personName={personName} tabs={tabs} />
             <nav aria-label="Account" className="flex items-center gap-1 text-[13px]">
               <InstallButton />

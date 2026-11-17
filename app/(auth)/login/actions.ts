@@ -9,7 +9,7 @@ import { createAuthClient } from "../session";
 export async function signInWithGoogle(formData: FormData) {
   let url: string | null;
   try {
-    url = await startGoogleSignIn(String(formData.get("next") ?? ""), false);
+    url = await startGoogleSignIn(String(formData.get("next") ?? ""), false, formData.get("choose") === "1");
   } catch {
     redirect("/login?error=config");
   }

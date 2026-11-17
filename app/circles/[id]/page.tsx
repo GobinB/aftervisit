@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { GettingStarted } from "@/components/circles/GettingStarted";
+import { SaveToAccountCard } from "@/components/circles/SaveToAccount";
 import { Agenda } from "@/components/calendar/Agenda";
 import { ActivityFeed, AddDetails, Alerts, AtAGlance, Card, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayActions, TodayHeader, TodosGlance } from "@/components/circles/Today";
 import { LastVisitCard } from "@/components/visits/VisitNotes";
@@ -209,14 +210,18 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
               <p className="text-ink-500">The care summary is not shared with you.</p>
             )}
           </div>
-          {people ? (
-            <section aria-labelledby="people-title">
-              <SectionLabel>
-                <span id="people-title">People</span>
-              </SectionLabel>
-              <PeopleCard people={people.slice(0, 6)} showSeen={false} href={peopleHref} linkLabel="See everyone" />
-            </section>
-          ) : null}
+          <div className="space-y-5">
+            {people ? (
+              <section aria-labelledby="people-title">
+                <SectionLabel>
+                  <span id="people-title">People</span>
+                </SectionLabel>
+                <PeopleCard people={people.slice(0, 6)} showSeen={false} href={peopleHref} linkLabel="See everyone" />
+              </section>
+            ) : null}
+            {/* Opened with their link: they may save it to their Google account. Signed in already: nothing to offer. */}
+            {actor.kind === "helper" && !actor.userId ? <SaveToAccountCard circleId={id} /> : null}
+          </div>
         </div>
       )}
     </>
