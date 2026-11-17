@@ -19,23 +19,26 @@ export function MedicationList({ medications, circleId, canEdit }: { medications
           med.prescriber ? `From ${med.prescriber}` : null,
           med.refillsLeft !== null ? `${med.refillsLeft} refill${med.refillsLeft === 1 ? "" : "s"} left` : null,
         ].filter(Boolean);
+        // A stopped medicine is crossed out in red, name, strength and when, so nobody reads it as one to take.
+        const stopped = med.status === "stopped";
+        const struck = stopped ? "line-through decoration-attn decoration-2" : "";
         return (
           <li key={med.id} className="flex flex-wrap items-start gap-x-4 gap-y-2 px-4 py-3">
             <div className="min-w-0 flex-1">
-              <p className={`text-[15px] font-semibold ${med.status === "stopped" ? "text-ink-500 line-through decoration-ink-500/40" : "text-ink-900"}`}>
+              <p className={`text-label font-semibold ${stopped ? `text-ink-500 ${struck}` : "text-ink-900"}`}>
                 {med.name}
-                {doseText(med) ? <span className="ml-2 text-[14px] font-normal text-ink-500 no-underline">{doseText(med)}</span> : null}
+                {doseText(med) ? <span className={`ml-2 text-note font-normal text-ink-500 ${struck}`}>{doseText(med)}</span> : null}
               </p>
-              <p className="mt-0.5 text-[13px] text-ink-900">{scheduleText(med)}</p>
-              {med.reason ? <p className="text-[13px] text-ink-500">For {forText(med.reason)}</p> : null}
-              {med.instructions ? <p className="text-[13px] text-ink-500">{med.instructions}</p> : null}
-              {meta.length ? <p className="mt-1 text-[12px] text-ink-500">{meta.join(" · ")}</p> : null}
+              <p className={`mt-0.5 text-hint ${stopped ? `text-ink-500 ${struck}` : "text-ink-900"}`}>{scheduleText(med)}</p>
+              {med.reason ? <p className="text-hint text-ink-500">For {forText(med.reason)}</p> : null}
+              {med.instructions ? <p className={`text-hint text-ink-500 ${struck}`}>{med.instructions}</p> : null}
+              {meta.length ? <p className={`mt-1 text-hint ${stopped ? "font-semibold text-attn-ink" : "text-ink-500"}`}>{meta.join(" · ")}</p> : null}
             </div>
             {canEdit && circleId ? (
               <div className="no-print flex shrink-0 items-center gap-1.5">
                 <Link
                   href={`/circles/${circleId}/medications/${med.id}`}
-                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border-200 bg-white px-2.5 text-[12px] font-medium text-ink-900 hover:bg-paper-100"
+                  className="inline-flex h-8 items-center gap-1.5 rounded-md border border-border-200 bg-white px-2.5 text-hint font-medium text-ink-900 hover:bg-paper-100"
                   aria-label={`Edit ${med.name}`}
                 >
                   <Pencil className="size-3.5" aria-hidden="true" /> Edit

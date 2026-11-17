@@ -10,9 +10,12 @@ async function isolateIp(page: Page) {
 }
 const rand = () => Math.floor(Math.random() * 250) + 1;
 
-/** Review: one button, "Looks right", once nothing needs a look; it moves on to the next page. */
+/** Review: "I reviewed it" on Medicines, Next steps and Watch for, then Continue. */
 async function looksRight(page: Page) {
-  await page.getByRole("button", { name: "Looks right", exact: true }).click();
+  const marks = page.getByRole("button", { name: /^I reviewed it: / });
+  while (await marks.count()) await marks.first().click();
+  await expect(page.getByRole("button", { name: "Continue", exact: true })).not.toHaveAttribute("aria-disabled", "true");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
 }
 
 /** Says "It's right" to every item marked "Please check this". */
@@ -42,9 +45,19 @@ test("sample visit: personal links, task update, acknowledgment, dashboard, revo
   await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
 
-  // One confirm for the whole draft, at the bottom. No check mark on each section.
-  await expect(page.getByRole("button", { name: /^Mark checked/ })).toHaveCount(0);
-  await expect(page.getByText("Matches the original?")).toBeVisible();
+  // "I reviewed it" on Medicines, Next steps and Watch for; Continue waits for all three.
+  await expect(page.getByRole("button", { name: "I reviewed it: Medicines" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "I reviewed it: Next steps" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "I reviewed it: Watch for" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /I reviewed it: The visit|I reviewed it: Good to know/ })).toHaveCount(0);
+  const go = page.getByRole("button", { name: "Continue", exact: true });
+  await expect(go).toHaveAttribute("aria-disabled", "true");
+  await page.getByRole("button", { name: "I reviewed it: Medicines" }).click();
+  await expect(page.getByRole("button", { name: "Reviewed: Medicines" })).toHaveAttribute("aria-pressed", "true");
+  await expect(go).toHaveAttribute("aria-disabled", "true");
+  // Continue before the rest are reviewed only points at what is left; nothing moves on.
+  await go.dispatchEvent("click");
+  await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   await looksRight(page);
 
   await expect(page.getByRole("heading", { name: "Who should see this?" })).toBeVisible();
@@ -244,19 +257,19 @@ test("a medicine marked Please check this holds the medicines confirm until it i
   // Flagged medicines sit first, under their own heading.
   await expect(meds.getByRole("heading", { name: /Check th(is|ese) first/ })).toBeVisible();
   await expect(meds.getByText("Please check this", { exact: true }).first()).toBeVisible();
-  // "Looks right" waits; the one button takes the caregiver to what needs a look instead.
-  await expect(page.getByRole("button", { name: "Looks right", exact: true })).toHaveCount(0);
+  // Medicines cannot be marked reviewed yet; the bar's button takes the caregiver to what needs a look.
+  await expect(page.getByRole("button", { name: "I reviewed it: Medicines" })).toBeDisabled();
   await expect(page.getByText(/items? needs? a look first/)).toBeVisible();
   await page.getByRole("button", { name: /^Show me/ }).click();
   await expect(meds.getByText("Please check this", { exact: true }).first()).toBeInViewport();
   // Nothing can be saved or shared around the review.
   await page.goto("/new/share");
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Looks right", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "I reviewed it: Medicines" })).toBeDisabled();
   const right = page.getByRole("button", { name: "It's right" });
   while (await right.count()) await right.first().click();
   await expect(page.getByRole("region", { name: /Medicines/ }).getByRole("heading", { name: /Check th(is|ese) first/ })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Looks right", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "I reviewed it: Medicines" })).toBeEnabled();
 });
 
 test("a medicine with no name cannot be accepted, or saved without one", async ({ page }) => {
@@ -275,17 +288,17 @@ test("a medicine with no name cannot be accepted, or saved without one", async (
   await expect(meds.getByText("Name not read")).toBeVisible();
   await expect(meds.getByText(/We could not read the name, so we left it blank/)).toBeVisible();
   await expect(meds.getByRole("button", { name: "It's right" })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Looks right", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "I reviewed it: Medicines" })).toBeDisabled();
   await expect(page.getByText("1 item needs a look first")).toBeVisible();
 
   await meds.getByRole("button", { name: "Type it in" }).click();
   await meds.getByRole("button", { name: "Save" }).click();
   await expect(meds.getByRole("alert")).toHaveText("Type the medicine's name from the paper, or delete this medicine.");
-  await expect(page.getByRole("button", { name: "Looks right", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "I reviewed it: Medicines" })).toBeDisabled();
   await meds.getByLabel("Medicine", { exact: true }).fill("Lisinopril");
   await meds.getByRole("button", { name: "Save" }).click();
   await expect(meds.getByRole("heading", { name: /Check th(is|ese) first/ })).toHaveCount(0);
-  await expect(page.getByRole("button", { name: "Looks right", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "I reviewed it: Medicines" })).toBeEnabled();
 });
 
 test("delete with undo, and edits persist across sections", async ({ page }) => {
@@ -369,8 +382,11 @@ test("no horizontal scroll at 360 px; buttons at least 48 px", async ({ page }, 
   await page.getByRole("button", { name: "Try a sample visit" }).first().click();
   await expect(page.getByRole("heading", { name: "Review the draft" })).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth)).toBeLessThanOrEqual(0);
-  const box = await page.getByRole("button", { name: "Looks right", exact: true }).boundingBox();
-  expect(box!.height).toBeGreaterThanOrEqual(48);
+  // Rounded: Android reports 3rem as 47.99994 px.
+  const box = await page.getByRole("button", { name: "Continue", exact: true }).boundingBox();
+  expect(Math.round(box!.height)).toBeGreaterThanOrEqual(48);
+  const mark = await page.getByRole("button", { name: "I reviewed it: Medicines" }).boundingBox();
+  expect(Math.round(mark!.height)).toBeGreaterThanOrEqual(48);
 });
 
 test("demo handoff: large text toggle persists, print view hides chrome", async ({ page }) => {
@@ -572,12 +588,12 @@ test("review: 'See it in the original' marks the clinic's sentence; a phone swap
   if (phone) {
     await expect(page.getByRole("button", { name: "Original" })).toHaveAttribute("aria-pressed", "true");
     await expect(tasks).toBeHidden();
-    await expect(page.getByRole("button", { name: "Looks right", exact: true })).toBeHidden();
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeHidden();
     await page.getByRole("button", { name: "Back to the draft" }).click();
     await expect(original).toBeHidden();
     // Back where the caregiver was.
     await expect(tasks.getByRole("button", { name: "See it in the original" }).nth(1)).toBeInViewport();
-    await expect(page.getByRole("button", { name: "Looks right", exact: true })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Continue", exact: true })).toBeVisible();
   }
 });
 

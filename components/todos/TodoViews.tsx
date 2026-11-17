@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import type { AssignOption } from "@/components/todos/TodoControls";
 import { TodoList, type TodoRow } from "@/components/todos/TodoList";
 import { TODO_VIEW_LABELS, type TodoView } from "@/lib/schema/todos";
 
@@ -16,6 +17,7 @@ export function TodoViews({
   lists,
   empty,
   canEdit,
+  people,
 }: {
   circleId: string;
   views: TodoView[];
@@ -23,6 +25,8 @@ export function TodoViews({
   lists: Record<TodoView, TodoRow[]>;
   empty: Record<TodoView, string>;
   canEdit: boolean;
+  /** Who a reminder can be given to (the caregiver only). */
+  people: AssignOption[];
 }) {
   const [view, setView] = useState<TodoView>(initial);
   const rows = lists[view] ?? [];
@@ -43,7 +47,7 @@ export function TodoViews({
               role="tab"
               aria-selected={on}
               onClick={() => pick(key)}
-              className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-[15px] font-semibold ${
+              className={`inline-flex min-h-11 shrink-0 items-center gap-1.5 rounded-full border px-4 text-label font-semibold ${
                 on ? "border-primary-700 bg-primary-700 text-white" : "border-border-200 bg-white text-ink-900 hover:bg-paper-100"
               }`}
             >
@@ -54,7 +58,11 @@ export function TodoViews({
         })}
       </div>
       <div role="tabpanel" className="rounded-lg border border-border-200 bg-white">
-        {rows.length ? <TodoList todos={rows} circleId={circleId} canEdit={canEdit} /> : <p className="px-4 py-10 text-center text-[14px] text-ink-500">{empty[view]}</p>}
+        {rows.length ? (
+          <TodoList key={view} todos={rows} circleId={circleId} canEdit={canEdit} people={people} />
+        ) : (
+          <p className="px-4 py-10 text-center text-note text-ink-500">{empty[view]}</p>
+        )}
       </div>
     </>
   );

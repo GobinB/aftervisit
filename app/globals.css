@@ -20,6 +20,9 @@
   --color-ok: #15803d; /* reviewed, acknowledged */
   --color-ok-ink: #166534;
   --color-ok-bg: #dcfce7;
+  --color-know: #7c3aed; /* "Good to know" on review */
+  --color-know-ink: #5b21b6;
+  --color-know-bg: #f3eefe;
   --color-heart-500: #e5644e; /* coral: the heart in the logo and small accents. Not for text (3.3:1 on white). */
   --color-sidebar: #1e2a3a; /* app sidebar */
   --color-sidebar-text: #c8d6e8;
@@ -34,12 +37,13 @@
   --text-section: 1.4rem;
   --text-section--line-height: 1.15;
   --text-ui: 0.95rem;
-  /* The app's working sizes, in px so they hold steady while the root size changes (15px phone, 14px wide). */
-  --text-name: 16px; /* a person's name, a row title */
-  --text-label: 15px; /* field labels, choice chips, buttons */
-  --text-note: 14px; /* alerts and short explanations */
-  --text-hint: 13px; /* helper text and one-line summaries under a name */
-  --text-badge: 12px; /* small pills such as "New" */
+  /* The app's working sizes, in rem so they follow the person's own text size setting.
+     At the default 16px: name 18, label 16, note 15, hint 14, badge 13. */
+  --text-name: 1.125rem; /* a person's name, a row title */
+  --text-label: 1rem; /* buttons, field labels, choice chips, medicine names */
+  --text-note: 0.9375rem; /* alerts and short explanations */
+  --text-hint: 0.875rem; /* helper text and one-line summaries; the smallest size for anything that must be read */
+  --text-badge: 0.8125rem; /* only short pills such as "New" */
   --text-item: 1.15rem; /* titles of list items: modules, steps, promises */
   --text-item--line-height: 1.5;
   --text-tag: 0.75rem; /* small uppercase status labels */
@@ -91,18 +95,28 @@
   }
 }
 
-/* 15 px on phones, 14 px on wider screens, like a working app rather than a poster. */
+/* 100% (16 px by default), so the app follows the text size the person set on their phone or
+   computer. Many caregivers are older; small fixed sizes are hard to read. A little tighter on
+   wide screens. */
 html {
-  font-size: 15px;
+  font-size: 100%;
   -webkit-text-size-adjust: 100%;
 }
-@media (min-width: 768px) {
-  html { font-size: 14px; }
+@media (min-width: 1024px) {
+  html { font-size: 93.75%; }
 }
-/* Large-text mode on the handoff page (120%). */
-html.av-large { font-size: 18px; }
-@media (min-width: 768px) {
-  html.av-large { font-size: 16.8px; }
+/* iPhone zooms the whole page into any text box under 16 px when it is tapped, and stays zoomed.
+   Text boxes on phones are at least 16 px, so tapping one never zooms, and grow with the person's
+   own text size setting. */
+@media (max-width: 767px) {
+  input:not([type="checkbox"]):not([type="radio"]), select, textarea {
+    font-size: max(16px, 1rem);
+  }
+}
+/* Large-text mode on the handoff page: 120% of the usual size. */
+html.av-large { font-size: 120%; }
+@media (min-width: 1024px) {
+  html.av-large { font-size: 112.5%; }
 }
 
 /* The title face has one weight; never fake a bold one. */

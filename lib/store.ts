@@ -1,7 +1,7 @@
 "use client";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
-import { confirmAll, type Reviewed } from "./review";
+import type { Reviewed, ReviewSection } from "./review";
 import type { HandoffDraft, RecipientShare, Role } from "./schema";
 
 /**
@@ -25,7 +25,7 @@ interface FlowState {
   isSample: boolean;
   /** Set when the parser could not place anything (shows the "Nothing parsed" message). */
   unsorted: boolean;
-  /** What Review recorded as checked (lib/review.ts). "Looks right" marks every section at once. */
+  /** The "I reviewed it" buttons on Review (lib/review.ts). */
   reviewed: Reviewed;
   caregiverFirstName: string;
   recipients: RecipientShare[];
@@ -41,8 +41,7 @@ interface FlowState {
     opts: { isSample: boolean; unsorted?: boolean; caregiverFirstName?: string; recipients?: RecipientShare[]; circleId?: string | null; reader?: DraftReader | null },
   ) => void;
   updateDraft: (fn: (d: HandoffDraft) => HandoffDraft) => void;
-  /** "Looks right" on Review: the whole draft is checked. */
-  confirmReview: () => void;
+  setReviewed: (section: ReviewSection, value: boolean) => void;
   setRecipients: (r: RecipientShare[]) => void;
   setCaregiver: (name: string) => void;
   setCreated: (c: CreatedHandoff | null) => void;
@@ -81,7 +80,7 @@ export const useFlow = create<FlowState>()(
           reader: opts.reader ?? null,
         }),
       updateDraft: (fn) => set((s) => (s.draft ? { draft: fn(s.draft) } : s)),
-      confirmReview: () => set({ reviewed: confirmAll() }),
+      setReviewed: (section, value) => set((s) => ({ reviewed: { ...s.reviewed, [section]: value } })),
       setRecipients: (recipients) => set({ recipients }),
       setCaregiver: (caregiverFirstName) => set({ caregiverFirstName }),
       setCreated: (created) => set({ created }),
@@ -95,10 +94,11 @@ export const useFlow = create<FlowState>()(
     {
       name: "aftervisit-flow",
       storage: createJSONStorage(() => sessionStorage),
-      version: 4,
+      version: 5,
       // Version 2 kept one tick per section. A draft from before starts its two confirms again.
       // 4: one check mark per section instead of two confirms, so ticks from before do not carry over.
-      migrate: (persisted, version) => (version < 4 ? { ...(persisted as object), reviewed: {} } : persisted) as FlowState,
+      // 5: three "I reviewed it" buttons instead of one "Looks right"; a review from before starts again.
+      migrate: (persisted, version) => (version < 5 ? { ...(persisted as object), reviewed: {} } : persisted) as FlowState,
     },
   ),
 );

@@ -29,6 +29,7 @@ export type TodoInput = z.infer<typeof TodoInputSchema>;
 
 export const TodoChangeSchema = z.object({ circleId: z.string().uuid(), id: z.string().uuid() }).strict();
 export const TodoDoneSchema = TodoChangeSchema.extend({ done: z.boolean() }).strict();
+export const TodoAssignSchema = TodoChangeSchema.extend({ assignee: AssigneeSchema }).strict();
 
 export type Todo = {
   id: string;

@@ -11,7 +11,7 @@ export function SignOut() {
     <button
       type="button"
       disabled={pending}
-      className="rounded-lg px-2 py-2 font-medium text-primary-700 disabled:opacity-50"
+      className="rounded-lg px-2 py-2 font-medium whitespace-nowrap text-primary-700 disabled:opacity-50"
       onClick={() =>
         start(async () => {
           await clearCircleKeys().catch(() => undefined);

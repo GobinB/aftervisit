@@ -3,8 +3,8 @@
 import "server-only";
 import { revalidatePath } from "next/cache";
 import { getActor } from "@/lib/auth";
-import { TodoChangeSchema, TodoDoneSchema, TodoInputSchema } from "@/lib/schema/todos";
-import { claimTodo, deleteTodo, saveTodo, setTodoDone } from "@/services/todos";
+import { TodoAssignSchema, TodoChangeSchema, TodoDoneSchema, TodoInputSchema } from "@/lib/schema/todos";
+import { assignTodo, claimTodo, deleteTodo, saveTodo, setTodoDone } from "@/services/todos";
 
 function refresh(circleId: string) {
   revalidatePath(`/circles/${circleId}`);
@@ -33,6 +33,17 @@ export async function claimTodoAction(input: unknown) {
   if (!actor) return { ok: false as const, error: "Open your link again to continue." };
   const result = await claimTodo(actor, parsed.data.circleId, parsed.data.id);
   refresh(parsed.data.circleId);
+  return result;
+}
+
+/** "Give to…": hands a reminder to someone in the circle, or to the caregiver. */
+export async function assignTodoAction(input: unknown) {
+  const parsed = TodoAssignSchema.safeParse(input);
+  if (!parsed.success) return { ok: false as const, error: "Check the form and try again." };
+  const actor = await getActor(parsed.data.circleId);
+  if (!actor) return { ok: false as const, error: "Sign in to continue." };
+  const result = await assignTodo(actor, parsed.data.circleId, parsed.data.id, parsed.data.assignee);
+  if (result.ok) refresh(parsed.data.circleId);
   return result;
 }
 

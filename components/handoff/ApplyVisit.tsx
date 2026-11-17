@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { applyVisitAction, type VisitContext } from "@/app/actions/visits";
 import { BackLink } from "@/components/circles/PageHead";
+import { shortDate } from "@/lib/format";
 import { StepHeader } from "@/components/StepHeader";
 import { doseText, scheduleText, MED_SCHEDULE_LABELS } from "@/lib/schema/medications";
 import type { HandoffDraft } from "@/lib/schema";
@@ -370,6 +371,15 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
       <StepHeader current="Share" circle />
       <h1 className="font-display text-[28px] leading-tight text-primary-900">Update {context.personName}&apos;s circle</h1>
       <p className="mt-1 text-ink-500">Untick what you don&apos;t want. Pick who helps.</p>
+      {/* The visit has no review button of its own, so its date and clinician are shown again here:
+          dates like "in 2 weeks" are counted from that day. */}
+      <p className="mt-3 rounded-lg border border-border-200 bg-white px-3 py-2 text-note text-ink-900">
+        <span className="font-semibold">Visit:</span> {[draft.visit.date ? shortDate(draft.visit.date) : "no date read", draft.visit.provider, draft.visit.specialty].filter(Boolean).join(" · ")}
+        {" · "}
+        <Link href="/new/review" className="font-semibold text-primary-700 underline underline-offset-2">
+          Not right? Change it
+        </Link>
+      </p>
 
       <section aria-labelledby="meds-title" className="mt-5">
         <h2 id="meds-title" className={sectionTitle}>

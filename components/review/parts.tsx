@@ -1,5 +1,5 @@
 "use client";
-import { FileSearch, Pencil, Plus, Trash2 } from "lucide-react";
+import { Check, FileSearch, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge, MED_KIND_LABEL } from "@/components/Badge";
 import { COPY } from "@/lib/copy";
@@ -10,12 +10,28 @@ import { MED_KINDS, type MedicationChange, type Task } from "@/lib/schema";
 export const inputClass =
   "w-full rounded-lg border border-border-200 bg-white px-3 py-2 text-base outline-none focus:border-action-500 focus:ring-2 focus:ring-action-500/30";
 
-/** One section of the draft on Review: a heading with a count, its items, and an Add button. */
+/** Each section has its own colour, so the page reads as parts and not one block of words. Medicines are green. */
+export type SectionTone = "meds" | "visit" | "steps" | "watch" | "know" | "ask";
+const TONES: Record<SectionTone, { card: string; title: string }> = {
+  meds: { card: "border-ok/50 bg-ok-bg/40 border-l-ok", title: "text-ok-ink" },
+  visit: { card: "border-border-200 bg-white border-l-primary-700", title: "text-primary-900" },
+  steps: { card: "border-med/30 bg-med-bg/30 border-l-med", title: "text-med-ink" },
+  watch: { card: "border-attn/30 bg-attn-bg/30 border-l-attn", title: "text-attn-ink" },
+  know: { card: "border-know/30 bg-know-bg/60 border-l-know", title: "text-know-ink" },
+  ask: { card: "border-border-200 bg-white border-l-ink-500", title: "text-ink-900" },
+};
+
+/** The "I reviewed it" button at the foot of a section, on the left. Tapped again, it takes the review back. */
+export type SectionReview = { done: boolean; blocked?: string; onToggle: (done: boolean) => void };
+
+/** One section of the draft on Review: a heading with a count, its items, and at the foot "I reviewed it" and Add. */
 export function Section({
   id,
   icon,
   title,
   count,
+  tone,
+  review,
   onAdd,
   addLabel = "Add one",
   children,
@@ -24,26 +40,58 @@ export function Section({
   icon: ReactNode;
   title: string;
   count?: number;
+  tone: SectionTone;
+  review?: SectionReview;
   onAdd?: () => void;
   addLabel?: string;
   children: ReactNode;
 }) {
+  const colors = TONES[tone];
   return (
-    <section aria-labelledby={`${id}-title`} className="animate-fade-in scroll-mt-36 rounded-xl border border-border-200 bg-white px-4 pt-3 pb-1.5">
-      <h2 id={`${id}-title`} className="flex items-center gap-2 text-item font-semibold text-primary-900">
-        <span className="text-primary-700" aria-hidden="true">
-          {icon}
-        </span>
+    <section aria-labelledby={`${id}-title`} className={`animate-fade-in scroll-mt-36 rounded-xl border border-l-4 px-4 pt-3 pb-2 ${colors.card}`}>
+      <h2 id={`${id}-title`} className={`flex items-center gap-2 text-item font-semibold ${colors.title}`}>
+        <span aria-hidden="true">{icon}</span>
         {title}
         {count !== undefined ? <span className="text-label font-normal text-ink-500">({count})</span> : null}
       </h2>
       <div className="mt-0.5">{children}</div>
-      {onAdd ? (
-        <button type="button" onClick={onAdd} className="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100">
-          <Plus size={18} aria-hidden="true" /> {addLabel}
-        </button>
+      {review || onAdd ? (
+        <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
+          {review ? <ReviewedButton section={title} {...review} /> : null}
+          {onAdd ? (
+            <button type="button" onClick={onAdd} className="inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-white/70">
+              <Plus size={18} aria-hidden="true" /> {addLabel}
+            </button>
+          ) : null}
+        </div>
       ) : null}
     </section>
+  );
+}
+
+function ReviewedButton({ section, done, blocked, onToggle }: SectionReview & { section: string }) {
+  const hintId = useId();
+  return (
+    <span className="inline-flex flex-col">
+      <button
+        type="button"
+        aria-pressed={done}
+        aria-label={`${done ? "Reviewed" : "I reviewed it"}: ${section}`}
+        aria-describedby={blocked ? hintId : undefined}
+        disabled={!!blocked && !done}
+        onClick={() => onToggle(!done)}
+        className={`inline-flex min-h-12 items-center gap-1.5 rounded-lg border-2 px-4 text-label font-semibold disabled:cursor-not-allowed disabled:opacity-50 ${
+          done ? "border-ok bg-ok text-white hover:bg-ok-ink" : "border-ok bg-white text-ok-ink hover:bg-ok-bg"
+        }`}
+      >
+        <Check size={18} strokeWidth={3} aria-hidden="true" /> {done ? "Reviewed" : "I reviewed it"}
+      </button>
+      {blocked ? (
+        <span id={hintId} className="mt-1 text-hint font-medium text-med-ink">
+          {blocked}
+        </span>
+      ) : null}
+    </span>
   );
 }
 

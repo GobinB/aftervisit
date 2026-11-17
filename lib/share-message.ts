@@ -5,17 +5,19 @@ import type { HelperRole, VisibilityArea } from "@/lib/schema/circles";
  * ("medicines and the calendar"). The link is the same one the person already has.
  * `hasPin`: the person has a PIN, which is never shown again, so the message only reminds them of it.
  */
-export type ShareDetails = { name: string; personName?: string; url: string; pin?: string | null; hasPin?: boolean; changed?: string };
+export type ShareDetails = { name: string; personName?: string; url: string; pin?: string | null; hasPin?: boolean; changed?: string; newLink?: boolean };
 
 /** The ready-written message for a person's link. A new PIN goes in it; an existing one is only mentioned. */
-export function shareMessage({ name, personName, url, pin, hasPin, changed }: ShareDetails): { subject: string; body: string } {
+export function shareMessage({ name, personName, url, pin, hasPin, changed, newLink }: ShareDetails): { subject: string; body: string } {
   const first = name.trim().split(/\s+/)[0] || name.trim();
   const circle = personName ? `${personName}'s care circle` : "our care circle";
   const lines = [
     `Hi ${first},`,
     "",
     changed
-      ? `I updated ${circle} on All Hands Care: ${changed} changed. Have a look here (it is the same link as before):`
+      ? newLink
+        ? `I updated ${circle} on All Hands Care: ${changed} changed. Here is your new link (the one you had before no longer works):`
+        : `I updated ${circle} on All Hands Care: ${changed} changed. Have a look here (it is the same link as before):`
       : `This is your own link to ${circle} on All Hands Care. It shows the calendar, reminders and other things I have shared with you.`,
     "",
     url,

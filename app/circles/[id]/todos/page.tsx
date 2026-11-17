@@ -49,8 +49,8 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
         subtitle={`${personName} · ${counts.open} open${seesAll && counts.volunteer ? ` · ${counts.volunteer} need a volunteer` : ""}`}
         help={
           canEdit
-            ? "Things that need doing. Type one, or tap a suggestion, pick who does it, and tick it off when it is done."
-            : "Things that need doing. Tap “I'll do it” to take one, and tick it off when it is done."
+            ? "Type one, pick who does it, and tap Mark done when it is done."
+            : "Tap “I'll do it” to take one, and Mark done when it is done."
         }
       />
 
@@ -60,7 +60,7 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
         </div>
       ) : null}
 
-      <TodoViews circleId={id} views={views} initial={view} lists={lists} empty={EMPTY} canEdit={canEdit} />
+      <TodoViews circleId={id} views={views} initial={view} lists={lists} empty={EMPTY} canEdit={canEdit} people={canEdit ? [{ value: "caregiver", label: "Me" }, ...options] : []} />
     </>
   );
 }

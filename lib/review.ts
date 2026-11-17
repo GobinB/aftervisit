@@ -1,10 +1,11 @@
 import type { HandoffDraft, MedicationChange, Task } from "./schema";
 
 /**
- * The rules of the review screen, in one place. The caregiver compares the draft with the original
- * and presses one button, "Looks right", which marks every section checked (confirmAll). Nothing is
- * saved or shared until then, and the button cannot be pressed while an item the reader was unsure
- * of is still waiting to be looked at.
+ * The rules of the review screen, in one place. Three sections carry an "I reviewed it" button: the
+ * medicines (always), the next steps and what to watch for (when they have something). Continue opens
+ * once those are reviewed. A section cannot be marked reviewed while an item in it the reader was
+ * unsure of is still waiting to be looked at. Nothing is saved or shared until then; the pages that
+ * save check again.
  */
 export const REVIEW_SECTIONS = ["medications", "visit", "tasks", "watchFor", "otherNotes", "questions"] as const;
 export type ReviewSection = (typeof REVIEW_SECTIONS)[number];
@@ -31,15 +32,15 @@ export function taskNeedsLook(task: Pick<Task, "confidence">): boolean {
 
 type ReviewDraft = Pick<HandoffDraft, "medications" | "tasks" | "watchFor" | "otherNotes" | "questions">;
 
+/** The sections with an "I reviewed it" button, in page order. */
+export const REVIEWED_SECTIONS = ["medications", "tasks", "watchFor"] as const satisfies readonly ReviewSection[];
+
 /**
- * The sections that need a tick. The medicines and the visit always do: an empty medicines list is
- * exactly what the caregiver must notice if the reader missed one. The others only when they have items.
+ * The sections that must be reviewed. The medicines always: an empty medicines list is exactly what
+ * the caregiver must notice if the reader missed one. Next steps and Watch for when they have items.
  */
 export function sectionsToCheck(draft: ReviewDraft): ReviewSection[] {
-  return REVIEW_SECTIONS.filter((section) => {
-    if (section === "medications" || section === "visit") return true;
-    return draft[section].length > 0;
-  });
+  return REVIEWED_SECTIONS.filter((section) => section === "medications" || draft[section].length > 0);
 }
 
 export interface ReviewState {
@@ -80,11 +81,6 @@ export function reviewState(draft: ReviewDraft, reviewed: Reviewed): ReviewState
 /** True when the draft may go on to be saved or shared. Checked again on the pages that save. */
 export function reviewComplete(draft: ReviewDraft | null, reviewed: Reviewed): boolean {
   return !!draft && reviewState(draft, reviewed).complete;
-}
-
-/** Every section marked checked: what pressing "Looks right" on Review records. */
-export function confirmAll(): Reviewed {
-  return Object.fromEntries(REVIEW_SECTIONS.map((section) => [section, true])) as Reviewed;
 }
 
 /** The ids of the items still waiting for a look, medicines first, so the button can take the caregiver to the next one. */

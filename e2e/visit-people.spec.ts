@@ -37,7 +37,7 @@ async function rest(path: string, init: RequestInit = {}, bearer = SERVICE) {
   return text ? JSON.parse(text) : null;
 }
 
-type Seeded = { circleId: string; ownerToken: string; ownerSession: Record<string, unknown>; joyId: string; oldJoyToken: string; samId: string };
+type Seeded = { circleId: string; ownerToken: string; ownerSession: Record<string, unknown>; joyId: string; oldJoyToken: string; samId: string; rosaId: string; oldRosaToken: string };
 
 async function seed(): Promise<Seeded | null> {
   const email = `visit-people.${randomUUID()}@example.com`;
@@ -58,6 +58,9 @@ async function seed(): Promise<Seeded | null> {
   const joyId = randomUUID();
   // Sam is in the circle with a current link and is not picked for anything on this visit.
   const samId = randomUUID();
+  // Rosa has an older link too and is not picked: "Tell Rosa" must not replace it without a tap.
+  const rosaId = randomUUID();
+  const oldRosaToken = randomUUID().replace(/-/g, "").slice(0, 24);
   // Joy has an older, random link, from before links could be shared again.
   const oldJoyToken = randomUUID().replace(/-/g, "").slice(0, 24);
   await rest("/rest/v1/members", {
@@ -76,6 +79,18 @@ async function seed(): Promise<Seeded | null> {
         expires_at: new Date(now.getTime() + 30 * 86_400_000).toISOString(),
       },
       {
+        id: rosaId,
+        circle_id: circleId,
+        name: "Rosa Diaz",
+        role: "family",
+        phone: null,
+        visibility: {},
+        token_hash: hashOf(oldRosaToken),
+        link_version: 1,
+        link_issued_at: now.toISOString(),
+        expires_at: new Date(now.getTime() + 30 * 86_400_000).toISOString(),
+      },
+      {
         id: samId,
         circle_id: circleId,
         name: "Sam Ortiz",
@@ -89,7 +104,7 @@ async function seed(): Promise<Seeded | null> {
       },
     ]),
   });
-  return { circleId, ownerToken, ownerSession, joyId, oldJoyToken, samId };
+  return { circleId, ownerToken, ownerSession, joyId, oldJoyToken, samId, rosaId, oldRosaToken };
 }
 
 async function signInAsCaregiver(page: Page, session: Record<string, unknown>) {
@@ -108,7 +123,7 @@ function reviewedFlow(circleId: string) {
     { id: "t-eye", title: "Eye doctor visit", category: "appointment", confidence: "high" },
   ];
   const reviewed = { medications: true, visit: true, tasks: true, watchFor: true, otherNotes: true, questions: true };
-  return JSON.stringify({ state: { draft, isSample: false, unsorted: false, reviewed, caregiverFirstName: "", recipients: [], created: null, originalName: null, circleId, reader: "builtin" }, version: 4 });
+  return JSON.stringify({ state: { draft, isSample: false, unsorted: false, reviewed, caregiverFirstName: "", recipients: [], created: null, originalName: null, circleId, reader: "builtin" }, version: 5 });
 }
 
 test.describe("Update the circle: who helps, and texting them", () => {
@@ -141,11 +156,12 @@ test.describe("Update the circle: who helps, and texting them", () => {
 
     // Me, the people in the circle, and Add someone. The old "decide later" choices are gone; nobody is picked to start with.
     const appt = page.getByRole("list", { name: "Who's going to Cardiology follow-up" });
-    await expect(appt.getByRole("button")).toHaveCount(4);
+    await expect(appt.getByRole("button")).toHaveCount(5);
     await expect(appt.getByRole("button").first()).toHaveText("Me");
     await expect(appt.getByRole("button").last()).toHaveText("Add someone");
     await expect(appt.getByRole("button", { name: "Joy Banda (Home aide)" })).toBeVisible();
     await expect(appt.getByRole("button", { name: "Sam Ortiz (Family)" })).toBeVisible();
+    await expect(appt.getByRole("button", { name: "Rosa Diaz (Family)" })).toBeVisible();
     await expect(page.getByRole("button", { name: /Decide later|Needs someone|Anyone can offer/ })).toHaveCount(0);
     await expect(appt.getByRole("button", { pressed: true })).toHaveCount(0);
 
@@ -304,6 +320,55 @@ test.describe("Update the circle: who helps, and texting them", () => {
     await expect.poll(() => toldAt(anna.id)).not.toBeNull();
     await panel.getByRole("button", { name: "Done" }).click();
     await expect(page.getByRole("button", { name: "Tell Anna" })).toHaveCount(0);
+
+    // "Tell Rosa": her older link is left alone until "Make a new link".
+    const rosaHash = async () => ((await rest(`/rest/v1/members?select=token_hash&id=eq.${seeded.rosaId}`)) as { token_hash: string }[])[0].token_hash;
+    await updates.getByRole("button", { name: "Tell Rosa" }).click();
+    await expect(updates).toContainText("Making a new one to text them stops the old one working.");
+    expect(await rosaHash()).toBe(hashOf(seeded.oldRosaToken));
+    await updates.getByRole("button", { name: "Make a new link" }).click();
+    const rosaPanel = page.getByRole("region", { name: "Tell Rosa what changed" });
+    await expect(rosaPanel).toContainText("with their new link");
+    expect(await rosaHash()).toBe(hashOf(tokenFor(seeded.rosaId)));
+    const rosaBody = decodeURIComponent((await rosaPanel.getByRole("link", { name: /Text message/ }).getAttribute("href"))!.split("&body=")[1]);
+    expect(rosaBody).toContain("Here is your new link (the one you had before no longer works)");
+    await rosaPanel.getByRole("button", { name: "Done" }).click();
+
+    // Reminders: Mark done keeps the row, crossed out; undoing asks first; "Give to…" hands one over.
+    await page.goto(`/circles/${seeded.circleId}/todos`);
+    const todoStatus = async (title: string) =>
+      ((await rest(`/rest/v1/todos?select=status,assignee_member_id&circle_id=eq.${seeded.circleId}&title=eq.${encodeURIComponent(title)}`)) as { status: string; assignee_member_id: string | null }[])[0];
+    await page.getByRole("button", { name: "Mark done: Pick up the new prescription" }).click();
+    await expect.poll(async () => (await todoStatus("Pick up the new prescription")).status).toBe("done");
+    // Still on the Open list after the save comes back.
+    await page.waitForTimeout(800);
+    const doneButton = page.getByRole("button", { name: "Done: Pick up the new prescription" });
+    await expect(doneButton).toBeVisible();
+    await expect(page.getByText("Pick up the new prescription", { exact: true })).toHaveClass(/line-through/);
+    await doneButton.click();
+    const undo = page.getByRole("group", { name: "Not done yet: Pick up the new prescription?" });
+    await undo.getByRole("button", { name: "Keep done" }).click();
+    expect((await todoStatus("Pick up the new prescription")).status).toBe("done");
+    await doneButton.click();
+    await undo.getByRole("button", { name: "Yes, open it again" }).click();
+    await expect.poll(async () => (await todoStatus("Pick up the new prescription")).status).toBe("open");
+    // Eye doctor visit needs a volunteer: give it to Sam.
+    await page.getByRole("button", { name: "Give to…" }).first().click();
+    await page.getByRole("list", { name: 'Give "Eye doctor visit" to' }).getByRole("button", { name: /Sam Ortiz/ }).click();
+    await expect.poll(async () => (await todoStatus("Eye doctor visit")).assignee_member_id).toBe(seeded.samId);
+
+    // At 375 px wide (a small phone): the calendar's week is a list by day, not the grid, and no
+    // circle screen scrolls sideways.
+    await page.setViewportSize({ width: 375, height: 812 });
+    await page.goto(`/circles/${seeded.circleId}/calendar?week=2026-12-06`);
+    await expect(page.getByRole("region", { name: "This week" }).getByText("Cardiology follow-up")).toBeVisible();
+    await expect(page.getByText("Slide sideways to see the whole week.")).toBeHidden();
+    for (const path of ["", "/calendar", "/todos", "/medications", "/members", "/emergency"]) {
+      await page.goto(`/circles/${seeded.circleId}${path}`);
+      await page.waitForLoadState("networkidle");
+      const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+      expect(overflow, path || "Today").toBeLessThanOrEqual(0);
+    }
     await expect(tell.getByText("Ben Typo")).toHaveCount(0);
 
     // Anna's link opens the circle on a phone that has never seen it.

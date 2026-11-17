@@ -4,7 +4,7 @@ import { Check, Copy, Mail, MessageSquare } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { mailtoHref, shareMessage, smsTo } from "@/lib/share-message";
 
-export type ShareableLink = { url: string; name: string; email: string | null; phone?: string | null; pin?: string | null; hasPin?: boolean; personName?: string; changed?: string };
+export type ShareableLink = { url: string; name: string; email: string | null; phone?: string | null; pin?: string | null; hasPin?: boolean; personName?: string; changed?: string; newLink?: boolean };
 
 const choice =
   "flex min-h-16 w-full items-center gap-3 rounded-xl border-2 px-4 text-left text-[17px] font-bold transition-colors focus-visible:outline-offset-2";
@@ -24,7 +24,7 @@ export function ShareLink({ link, onDone, onSent, fresh = true }: { link: Sharea
   };
   const heading = useRef<HTMLHeadingElement>(null);
   const first = link.name.trim().split(/\s+/)[0] || link.name;
-  const details = { name: link.name, personName: link.personName, url: link.url, pin: link.pin, hasPin: link.hasPin, changed: link.changed };
+  const details = { name: link.name, personName: link.personName, url: link.url, pin: link.pin, hasPin: link.hasPin, changed: link.changed, newLink: link.newLink };
 
   useEffect(() => {
     heading.current?.focus();
@@ -52,7 +52,7 @@ export function ShareLink({ link, onDone, onSent, fresh = true }: { link: Sharea
         {link.changed ? `Tell ${first} what changed` : `Send ${first} their link`}
       </h2>
       <p className="mt-1 text-[15px] text-ink-500">
-        Pick one. A message is written for you{link.pin ? ", with the PIN in it" : link.changed ? ", with the same link as before" : ""}.
+        Pick one. A message is written for you{link.pin ? ", with the PIN in it" : link.newLink ? ", with their new link" : link.changed ? ", with the same link as before" : ""}.
       </p>
       <div className="mt-4 grid gap-2.5">
         <a href={mailtoHref(link.email, details)} onClick={opened} className={`${choice} border-primary-700 bg-primary-700 text-white hover:bg-primary-900`}>
