@@ -11,7 +11,7 @@ type Contact = { name: string; relationship?: string; phone?: string };
 type Candidate = { name: string; phone: string; roleLabel: string };
 
 const field = "mt-1 w-full min-h-12 rounded-lg border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500";
-const button = "inline-flex min-h-12 items-center gap-2 rounded-lg border border-border-200 bg-white px-4 text-ui font-semibold text-primary-700 hover:bg-sky-100 disabled:opacity-50";
+const button = "inline-flex min-h-12 items-center gap-2 rounded-lg border border-border-200 bg-white px-4 text-label font-semibold text-primary-700 hover:bg-sky-100 disabled:opacity-50";
 
 /**
  * The Emergency page's contacts. Everyone sees the list with a call button for each; the caregiver can
@@ -113,19 +113,19 @@ export function EmergencyContacts({ circleId, contacts, candidates, canEdit }: {
           {adding ? (
             <form onSubmit={add} aria-label="Add an emergency contact" className="mt-3 space-y-3 rounded-lg border border-border-200 bg-surface-50 p-3">
               <div>
-                <label htmlFor={ids.name} className="text-ui font-semibold text-ink-900">
+                <label htmlFor={ids.name} className="text-label font-semibold text-ink-900">
                   Name
                 </label>
                 <input id={ids.name} className={field} value={name} maxLength={80} autoComplete="off" placeholder="e.g. Anna" onChange={(event) => setName(event.target.value)} />
               </div>
               <div>
-                <label htmlFor={ids.who} className="text-ui font-semibold text-ink-900">
+                <label htmlFor={ids.who} className="text-label font-semibold text-ink-900">
                   Who they are <span className="font-normal text-ink-500">(optional)</span>
                 </label>
                 <input id={ids.who} className={field} value={who} maxLength={80} autoComplete="off" placeholder="e.g. Daughter, neighbor" onChange={(event) => setWho(event.target.value)} />
               </div>
               <div>
-                <label htmlFor={ids.phone} className="text-ui font-semibold text-ink-900">
+                <label htmlFor={ids.phone} className="text-label font-semibold text-ink-900">
                   Phone
                 </label>
                 <input id={ids.phone} className={field} value={phone} maxLength={40} inputMode="tel" autoComplete="off" placeholder="e.g. 555-010-0142" onChange={(event) => setPhone(event.target.value)} />
@@ -134,7 +134,7 @@ export function EmergencyContacts({ circleId, contacts, candidates, canEdit }: {
                 <Button type="submit" variant="primary" disabled={pending}>
                   {pending ? "Saving" : "Save contact"}
                 </Button>
-                <button type="button" disabled={pending} onClick={() => setAdding(false)} className="inline-flex min-h-12 items-center rounded-lg px-4 text-ui font-semibold text-ink-500 hover:bg-paper-100">
+                <button type="button" disabled={pending} onClick={() => setAdding(false)} className="inline-flex min-h-12 items-center rounded-lg px-4 text-label font-semibold text-ink-500 hover:bg-paper-100">
                   Cancel
                 </button>
               </div>

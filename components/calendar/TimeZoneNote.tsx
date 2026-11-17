@@ -90,7 +90,7 @@ export function TimeZoneNote({
   const current = saved ?? device;
 
   return (
-    <div className={`text-ui text-ink-900 ${embedded ? "mt-3" : "mt-6 max-w-2xl rounded-lg border border-border-200 bg-white p-4"}`}>
+    <div className={`text-label text-ink-900 ${embedded ? "mt-3" : "mt-6 max-w-2xl rounded-lg border border-border-200 bg-white p-4"}`}>
       {current ? (
         <p>
           Times are in <strong>{zoneName(current)}</strong>, where {personName} lives. A medicine at 7:00 shows at 7:00 there, wherever you are.
@@ -99,7 +99,7 @@ export function TimeZoneNote({
       {canEdit ? (
         <div className="mt-3 flex flex-wrap items-end gap-2">
           <div className="min-w-56 flex-1">
-            <label htmlFor={selectId} className="text-ui font-semibold text-ink-900">
+            <label htmlFor={selectId} className="text-note font-semibold text-ink-900">
               {personName} lives in
             </label>
             <select
@@ -125,12 +125,12 @@ export function TimeZoneNote({
         </div>
       ) : null}
       {problem ? (
-        <p role="alert" className="mt-2 text-ui text-attn-ink">
+        <p role="alert" className="mt-2 text-note text-attn-ink">
           {problem}
         </p>
       ) : null}
       {note ? (
-        <p role="status" className="mt-2 text-ui text-ok-ink">
+        <p role="status" className="mt-2 text-note text-ok-ink">
           {note}
         </p>
       ) : null}
