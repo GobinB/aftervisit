@@ -89,6 +89,7 @@ export function assignedMessage({
   url,
   isNew,
   hasPin,
+  newLink,
   assigned,
 }: {
   name: string;
@@ -96,6 +97,8 @@ export function assignedMessage({
   url: string;
   isNew: boolean;
   hasPin?: boolean;
+  /** Someone already in the circle whose older link was just replaced, so the one they had stopped working. */
+  newLink?: boolean;
   assigned: Assigned;
 }): string {
   const first = name.trim().split(/\s+/)[0] || name.trim();
@@ -107,7 +110,13 @@ export function assignedMessage({
   const lines = [`Hi ${first},`, ""];
   if (items.length) {
     lines.push(isNew ? `I added you to ${circle} on All Hands Care and put you down for:` : `I updated ${circle} on All Hands Care and put you down for:`, ...items, "");
-    lines.push(isNew ? "The details are on your own link. No account or password needed:" : "The details are on your link (the same link as before):");
+    lines.push(
+      isNew
+        ? "The details are on your own link. No account or password needed:"
+        : newLink
+          ? "The details are on your new link. The one you had before no longer works:"
+          : "The details are on your link (the same link as before):",
+    );
   } else {
     lines.push(`I added you to ${circle} on All Hands Care. This is your own link. No account or password needed:`);
   }

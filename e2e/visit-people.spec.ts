@@ -37,7 +37,7 @@ async function rest(path: string, init: RequestInit = {}, bearer = SERVICE) {
   return text ? JSON.parse(text) : null;
 }
 
-type Seeded = { circleId: string; ownerToken: string; ownerSession: Record<string, unknown>; joyId: string };
+type Seeded = { circleId: string; ownerToken: string; ownerSession: Record<string, unknown>; joyId: string; oldJoyToken: string };
 
 async function seed(): Promise<Seeded | null> {
   const email = `visit-people.${randomUUID()}@example.com`;
@@ -56,6 +56,8 @@ async function seed(): Promise<Seeded | null> {
   const circleId = (await rest("/rest/v1/rpc/create_circle", { method: "POST", body: JSON.stringify({ p_content: content, p_consents: consents }) }, ownerToken)) as string;
   const now = new Date();
   const joyId = randomUUID();
+  // Joy has an older, random link, from before links could be shared again.
+  const oldJoyToken = randomUUID().replace(/-/g, "").slice(0, 24);
   await rest("/rest/v1/members", {
     method: "POST",
     body: JSON.stringify([
@@ -66,14 +68,14 @@ async function seed(): Promise<Seeded | null> {
         role: "home_aide",
         phone: "555-010-0188",
         visibility: {},
-        token_hash: hashOf(tokenFor(joyId)),
+        token_hash: hashOf(oldJoyToken),
         link_version: 1,
         link_issued_at: now.toISOString(),
         expires_at: new Date(now.getTime() + 30 * 86_400_000).toISOString(),
       },
     ]),
   });
-  return { circleId, ownerToken, ownerSession, joyId };
+  return { circleId, ownerToken, ownerSession, joyId, oldJoyToken };
 }
 
 async function signInAsCaregiver(page: Page, session: Record<string, unknown>) {
@@ -190,11 +192,27 @@ test.describe("Update the circle: who helps, and texting them", () => {
     expect(annaBody).not.toMatch(/Cardiology|prescription/i);
     const annaUrl = annaBody.match(/http\S+\/i\/\S+/)![0];
 
+    // Joy's older link is left alone when this screen opens: it still works, until "Make a new link".
+    const joyRow = tell.getByRole("listitem").filter({ hasText: "Joy Banda" });
+    const makeLink = joyRow.getByRole("button", { name: "Make a new link" });
+    await expect(makeLink).toBeVisible();
+    await expect(joyRow).toContainText("Making a new one to text them stops the old one working.");
+    await expect(tell.getByRole("link", { name: "Text Joy" })).toHaveCount(0);
+    const joyHash = async () => ((await rest(`/rest/v1/members?select=token_hash&id=eq.${seeded.joyId}`)) as { token_hash: string }[])[0].token_hash;
+    expect(await joyHash()).toBe(hashOf(seeded.oldJoyToken));
+    const joyPhone = await browser.newContext();
+    const oldPage = await joyPhone.newPage();
+    await oldPage.goto(`/i/${seeded.oldJoyToken}`);
+    await oldPage.waitForURL(`**/circles/${seeded.circleId}`);
+    await joyPhone.close();
+
+    await makeLink.click();
     const textJoy = tell.getByRole("link", { name: "Text Joy" });
     await expect(textJoy).toHaveAttribute("href", /^sms:5550100188\?&body=/);
     const joyBody = decodeURIComponent((await textJoy.getAttribute("href"))!.split("&body=")[1]);
-    expect(joyBody).toContain("same link as before");
+    expect(joyBody).toContain("The details are on your new link. The one you had before no longer works:");
     expect(joyBody).toContain(`/i/${tokenFor(seeded.joyId)}`);
+    expect(await joyHash()).toBe(hashOf(tokenFor(seeded.joyId)));
 
     // When copying fails, the message is shown to copy by hand instead of nothing happening.
     await page.evaluate(() => {

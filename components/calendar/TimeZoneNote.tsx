@@ -30,8 +30,8 @@ function zoneName(timeZone: string): string {
 /**
  * Where the person lives, as a time zone, so a 7:00 medicine shows at 7:00 there in the calendar link
  * and "today" is their today. It starts as the zone of the device the circle was set up on; a
- * caregiver who lives somewhere else (a son in Chicago looking after his mother in Louisville) picks
- * hers here. It is never changed without a tap.
+ * caregiver who lives somewhere else (in Chicago, say, while the person lives in Louisville) picks the
+ * person's zone here. It is never changed without a tap.
  *
  * `embedded` drops its own card, for a page section that is already one (Settings). Without
  * `canEdit` it only says which time zone the times are in; the save itself is refused on the server too.

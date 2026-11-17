@@ -355,7 +355,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
       <BackLink href="/new/review" label="Review" />
       <StepHeader current="Share" circle />
       <h1 className="font-display text-[28px] leading-tight text-primary-900">Update {context.personName}&apos;s circle</h1>
-      <p className="mt-1 text-[14px] text-ink-500">
+      <p className="mt-1 text-note text-ink-500">
         Untick anything you don&apos;t want, and pick who helps with each appointment and reminder (or leave it for later). Nothing is saved until you press the button; then you can text each
         person their part.
       </p>
@@ -446,7 +446,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
                         </label>
                       </div>
                       <div>
-                        <p className="text-[13px] font-medium text-ink-500">Who&apos;s going with {context.personName}?</p>
+                        <p className="text-hint font-medium text-ink-500">Who&apos;s going with {context.personName}?</p>
                         <HelperChips
                           label={`Who's going to ${appt.title}`}
                           value={going[appt.id] ?? "none"}
@@ -488,7 +488,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
                   </span>
                   {on(task.id, true) ? (
                     <div className="w-full pl-7">
-                      <p className="text-[13px] font-medium text-ink-500">Who does it?</p>
+                      <p className="text-hint font-medium text-ink-500">Who does it?</p>
                       <HelperChips
                         label={`Who does ${task.title}`}
                         value={assignees[task.id] ?? "none"}

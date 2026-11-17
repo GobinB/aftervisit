@@ -290,7 +290,12 @@ export async function newMemberLink(actor: Actor, circleId: string, memberId: st
  * A person's current link, to share again: the same link they already have. Only for the
  * caregiver, and only while the link still works.
  */
-export async function memberLink(actor: Actor, circleId: string, memberId: string) {
+/**
+ * A person's own link, to share again. A link made before links could be shared again was random; it
+ * is replaced here, and the old one stops working. With `replace: false` (looking a link up before
+ * anyone asked to share it) nothing is replaced, and such a link comes back as `oldLink`.
+ */
+export async function memberLink(actor: Actor, circleId: string, memberId: string, { replace = true }: { replace?: boolean } = {}) {
   if (!can(actor, "members:manage", { circleId })) return { ok: false as const, error: denied };
   const db = clientFor(actor);
   const { data, error } = await db
@@ -305,8 +310,8 @@ export async function memberLink(actor: Actor, circleId: string, memberId: strin
   if (new Date(data.expires_at as string).getTime() <= Date.now()) return { ok: false as const, error: `${first}'s link has ended. Send them a fresh link.` };
   const token = memberToken(memberId, data.link_version as number);
   if (!token) return { ok: false as const, error: notSetUp };
-  // A link made before links could be shared again was random; it is replaced the first time it is shared.
   if (hashInvite(token) !== data.token_hash) {
+    if (!replace) return { ok: false as const, oldLink: true as const, error: `${first} has an older link. Making a new one to text them stops the old one working.` };
     const adopted = await db.from("members").update({ token_hash: hashInvite(token) }).eq("id", memberId).eq("circle_id", circleId).select("id").maybeSingle();
     if (adopted.error || !adopted.data) return { ok: false as const, error: generic };
   }

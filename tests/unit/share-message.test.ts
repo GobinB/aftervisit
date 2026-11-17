@@ -80,6 +80,12 @@ describe("the text after a visit puts someone down for something", () => {
     expect(body).not.toContain("Home Screen");
   });
 
+  it("tells someone whose older link was just replaced that it is a new link", () => {
+    const body = assignedMessage({ name: "Sam", personName: "Margaret", url, isNew: false, newLink: true, assigned: { appointments: [], reminders: 1 } });
+    expect(body).toContain("The details are on your new link. The one you had before no longer works:");
+    expect(body).not.toContain("same link as before");
+  });
+
   it("someone added with nothing to do yet still gets their link", () => {
     const body = assignedMessage({ name: "Joy", personName: "Margaret", url, isNew: true, assigned: { appointments: [], reminders: 0 } });
     expect(body).toContain("I added you to Margaret's care circle on All Hands Care. This is your own link.");
