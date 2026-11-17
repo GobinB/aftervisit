@@ -112,7 +112,7 @@ export default async function EmergencyPage({ params }: { params: Promise<{ id: 
               <p className="py-2 text-ink-500">No allergies written down.</p>
             )}
             {caregiver ? (
-              <Link href={`/circles/${id}/summary/edit?part=allergies&from=emergency`} className="no-print mt-3 inline-flex min-h-12 items-center gap-2 rounded-lg border border-border-200 bg-white px-4 text-[15px] font-semibold text-primary-700 hover:bg-sky-100">
+              <Link href={`/circles/${id}/summary/edit?part=allergies&from=emergency`} className="no-print mt-3 inline-flex min-h-12 items-center gap-2 rounded-lg border border-border-200 bg-white px-4 text-ui font-semibold text-primary-700 hover:bg-sky-100">
                 {content.allergies.length ? <Pencil className="size-4" aria-hidden="true" /> : <Plus className="size-4" aria-hidden="true" />}
                 {content.allergies.length ? "Change allergies" : "Add allergies"}
               </Link>

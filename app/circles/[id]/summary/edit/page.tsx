@@ -17,13 +17,18 @@ export const dynamic = "force-dynamic";
 export default async function EditSummaryPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams: Promise<{ part?: string; from?: string }> }) {
   const { id } = await params;
   const { part: raw, from: rawFrom } = await searchParams;
+  const part = SUMMARY_PARTS.includes(raw as SummaryPart) ? (raw as SummaryPart) : null;
+  const fromKey = part && Object.hasOwn(SUMMARY_RETURNS, rawFrom ?? "") ? (rawFrom as SummaryReturn) : null;
   const actor = await getActor(id);
-  if (!actor) redirect(`/login?next=/circles/${id}/summary/edit`);
+  if (!actor) {
+    // Back to this same part after signing in, with Back still going where it was opened from.
+    const query = new URLSearchParams(part ? { part, ...(fromKey ? { from: fromKey } : {}) } : {}).toString();
+    redirect(`/login?next=${encodeURIComponent(`/circles/${id}/summary/edit${query ? `?${query}` : ""}`)}`);
+  }
   if (actor.kind !== "caregiver" || !can(actor, "summary:edit", { circleId: id })) notFound();
   const content = await getCircle(actor, id);
   if (!content) notFound();
-  const part = SUMMARY_PARTS.includes(raw as SummaryPart) ? (raw as SummaryPart) : null;
-  const from = part && Object.hasOwn(SUMMARY_RETURNS, rawFrom ?? "") ? SUMMARY_RETURNS[rawFrom as SummaryReturn] : null;
+  const from = fromKey ? SUMMARY_RETURNS[fromKey] : null;
   const back = from
     ? { href: `/circles/${id}${from.path}`, label: from.label }
     : part

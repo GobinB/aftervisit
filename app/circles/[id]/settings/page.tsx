@@ -37,7 +37,7 @@ export default async function SettingsPage({ params }: { params: Promise<{ id: s
               Where {content.person_name} lives
             </h2>
             <p className="mt-4 text-ink-500">The time zone for {content.person_name}&apos;s dates, and for medicine and appointment times in the calendar link.</p>
-            <TimeZoneNote circleId={id} timeZone={content.time_zone ?? null} personName={content.person_name} />
+            <TimeZoneNote circleId={id} timeZone={content.time_zone ?? null} personName={content.person_name} canEdit={can(actor, "summary:edit", { circleId: id })} embedded />
           </section>
           {canDelete ? (
             <section aria-labelledby="delete-title" className="rounded-2xl border border-border-200 bg-white p-5 sm:p-6">

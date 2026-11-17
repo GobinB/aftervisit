@@ -1,6 +1,7 @@
 import "server-only";
 import { cookies, headers } from "next/headers";
 import { safeNext } from "@/lib/safe-next";
+import { secureCookies } from "@/lib/session-cookie";
 import { createAuthClient } from "./session";
 
 /** Set when sign-in began in the installed iPhone app, so the callback can hand back to it. */
@@ -25,7 +26,7 @@ export async function startGoogleSignIn(nextRaw: string, fromApp: boolean): Prom
   const origin = await siteOrigin();
   const next = safeNext(nextRaw, origin);
   const jar = await cookies();
-  const short = { httpOnly: true, sameSite: "lax" as const, secure: process.env.NODE_ENV === "production", path: "/", maxAge: 600 };
+  const short = { httpOnly: true, sameSite: "lax" as const, secure: secureCookies(), path: "/", maxAge: 600 };
   jar.set("av_next", next, short);
   if (fromApp) jar.set(APP_SIGN_IN_COOKIE, "1", short);
   else jar.delete(APP_SIGN_IN_COOKIE);

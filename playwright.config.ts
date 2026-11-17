@@ -21,5 +21,12 @@ export default defineConfig({
   ],
   webServer: process.env.E2E_BASE_URL
     ? undefined
-    : { command: `npm run build && npx next start -p ${PORT}`, url: `http://localhost:${PORT}`, timeout: 240_000, reuseExistingServer: true },
+    : {
+        command: `npm run build && npx next start -p ${PORT}`,
+        url: `http://localhost:${PORT}`,
+        timeout: 240_000,
+        reuseExistingServer: !process.env.CI,
+        // A production build served over http: WebKit (iPhone) refuses Secure cookies there. Test runs only (lib/session-cookie.ts).
+        env: { E2E_INSECURE_COOKIES: "1" },
+      },
 });

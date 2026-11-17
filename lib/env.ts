@@ -1,5 +1,6 @@
 import "server-only";
 import { dataEnv, deploymentSetting } from "@/lib/data-env";
+import { secureCookies } from "@/lib/session-cookie";
 
 function num(v: string | undefined, fallback: number): number {
   const n = Number(v);
@@ -7,6 +8,9 @@ function num(v: string | undefined, fallback: number): number {
 }
 
 const data = dataEnv();
+
+// Refuses to start a deployment that has the end-to-end tests' insecure-cookie flag set.
+secureCookies();
 
 /**
  * A secret the live site cannot run safely without. Missing on the production deployment, it fails

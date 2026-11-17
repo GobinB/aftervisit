@@ -46,7 +46,7 @@ export async function proxy(request: NextRequest) {
     supabaseResponse.cookies.set("ahc_last_circle", circle, {
       httpOnly: true,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
+      secure: SESSION_COOKIE_OPTIONS.secure,
       path: "/",
       maxAge: 400 * 24 * 60 * 60,
     });

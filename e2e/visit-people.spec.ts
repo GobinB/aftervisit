@@ -79,7 +79,7 @@ async function seed(): Promise<Seeded | null> {
 async function signInAsCaregiver(page: Page, session: Record<string, unknown>) {
   const name = `sb-${new URL(URL_).hostname.split(".")[0]}-auth-token`;
   const value = `base64-${Buffer.from(JSON.stringify(session)).toString("base64url")}`;
-  await page.context().addCookies([{ name, value, domain: "localhost", path: "/", httpOnly: true, sameSite: "Lax" }]);
+  await page.context().addCookies([{ name, value, url: test.info().project.use.baseURL, httpOnly: true, sameSite: "Lax" }]);
 }
 
 /** A reviewed visit for this circle, as Review leaves it in the tab's storage: one appointment with a day and time, two reminders. */

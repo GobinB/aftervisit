@@ -2,6 +2,7 @@
 
 import { useEffect, useId, useState } from "react";
 import { setTimeZoneAction } from "@/app/actions/circles";
+import { Button } from "@/components/ui/Button";
 
 /** The US zones a family is most likely in, with plain names. Anything else the browser knows still works. */
 const COMMON_ZONES: { zone: string; label: string }[] = [
@@ -31,8 +32,23 @@ function zoneName(timeZone: string): string {
  * and "today" is their today. It starts as the zone of the device the circle was set up on; a
  * caregiver who lives somewhere else (a son in Chicago looking after his mother in Louisville) picks
  * hers here. It is never changed without a tap.
+ *
+ * `embedded` drops its own card, for a page section that is already one (Settings). Without
+ * `canEdit` it only says which time zone the times are in; the save itself is refused on the server too.
  */
-export function TimeZoneNote({ circleId, timeZone, personName }: { circleId: string; timeZone: string | null; personName: string }) {
+export function TimeZoneNote({
+  circleId,
+  timeZone,
+  personName,
+  canEdit,
+  embedded = false,
+}: {
+  circleId: string;
+  timeZone: string | null;
+  personName: string;
+  canEdit: boolean;
+  embedded?: boolean;
+}) {
   const selectId = useId();
   const [saved, setSaved] = useState(timeZone);
   const [device, setDevice] = useState<string | null>(null);
@@ -74,50 +90,47 @@ export function TimeZoneNote({ circleId, timeZone, personName }: { circleId: str
   const current = saved ?? device;
 
   return (
-    <div className="mt-6 max-w-2xl rounded-lg border border-border-200 bg-white p-4 text-[15px] text-ink-900">
+    <div className={`text-ui text-ink-900 ${embedded ? "mt-3" : "mt-6 max-w-2xl rounded-lg border border-border-200 bg-white p-4"}`}>
       {current ? (
         <p>
           Times are in <strong>{zoneName(current)}</strong>, where {personName} lives. A medicine at 7:00 shows at 7:00 there, wherever you are.
         </p>
       ) : null}
-      <div className="mt-3 flex flex-wrap items-end gap-2">
-        <div className="min-w-56 flex-1">
-          <label htmlFor={selectId} className="text-[14px] font-semibold text-ink-900">
-            {personName} lives in
-          </label>
-          <select
-            id={selectId}
-            value={choice}
-            onChange={(event) => setChoice(event.target.value)}
-            className="mt-1 min-h-12 w-full rounded-lg border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500"
-          >
-            {!choice ? <option value="">Choose a time zone</option> : null}
-            {options.map((item) => (
-              <option key={item.zone} value={item.zone}>
-                {item.label}
-                {item.zone === device && device !== saved ? " (this phone or computer)" : ""}
-              </option>
-            ))}
-          </select>
+      {canEdit ? (
+        <div className="mt-3 flex flex-wrap items-end gap-2">
+          <div className="min-w-56 flex-1">
+            <label htmlFor={selectId} className="text-ui font-semibold text-ink-900">
+              {personName} lives in
+            </label>
+            <select
+              id={selectId}
+              value={choice}
+              onChange={(event) => setChoice(event.target.value)}
+              className="mt-1 min-h-12 w-full rounded-lg border border-border-200 bg-white px-3 text-base text-ink-900 outline-none focus:border-action-500"
+            >
+              {!choice ? <option value="">Choose a time zone</option> : null}
+              {options.map((item) => (
+                <option key={item.zone} value={item.zone}>
+                  {item.label}
+                  {item.zone === device && device !== saved ? " (this phone or computer)" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+          {choice && choice !== saved ? (
+            <Button variant="primary" disabled={pending} onClick={save}>
+              {pending ? "Saving" : "Save"}
+            </Button>
+          ) : null}
         </div>
-        {choice && choice !== saved ? (
-          <button
-            type="button"
-            disabled={pending}
-            onClick={save}
-            className="inline-flex min-h-12 items-center rounded-lg bg-primary-700 px-5 text-[15px] font-semibold text-white hover:bg-primary-900 disabled:opacity-50"
-          >
-            {pending ? "Saving" : "Save"}
-          </button>
-        ) : null}
-      </div>
+      ) : null}
       {problem ? (
-        <p role="alert" className="mt-2 text-[14px] text-attn-ink">
+        <p role="alert" className="mt-2 text-ui text-attn-ink">
           {problem}
         </p>
       ) : null}
       {note ? (
-        <p role="status" className="mt-2 text-[14px] text-ok-ink">
+        <p role="status" className="mt-2 text-ui text-ok-ink">
           {note}
         </p>
       ) : null}
