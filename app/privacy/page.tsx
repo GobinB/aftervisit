@@ -24,6 +24,8 @@ const MEDS_CALENDAR_EFFECTIVE = "November 15, 2026";
 const PHONES_EFFECTIVE = "November 15, 2026";
 /** The policy changed when each circle started keeping the time zone where the person lives. */
 const TIME_ZONE_EFFECTIVE = "November 16, 2026";
+/** People in a circle may sign in with Google. */
+const ACCOUNTS_EFFECTIVE = "November 17, 2026";
 
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
@@ -57,7 +59,7 @@ export default function PrivacyPage() {
   const provider = providerDisclosure();
   // OpenAI reads the photos, PDF or text of a visit summary itself; otherwise photos are read on the phone.
   const reads = provider.readsPages;
-  const effective = TIME_ZONE_EFFECTIVE;
+  const effective = ACCOUNTS_EFFECTIVE;
   return (
     <PageShell>
       <main id="main" className="flex-1 overflow-x-clip">
@@ -137,6 +139,11 @@ export default function PrivacyPage() {
                       <strong>Your account.</strong> Caregivers sign in with Google. Google shares your name, email address and profile photo
                       with our sign-in service. We never see your Google password. If you add your phone number, we keep it so people in your
                       circle can call you.
+                    </li>
+                    <li>
+                      <strong>If you are in someone&apos;s circle and sign in.</strong> Signing in is optional; your link works without it. If
+                      you save your link to your Google account, we keep your Google name and email, the same way as for caregivers, so you
+                      can open all your circles in one place. The caregiver who runs each circle sees that email on their People page.
                     </li>
                     <li>
                       <strong>What you enter for the person you look after:</strong> the care summary (allergies, doctors, pharmacy, emergency
@@ -250,7 +257,9 @@ export default function PrivacyPage() {
                     <li>
                       Anyone who has a person&apos;s link can open it, because a link can be forwarded. Add a PIN for a second step. Every link
                       stops working {LINK_IDLE_DAYS} days after it was last opened, and always {LINK_MAX_DAYS} days after it was made. If a link is
-                      shared by mistake, make a new link or remove the person: every phone that opened the old link is signed out.
+                      shared by mistake, make a new link or remove the person: every phone that opened the old link is signed out. A person
+                      can also save their link to their Google account; after that it opens only when they are signed in with that account,
+                      until you undo it on People.
                     </li>
                     <li>The people you add see your name as it appears on your Google account.</li>
                     <li>
@@ -473,7 +482,14 @@ export default function PrivacyPage() {
                     the app. All Hands Care organizes what you and the clinician wrote; it does not give medical advice.
                   </p>
                   <p>
-                    <strong>Latest change, {TIME_ZONE_EFFECTIVE}:</strong> we now keep the time zone where the person you look after
+                    <strong>Latest change, {ACCOUNTS_EFFECTIVE}:</strong> the people a caregiver adds can now sign in with Google if they
+                    choose, to keep all their circles in one place. It is never required, and links work as before without it. When a
+                    person signs in, we keep their Google name and email, and the caregiver who runs that circle sees the email on People.
+                    Their link then opens only when they are signed in with that account; the caregiver can undo that. Before, only
+                    caregivers signed in, and we kept no account details for anyone else.
+                  </p>
+                  <p>
+                    <strong>Before that, {TIME_ZONE_EFFECTIVE}:</strong> we now keep the time zone where the person you look after
                     lives (such as Eastern Time), taken from your phone or computer, so dates are right and the calendar link shows each
                     medicine and appointment at the right time. Only the zone is kept, never an address.
                   </p>

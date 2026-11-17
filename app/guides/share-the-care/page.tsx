@@ -64,7 +64,8 @@ export default function ShareTheCareGuide() {
       <h2>Where All Hands Care fits</h2>
       <p>
         All Hands Care was built around these habits: one page for the calendar, reminders and medicines, a name on every reminder,
-        every medicine change dated, and a private link for each helper that shows only what you choose. It is free.{" "}
+        every medicine change dated, and a private link for each helper that shows only what you choose. No account needed; a helper who
+        is in more than one circle can sign in to keep them all in one place. It is free.{" "}
         <Link className={LINK} href="/">
           See how it works
         </Link>

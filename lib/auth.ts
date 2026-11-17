@@ -214,16 +214,6 @@ export const getActor = cache(async function getActor(circleId?: string): Promis
 });
 
 /**
- * Circles the signed-in person is in, besides their own: ids of the circles they help in through
- * their account. Empty for anyone not signed in.
- */
-export async function accountHelperCircleIds(): Promise<string[]> {
-  const caregiver = await loadCaregiver();
-  if (!caregiver) return [];
-  return loadAccountMemberships(caregiver.userId);
-}
-
-/**
  * Where the installed app opens. Someone signed in goes to their circle (see caregiverHome), counting
  * the circles they help in as well as the ones they run. Someone with a helper link goes to the first
  * circle whose link still works. Anyone else gets the home page.

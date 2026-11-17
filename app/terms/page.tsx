@@ -47,7 +47,8 @@ export default function TermsPage() {
           <p>
             All Hands Care is a free, shared care page for an older adult and the people who help them: medicines, appointments, reminders,
             emergency contacts and notes from visits. The caregiver who starts a circle signs in with Google and chooses who else can see
-            each part. It is new and still changing, so some things may not work as they should. Its code is open source, under the
+            each part. The people they add open their own link, no account needed, and can sign in with Google if they want all their
+            circles in one place. It is new and still changing, so some things may not work as they should. Its code is open source, under the
             AGPL-3.0 license.
           </p>
 
@@ -83,7 +84,8 @@ export default function TermsPage() {
           <p>
             Each person you add gets a private link. Anyone who has that link can open what it shows, so send it only to that person. If a
             link is lost or sent to the wrong person, open People and make a new link: the old one stops working at once. Keep your Google
-            account secure, because it opens everything in your circles.
+            account secure, because it opens everything in your circles. If you saved your own link to your Google account, it opens only
+            when you are signed in with that account.
           </p>
 
           <h2>What you must not do</h2>
@@ -129,6 +131,15 @@ export default function TermsPage() {
           <p>
             If these terms change, we will update the date at the top. Before a change that matters, we will show a notice in the app.
             Using All Hands Care after a change means you accept the new terms.
+          </p>
+          <p>
+            <strong>Latest change, {TERMS_EFFECTIVE}:</strong> the people a caregiver adds can now sign in with Google if they choose, to
+            keep all their circles in one place. Signing in is never required. When they do, these terms apply to that account too, and we
+            keep their Google name and email, as the{" "}
+            <Link className="text-primary-700 underline" href="/privacy">
+              privacy policy
+            </Link>{" "}
+            says. Before, only caregivers signed in.
           </p>
 
           <h2>The law that applies</h2>

@@ -189,7 +189,7 @@ test("privacy pages say the calendar company receives medicine names and times, 
   test.skip(info.project.name !== "desktop-chrome", "Text check; run once");
   await page.goto("/privacy");
   await expect(page.getByText(/With medicines on \(they are on unless you turn them off\), it also receives each medicine's name, strength/)).toBeVisible();
-  await expect(page.getByText(/Latest change, \w+ \d+, \d{4}:.*the calendar link now carries medicine times/)).toBeVisible();
+  await expect(page.getByText(/(Latest change|Before that), \w+ \d+, \d{4}:.*the calendar link now carries medicine times/)).toBeVisible();
   await expect(page.getByText(/not\s+medicines/)).toHaveCount(0);
   await page.goto("/privacy/health-data");
   await expect(page.getByText(/unless you leave them out, medicine names, strengths and times/)).toBeVisible();
