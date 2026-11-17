@@ -317,7 +317,7 @@ export default function PrivacyPage() {
                       ).
                     </li>
                     <li>
-                      <strong>Google</strong> provides sign-in for caregivers (
+                      <strong>Google</strong> provides sign-in for caregivers, and for anyone in a circle who chooses to sign in (
                       <a className="text-primary-700 underline" href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">
                         privacy policy
                       </a>

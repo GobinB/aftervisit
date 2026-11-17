@@ -45,6 +45,9 @@ export function GoogleButton({
       }
     };
     const check = async () => {
+      // Switching accounts: this browser is already signed in (as the other account), so only the
+      // message from /login/done means the new sign-in finished.
+      if (chooseAccount) return;
       try {
         const res = await fetch("/api/session", { cache: "no-store" });
         const body = (await res.json()) as { signedIn?: boolean };
@@ -73,7 +76,7 @@ export function GoogleButton({
       document.removeEventListener("visibilitychange", onVisible);
       window.clearInterval(timer);
     };
-  }, [waiting, next]);
+  }, [waiting, next, chooseAccount]);
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (!inIosHomeScreenApp()) return;

@@ -41,8 +41,9 @@ export default function AboutPage() {
 
       <h2>What we built</h2>
       <p>
-        One shared page for the calendar, reminders, medicines and visit notes of the person you look after. One caregiver runs it, and everyone else opens their own link: no account needed, though anyone can sign in to keep all their circles in one place.
-        Everyone else, from a brother to a home aide, opens their own private link and sees only the parts the caregiver chooses. When a
+        One shared page for the calendar, reminders, medicines and visit notes of the person you look after. One caregiver runs it. Everyone else, from a brother to a home
+        aide, opens their own private link and sees only the parts the caregiver chooses. No account needed, though anyone can sign in
+        to keep all their circles in one place. When a
         visit summary comes home, a photo of it becomes a draft of updates that the caregiver checks before anyone sees them.
       </p>
 
