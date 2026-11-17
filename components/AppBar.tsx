@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "./Logo";
+import { InstallButton } from "./pwa/InstallButton";
 import { SiteMenu } from "./SiteMenu";
 import { StartSample } from "./StartSample";
 
@@ -14,7 +15,7 @@ export function AppBar({ minimal = false }: { minimal?: boolean }) {
           <Logo size={36} className="sm:hidden" />
           <Logo size={40} className="max-sm:hidden" />
         </Link>
-        {minimal ? null : (
+        {minimal ? <InstallButton /> : (
           <nav aria-label="Main" className="flex items-center gap-1 sm:gap-2">
             <Link href="/#how" className="hidden rounded-lg px-3 py-2 font-medium text-ink-900/80 hover:text-primary-900 lg:inline-block">
               How it works

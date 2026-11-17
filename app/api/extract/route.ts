@@ -8,6 +8,7 @@ import { fellBack, getProvider, type ExtractionProvider, type PageFile } from "@
 import { isUnsorted } from "@/lib/parse";
 import { checkDailyLimit, checkRateLimit } from "@/lib/ratelimit";
 import { ExtractTextSchema, type HandoffDraft } from "@/lib/schema";
+import { pdfLimitMb } from "@/lib/upload-limits";
 
 export const runtime = "nodejs";
 // Reading several page photos with the model can take most of a minute.
@@ -98,7 +99,9 @@ export async function POST(req: Request) {
 
     const file = form.get("file");
     if (!(file instanceof File)) return json({ error: "no_file", message: COPY.uploadType }, 400);
-    if (file.size > maxBytes) return json({ error: "too_large", message: COPY.uploadSize(env.maxUploadMb) }, 413);
+    // A PDF has the same 4 MB limit the scan page shows.
+    const pdfMb = pdfLimitMb(env.maxUploadMb);
+    if (file.size > pdfMb * 1024 * 1024) return json({ error: "too_large", message: COPY.uploadSize(pdfMb) }, 413);
     const isPdf = file.type === "application/pdf" || /\.pdf$/i.test(file.name);
     if (!isPdf) return json({ error: "unsupported_type", message: COPY.uploadType }, 415);
     const bytes = new Uint8Array(await file.arrayBuffer());

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "vitest";
-import { canAcceptMed, medNeedsLook, reviewComplete, reviewState, sectionsToCheck, taskNeedsLook, waitingText, type Reviewed } from "@/lib/review";
+import { canAcceptMed, confirmAll, itemsWaiting, medNeedsLook, reviewComplete, reviewState, sectionsToCheck, taskNeedsLook, waitingText, type Reviewed } from "@/lib/review";
 import type { MedicationChange, Task } from "@/lib/schema";
 
 const med = (over: Partial<MedicationChange> = {}): MedicationChange => ({ id: "m1", kind: "new", name: "Lisinopril", detail: "20 mg once daily", confidence: "high", ...over });
@@ -96,5 +96,24 @@ describe("the review rule", () => {
   test("says how many are waiting in plain words", () => {
     expect(waitingText(1, "medicine", "medicines")).toBe("1 medicine still needs a look");
     expect(waitingText(2, "medicine", "medicines")).toBe("2 medicines still need a look");
+  });
+});
+
+describe("one confirm on Review", () => {
+  test("Looks right marks every section, so the pages that save let it through", () => {
+    const d = draft([med()], [task()], { watchFor: ["Fever"] });
+    expect(reviewComplete(d, confirmAll())).toBe(true);
+    expect(reviewComplete(d, {})).toBe(false);
+  });
+
+  test("it still does not count while something needs a look", () => {
+    const d = draft([med({ confidence: "low" })], [task()]);
+    expect(reviewComplete(d, confirmAll())).toBe(false);
+  });
+
+  test("the button goes to what needs a look, medicines first", () => {
+    const d = draft([med(), med({ id: "m2", name: "" })], [task({ id: "t2", confidence: "low" }), task()]);
+    expect(itemsWaiting(d)).toEqual(["m2", "t2"]);
+    expect(itemsWaiting(draft([med()], [task()]))).toEqual([]);
   });
 });

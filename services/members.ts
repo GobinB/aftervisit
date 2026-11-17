@@ -279,11 +279,19 @@ export async function newMemberLink(actor: Actor, circleId: string, memberId: st
     .eq("id", memberId)
     .eq("circle_id", circleId)
     .eq("link_version", version - 1)
-    .select("name, email, pin_hash")
+    .select("name, email, phone, pin_hash")
     .maybeSingle();
   if (error || !data) return { ok: false as const, error: generic };
   await log(actor, circleId, "member_link", memberId);
-  return { ok: true as const, token, memberId, name: data.name as string, email: (data.email as string | null) ?? null, hasPin: Boolean(data.pin_hash) };
+  return {
+    ok: true as const,
+    token,
+    memberId,
+    name: data.name as string,
+    email: (data.email as string | null) ?? null,
+    phone: (data.phone as string | null) ?? null,
+    hasPin: Boolean(data.pin_hash),
+  };
 }
 
 /**
@@ -300,7 +308,7 @@ export async function memberLink(actor: Actor, circleId: string, memberId: strin
   const db = clientFor(actor);
   const { data, error } = await db
     .from("members")
-    .select("name, email, pin_hash, token_hash, link_version, revoked_at, expires_at")
+    .select("name, email, phone, pin_hash, token_hash, link_version, revoked_at, expires_at")
     .eq("id", memberId)
     .eq("circle_id", circleId)
     .maybeSingle();
@@ -315,7 +323,15 @@ export async function memberLink(actor: Actor, circleId: string, memberId: strin
     const adopted = await db.from("members").update({ token_hash: hashInvite(token) }).eq("id", memberId).eq("circle_id", circleId).select("id").maybeSingle();
     if (adopted.error || !adopted.data) return { ok: false as const, error: generic };
   }
-  return { ok: true as const, token, memberId, name: data.name as string, email: (data.email as string | null) ?? null, hasPin: Boolean(data.pin_hash) };
+  return {
+    ok: true as const,
+    token,
+    memberId,
+    name: data.name as string,
+    email: (data.email as string | null) ?? null,
+    phone: (data.phone as string | null) ?? null,
+    hasPin: Boolean(data.pin_hash),
+  };
 }
 
 /** Records that the caregiver sent these people their link about the latest changes (or chose not to). */

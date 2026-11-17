@@ -1,5 +1,5 @@
 "use client";
-import { Check, FileSearch, Pencil, Plus, Trash2 } from "lucide-react";
+import { FileSearch, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type ReactNode } from "react";
 import { Badge, MED_KIND_LABEL } from "@/components/Badge";
 import { COPY } from "@/lib/copy";
@@ -10,95 +10,12 @@ import { MED_KINDS, type MedicationChange, type Task } from "@/lib/schema";
 export const inputClass =
   "w-full rounded-lg border border-border-200 bg-white px-3 py-2 text-base outline-none focus:border-action-500 focus:ring-2 focus:ring-action-500/30";
 
-/**
- * The check mark beside a section's name on Review. Tapped once the caregiver has compared the section
- * with the original; tapped again to take it back. Off, with the reason shown, while something in the
- * section still needs a look.
- */
-export function CheckToggle({
-  section,
-  checked,
-  blocked,
-  onToggle,
-}: {
-  /** The section's name, spoken after the visible words: "Mark checked: Medicines". */
-  section: string;
-  checked: boolean;
-  /** "1 medicine still needs a look" */
-  blocked?: string;
-  onToggle: (checked: boolean) => void;
-}) {
-  const hintId = useId();
-  return (
-    <span className="inline-flex flex-col items-end">
-      <button
-        type="button"
-        aria-pressed={checked}
-        // The visible words first, then the section, as WCAG asks: "Mark checked: Medicines".
-        aria-label={`${checked ? "Checked" : "Mark checked"}: ${section}`}
-        aria-describedby={blocked ? hintId : undefined}
-        disabled={!!blocked && !checked}
-        onClick={() => onToggle(!checked)}
-        className={`inline-flex min-h-[48px] items-center gap-1.5 rounded-full border-2 px-4 text-[15px] font-semibold transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
-          checked ? "border-ok bg-ok text-white hover:bg-ok-ink" : "border-border-200 bg-white text-primary-700 hover:border-ok hover:bg-ok-bg"
-        }`}
-      >
-        <Check size={18} strokeWidth={3} aria-hidden="true" /> {checked ? "Checked" : "Mark checked"}
-      </button>
-      {blocked ? (
-        <span id={hintId} className="mt-1 text-[13px] font-medium text-med-ink">
-          {blocked}
-        </span>
-      ) : null}
-    </span>
-  );
-}
-
-/**
- * One of the two cards on Review: the medicines, and everything else. The medicines card carries its
- * own check mark; everything else has one per section. The border turns green once all are ticked.
- */
-export function ReviewCard({
+/** One section of the draft on Review: a heading with a count, its items, and an Add button. */
+export function Section({
   id,
   icon,
   title,
   count,
-  check,
-  done,
-  children,
-}: {
-  id: string;
-  icon: ReactNode;
-  title: string;
-  count?: number;
-  /** The card's check mark, if it has one of its own. */
-  check?: ReactNode;
-  done: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <section aria-labelledby={`${id}-title`} className={`animate-fade-in scroll-mt-36 rounded-2xl border-2 bg-white p-5 transition-colors ${done ? "border-ok" : "border-border-200"}`}>
-      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
-        <h2 id={`${id}-title`} className="flex items-center gap-2 text-xl font-semibold text-primary-700">
-          <span aria-hidden="true">{icon}</span>
-          {title}
-          {count !== undefined ? <span className="text-base font-normal text-ink-500">({count})</span> : null}
-        </h2>
-        {check}
-      </div>
-      <div className="mt-3">{children}</div>
-    </section>
-  );
-}
-
-/** A named section inside "Everything else": the visit, next steps, watch for, good to know, questions. */
-export function SubSection({
-  id,
-  icon,
-  title,
-  count,
-  help,
-  check,
   onAdd,
   addLabel = "Add one",
   children,
@@ -107,42 +24,26 @@ export function SubSection({
   icon: ReactNode;
   title: string;
   count?: number;
-  help?: string;
-  /** The section's check mark, when it needs one (an empty list does not). */
-  check?: ReactNode;
   onAdd?: () => void;
   addLabel?: string;
   children: ReactNode;
 }) {
   return (
-    <section aria-labelledby={`${id}-title`} className="border-t border-border-200 pt-4 first:border-0 first:pt-0">
-      <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
-        <h3 id={`${id}-title`} className="flex items-center gap-2 text-[17px] font-semibold text-primary-900">
-          <span className="text-primary-700" aria-hidden="true">
-            {icon}
-          </span>
-          {title}
-          {count !== undefined ? <span className="text-[15px] font-normal text-ink-500">({count})</span> : null}
-        </h3>
-        {check}
-      </div>
-      {help ? <p className="mt-1 text-sm text-ink-500">{help}</p> : null}
-      <div className="mt-1.5">{children}</div>
+    <section aria-labelledby={`${id}-title`} className="animate-fade-in scroll-mt-36 rounded-xl border border-border-200 bg-white px-4 pt-3 pb-1.5">
+      <h2 id={`${id}-title`} className="flex items-center gap-2 text-item font-semibold text-primary-900">
+        <span className="text-primary-700" aria-hidden="true">
+          {icon}
+        </span>
+        {title}
+        {count !== undefined ? <span className="text-label font-normal text-ink-500">({count})</span> : null}
+      </h2>
+      <div className="mt-0.5">{children}</div>
       {onAdd ? (
-        <button type="button" onClick={onAdd} className="mt-1 inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100">
+        <button type="button" onClick={onAdd} className="-ml-2 inline-flex min-h-11 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100">
           <Plus size={18} aria-hidden="true" /> {addLabel}
         </button>
       ) : null}
     </section>
-  );
-}
-
-/** The "Add a medicine" style button at the foot of a card. */
-export function AddButton({ label, onAdd }: { label: string; onAdd: () => void }) {
-  return (
-    <button type="button" onClick={onAdd} className="mt-2 inline-flex min-h-10 items-center gap-1.5 rounded-lg px-2 font-medium text-primary-700 hover:bg-sky-100">
-      <Plus size={18} aria-hidden="true" /> {label}
-    </button>
   );
 }
 
@@ -324,7 +225,7 @@ export function MedRow({
 
   if (editing) {
     return (
-      <li className="rounded-xl bg-surface-50 p-3">
+      <li data-item={med.id} className="rounded-xl bg-surface-50 p-3">
         <form
           onSubmit={(e) => {
             e.preventDefault();
@@ -416,7 +317,7 @@ export function MedRow({
   }
 
   return (
-    <li className="group flex flex-wrap items-start gap-2 border-b border-border-200/70 py-3 last:border-0" onClick={onFocusItem}>
+    <li data-item={med.id} className="group flex scroll-mt-40 flex-wrap items-start gap-2 border-b border-border-200/70 py-3 last:border-0" onClick={onFocusItem}>
       <button type="button" className="min-w-0 flex-1 cursor-text text-left" onClick={() => setEditing(true)} onFocus={onFocusItem}>
         <span className="flex flex-wrap items-center gap-2">
           <span className="font-medium">{med.name || <span className="text-ink-500 italic">Name not read</span>}</span>
@@ -469,6 +370,7 @@ export function TaskRow({
   onShowSource,
   autoEdit,
   nameListId,
+  plan = true,
 }: {
   task: Task;
   onChange: (t: Task) => void;
@@ -477,6 +379,8 @@ export function TaskRow({
   onShowSource?: (quote: string, page?: number) => void;
   autoEdit?: boolean;
   nameListId: string;
+  /** Who will do it, and by when. Off for a visit going into a circle: those are picked on Update. */
+  plan?: boolean;
 }) {
   const [editing, setEditing] = useState(!!autoEdit);
   const [title, setTitle] = useState(task.title);
@@ -492,7 +396,7 @@ export function TaskRow({
   };
 
   return (
-    <li className="group border-b border-border-200/70 py-3 last:border-0" onClick={onFocusItem}>
+    <li data-item={task.id} className="group scroll-mt-40 border-b border-border-200/70 py-3 last:border-0" onClick={onFocusItem}>
       <div className="flex items-start gap-2">
         {editing ? (
           <textarea
@@ -525,6 +429,7 @@ export function TaskRow({
         {!editing ? <RowActions label={task.title || "task"} onEdit={() => setEditing(true)} onDelete={onDelete} /> : null}
       </div>
       <SourceLink quote={task.sourceQuote} added={task.origin === "caregiver"} onShow={onShowSource} page={task.sourcePage} />
+      {plan ? (
       <div className="mt-2 grid grid-cols-2 gap-2 sm:max-w-md">
         <div>
           <label htmlFor={ids.who} className="text-sm text-ink-500">
@@ -553,6 +458,7 @@ export function TaskRow({
           />
         </div>
       </div>
+      ) : null}
       {taskNeedsLook(task) ? (
         <NeedsLook
           helper={COPY.lowConfidenceHelper}

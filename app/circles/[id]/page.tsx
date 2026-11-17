@@ -7,7 +7,6 @@ import { GettingStarted } from "@/components/circles/GettingStarted";
 import { Agenda } from "@/components/calendar/Agenda";
 import { ActivityFeed, AddDetails, Alerts, AtAGlance, Card, MedsGlance, PeopleCard, SectionLabel, StatCards, TodayActions, TodayHeader, TodosGlance } from "@/components/circles/Today";
 import { LastVisitCard } from "@/components/visits/VisitNotes";
-import { InstallApp } from "@/components/pwa/InstallApp";
 import { getActor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 import { isMine, sortTodos } from "@/lib/schema/todos";
@@ -138,10 +137,6 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
           <div className="mt-3">
             <StatCards stats={buildTodayCards(id, content, medications, todos)} />
           </div>
-          {/* After the cards, so scanning and adding stay the first things on the screen. */}
-          <div className="mt-5 empty:hidden">
-            <InstallApp />
-          </div>
           {fromVisit ? <div className="mt-5">{fromVisit}</div> : null}
           <div className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
             <div className="min-w-0 space-y-5">
@@ -200,7 +195,6 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
         <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_320px]">
           <div className="min-w-0 space-y-5">
             {fromVisit}
-            <InstallApp />
             {comingUp}
             {todoSection}
             {meds}

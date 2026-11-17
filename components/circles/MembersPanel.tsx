@@ -132,7 +132,7 @@ export function MembersPanel({
                   circleId={circleId}
                   person={person}
                   onShare={(result) =>
-                    setShare({ link: { url: memberUrl(result.token), name: person.name, email: person.email ?? null, hasPin: result.hasPin, personName }, fresh: false })
+                    setShare({ link: { url: memberUrl(result.token), name: person.name, email: person.email ?? null, phone: person.phone ?? null, hasPin: result.hasPin, personName }, fresh: false })
                   }
                   onNewLink={(result) => linkReady(result, null, false)}
                   onChanged={(result) => {

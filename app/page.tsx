@@ -123,7 +123,7 @@ export default function HomePage() {
               <p className="mt-2 text-ink-500">Nothing to download from an app store. It also works in any web browser, on a computer too.</p>
             </div>
             <div className="mt-6 max-w-xl">
-              <InstallApp band />
+              <InstallApp />
             </div>
             <div className="mt-7 grid gap-4 md:grid-cols-2">
               {INSTALL.map(({ phone, steps }) => (
