@@ -30,7 +30,8 @@ const CALENDAR_ONLY = SEE_PRESETS.find((preset) => preset.key === "calendar")!.h
 
 type Done = { added: number; changed: number; stopped: number; todos: number; events: number; failed: number; visitId: string | null; notes: number };
 
-type Appointment = { id: string; title: string; date: string; time: string; location?: string };
+/** `date` is empty when the summary gave none: the caregiver can pick one here, or it goes in as a reminder. */
+type Appointment = { id: string; title: string; date: string; time: string; dueText?: string; location?: string };
 
 
 function MedLine({ plan }: { plan: MedPlan }) {
@@ -98,15 +99,21 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
   const [keep, setKeep] = useState(true);
   const [kept, setKept] = useState<{ status: "saving"; done: number } | { status: "kept"; id: string } | { status: "failed"; error: string } | null>(null);
   const plans = useMemo(() => planMedications(draft.medications, context.medications), [draft, context]);
-  // Follow-up appointments with a date (stated, or counted from the visit date) go on the calendar.
-  // Everything else, and an appointment without a date, becomes a reminder.
+  // Follow-up appointments go on the calendar, on the day the summary gives (stated, or counted from
+  // the visit date) or one picked here. One left without a day becomes a reminder. Everything else is a reminder.
   const { appointments, tasks } = useMemo(() => {
     const appointments: Appointment[] = [];
     const tasks: HandoffDraft["tasks"] = [];
     for (const task of draft.tasks.filter((item) => item.title.trim())) {
       const resolved = task.dueDate ? { date: task.dueDate, time: task.dueTime } : resolveDue(task.dueText ?? task.sourceQuote ?? "", draft.visit.date);
-      if (task.category === "appointment" && resolved?.date) {
-        appointments.push({ id: task.id, title: task.title.trim().slice(0, 200), date: resolved.date, time: task.dueTime ?? resolved.time ?? "" });
+      if (task.category === "appointment") {
+        appointments.push({
+          id: task.id,
+          title: task.title.trim().slice(0, 200),
+          date: resolved?.date ?? "",
+          time: task.dueTime ?? resolved?.time ?? "",
+          ...(task.dueText ? { dueText: task.dueText } : {}),
+        });
       } else {
         tasks.push(task);
       }
@@ -155,13 +162,16 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
         return { action: "stop" as const, medId: (plan as Extract<MedPlan, { action: "stop" }>).medId };
       });
     const todoTasks = tasks.filter((task) => on(task.id, true));
-    const eventAppts = appointments.filter((appt) => on(appt.id, true) && when(appt).date);
+    const pickedAppts = appointments.filter((appt) => on(appt.id, true));
+    const eventAppts = pickedAppts.filter((appt) => when(appt).date);
+    // No day picked: still kept, as a reminder for whoever is going.
+    const undatedAppts = pickedAppts.filter((appt) => !when(appt).date);
     start(async () => {
       // Someone added on this page joins the circle first, so the appointments and reminders can be theirs.
       // Only those still picked for something: a name added by mistake and then unpicked is never saved.
       // They see the calendar and reminders, which is what they were added for; People can open up more.
       const made = { ...created };
-      const picked = added.filter((person) => eventAppts.some((appt) => going[appt.id] === person.value) || todoTasks.some((task) => assignees[task.id] === person.value));
+      const picked = added.filter((person) => pickedAppts.some((appt) => going[appt.id] === person.value) || todoTasks.some((task) => assignees[task.id] === person.value));
       for (const person of picked) {
         if (made[person.value]) continue;
         const result = await addMemberAction({
@@ -186,12 +196,19 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
       }
       setCreated(made);
       const who = (value: string | undefined) => (value && isNewHelper(value) ? (made[value]?.memberId ?? "none") : (value ?? "none"));
-      const todos = todoTasks.map((task) => ({
-        title: task.title.trim().slice(0, 200),
-        ...(dueOf(task) ? { dueDate: dueOf(task) } : {}),
-        ...(task.dueText ? { note: `Due ${task.dueText}` } : {}),
-        assignee: who(assignees[task.id]),
-      }));
+      const todos = [
+        ...todoTasks.map((task) => ({
+          title: task.title.trim().slice(0, 200),
+          ...(dueOf(task) ? { dueDate: dueOf(task) } : {}),
+          ...(task.dueText ? { note: `Due ${task.dueText}` } : {}),
+          assignee: who(assignees[task.id]),
+        })),
+        ...undatedAppts.map((appt) => ({
+          title: appt.title,
+          ...(appt.dueText ? { note: `Due ${appt.dueText}` } : {}),
+          assignee: who(going[appt.id]),
+        })),
+      ];
       const events = eventAppts.map((appt) => ({
         title: appt.title,
         date: when(appt).date,
@@ -219,7 +236,7 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
             if (!memberId) return null;
             const assigned = {
               appointments: eventAppts.filter((appt) => going[appt.id] === person.value).map((appt) => ({ date: when(appt).date, time: when(appt).time || null })),
-              reminders: todoTasks.filter((task) => assignees[task.id] === person.value).length,
+              reminders: todoTasks.filter((task) => assignees[task.id] === person.value).length + undatedAppts.filter((appt) => going[appt.id] === person.value).length,
             };
             const isNew = isNewHelper(person.value);
             if (!isNew && !assigned.appointments.length && !assigned.reminders) return null;
@@ -432,6 +449,11 @@ export function ApplyVisit({ draft, circleId, context }: { draft: HandoffDraft; 
                           onChange={(event) => setDates({ ...dates, [appt.id]: { ...when(appt), time: event.target.value } })}
                         />
                       </div>
+                      {!when(appt).date ? (
+                        <p className="text-hint text-ink-500">
+                          {appt.dueText ? `Due ${appt.dueText}. ` : ""}Pick the day to put it on the calendar, or it goes in as a reminder.
+                        </p>
+                      ) : null}
                       <p className="text-hint font-medium text-ink-500">Who&apos;s going?</p>
                       <HelperChips
                         label={`Who's going to ${appt.title}`}
