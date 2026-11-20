@@ -93,8 +93,8 @@ export const VisibilitySchema = z
 export type Visibility = z.infer<typeof VisibilitySchema>;
 
 /** The date on the terms page. The consents saved with a new circle carry it as their version. */
-export const TERMS_EFFECTIVE = "November 17, 2026";
-export const CONSENT_VERSION = "2026-11-17";
+export const TERMS_EFFECTIVE = "November 20, 2026";
+export const CONSENT_VERSION = "2026-11-20";
 export const CONSENT_TYPES = ["authorized_to_share", "terms", "privacy"] as const;
 export type ConsentType = (typeof CONSENT_TYPES)[number];
 

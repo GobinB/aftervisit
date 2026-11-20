@@ -58,7 +58,7 @@ async function user(name: string): Promise<Person | null> {
 }
 
 async function circle(owner: Person, personName: string): Promise<string> {
-  const consents = ["authorized_to_share", "terms", "privacy"].map((type) => ({ type, version: "2026-11-17", text_hash: createHash("sha256").update(type).digest("hex") }));
+  const consents = ["authorized_to_share", "terms", "privacy"].map((type) => ({ type, version: "2026-11-20", text_hash: createHash("sha256").update(type).digest("hex") }));
   return (await rest(
     "/rest/v1/rpc/create_circle",
     { method: "POST", body: JSON.stringify({ p_content: { person_name: personName, allergies: [], doctors: [], emergency_contacts: [] }, p_consents: consents }) },

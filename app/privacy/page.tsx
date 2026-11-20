@@ -25,7 +25,7 @@ const PHONES_EFFECTIVE = "November 15, 2026";
 /** The policy changed when each circle started keeping the time zone where the person lives. */
 const TIME_ZONE_EFFECTIVE = "November 16, 2026";
 /** People in a circle may sign in with Google. */
-const ACCOUNTS_EFFECTIVE = "November 17, 2026";
+const ACCOUNTS_EFFECTIVE = "November 20, 2026";
 
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
