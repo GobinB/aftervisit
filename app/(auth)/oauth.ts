@@ -19,10 +19,11 @@ export async function siteOrigin(): Promise<string> {
 
 /**
  * Starts Google sign-in and returns Google's address. Default scopes only; Google returns to /callback.
+ * `chooseAccount` makes Google ask which account to use (for someone signed in with the wrong one).
  * The return address and the "began in the app" mark live in short cookies, never in Google's URL.
  * Throws when auth is not set up.
  */
-export async function startGoogleSignIn(nextRaw: string, fromApp: boolean): Promise<string | null> {
+export async function startGoogleSignIn(nextRaw: string, fromApp: boolean, chooseAccount = false): Promise<string | null> {
   const origin = await siteOrigin();
   const next = safeNext(nextRaw, origin);
   const jar = await cookies();
@@ -31,7 +32,11 @@ export async function startGoogleSignIn(nextRaw: string, fromApp: boolean): Prom
   if (fromApp) jar.set(APP_SIGN_IN_COOKIE, "1", short);
   else jar.delete(APP_SIGN_IN_COOKIE);
   const supabase = await createAuthClient();
-  const { data, error } = await supabase.auth.signInWithOAuth({ provider: "google", options: { redirectTo: `${origin}/callback` } });
+  // "Use another Google account" asks Google to show its list of accounts instead of reusing the last one.
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: { redirectTo: `${origin}/callback`, ...(chooseAccount ? { queryParams: { prompt: "select_account" } } : {}) },
+  });
   if (error || !data.url) return null;
   return data.url;
 }

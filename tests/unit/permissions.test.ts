@@ -129,6 +129,19 @@ describe("permissions grid", () => {
   });
 });
 
+describe("saving a link to an account", () => {
+  test("every person in the circle may save their own link; the caregiver has nothing to save", () => {
+    for (const role of ROLES) expect(can(actor(role), "account:save:own", { circleId: CIRCLE }), role).toBe(role !== "owner");
+    expect(can(actor("family"), "account:save:own", { circleId: OTHER })).toBe(false);
+    expect(can(stranger, "account:save:own", { circleId: CIRCLE })).toBe(false);
+  });
+
+  test("hiding areas does not stop it, and only the owner can undo it", () => {
+    expect(can(helper("home_aide", { hidden: ["summary", "medications", "tasks", "calendar"], members: "off" }), "account:save:own", { circleId: CIRCLE })).toBe(true);
+    for (const role of ROLES) expect(can(actor(role), "members:manage", { circleId: CIRCLE }), role).toBe(role === "owner");
+  });
+});
+
 describe("phone numbers and the Emergency page", () => {
   test("everyone in the circle can open the Emergency page and set their own number", () => {
     for (const role of ROLES) {

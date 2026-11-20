@@ -17,6 +17,9 @@ import type { HelperRole, VisibilityArea } from "@/lib/schema/circles";
  * Emergency page: "emergency:read" opens it. What is on it follows the actions it shows: emergency
  * contacts and allergies need "summary:read", people's numbers "members:read" (the caregiver's own
  * number "members:read:caregivers"). "phone:edit:own" is setting your own phone number.
+ *
+ * "account:save:own" is a person saving their own link to their Google account, so their circles
+ * are in one place and the link opens only for them. The caregiver's "Undo" is "members:manage".
  */
 export const ACTIONS = [
   "members:manage",
@@ -54,6 +57,7 @@ export const ACTIONS = [
   "visits:edit",
   "emergency:read",
   "phone:edit:own",
+  "account:save:own",
 ] as const;
 
 export type Action = (typeof ACTIONS)[number];
@@ -94,6 +98,7 @@ const OWNER: Cell[] = [
   "allow",
   "allow", "allow", "allow",
   "allow", "allow",
+  "deny",
 ];
 
 const FAMILY: Cell[] = [
@@ -110,6 +115,7 @@ const FAMILY: Cell[] = [
   "deny",
   "allow", "allow", "deny",
   "allow", "allow",
+  "allow",
 ];
 
 const CARE_MANAGER: Cell[] = [
@@ -126,6 +132,7 @@ const CARE_MANAGER: Cell[] = [
   "deny",
   "allow", "allow", "deny",
   "allow", "allow",
+  "allow",
 ];
 
 const AIDE: Cell[] = [
@@ -142,6 +149,7 @@ const AIDE: Cell[] = [
   "deny",
   "allow", "deny", "deny",
   "allow", "allow",
+  "allow",
 ];
 
 export const GRID: Record<Role, Record<Action, Cell>> = {

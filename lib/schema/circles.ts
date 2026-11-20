@@ -93,8 +93,8 @@ export const VisibilitySchema = z
 export type Visibility = z.infer<typeof VisibilitySchema>;
 
 /** The date on the terms page. The consents saved with a new circle carry it as their version. */
-export const TERMS_EFFECTIVE = "November 16, 2026";
-export const CONSENT_VERSION = "2026-11-16";
+export const TERMS_EFFECTIVE = "November 20, 2026";
+export const CONSENT_VERSION = "2026-11-20";
 export const CONSENT_TYPES = ["authorized_to_share", "terms", "privacy"] as const;
 export type ConsentType = (typeof CONSENT_TYPES)[number];
 
@@ -197,4 +197,8 @@ export interface PersonView {
   phone?: string | null;
   /** Areas hidden from this person. Only for a viewer who may manage people. */
   hidden?: string[];
+  /** Saved their link to their Google account. Only for a viewer who may manage people. */
+  signedIn?: boolean;
+  /** That account's Google email. Only for a viewer who may manage people. */
+  accountEmail?: string | null;
 }

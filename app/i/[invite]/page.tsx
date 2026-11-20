@@ -1,9 +1,12 @@
 import type { Metadata } from "next";
 import type { ReactNode } from "react";
+import { redirect } from "next/navigation";
 import { CaptureLinkKey } from "@/components/circles/CaptureLinkKey";
+import { LinkNeedsSignIn } from "@/components/circles/LinkNeedsSignIn";
 import { OpenMemberLink } from "@/components/circles/OpenMemberLink";
 import { InviteHandoff } from "@/components/handoff/clients";
 import { GonePage } from "@/components/handoff/GonePage";
+import { getActor } from "@/lib/auth";
 import { ogTitle } from "@/lib/copy";
 import { inviteView, lookupInvite, recordOpen, taskStatusRows } from "@/lib/invites";
 import { inviteOriginalLink } from "@/lib/storage";
@@ -30,7 +33,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   };
 }
 
-/** A person's own link. Member links set a helper session. Older handoff invites keep working. */
+/**
+ * A person's own link. Member links set a helper session. A link saved to a Google account opens only
+ * for that account. Older handoff invites keep working.
+ */
 export default async function InvitePage({ params }: Props) {
   const { invite } = await params;
   return (
@@ -44,6 +50,17 @@ export default async function InvitePage({ params }: Props) {
 async function inviteBody(invite: string): Promise<ReactNode> {
   const member = await previewMemberLink(invite);
   if (member.status === "revoked" || member.status === "expired") return <GonePage status={member.status} />;
+  if (member.status === "account") {
+    const account = await getActor();
+    const signedIn = account?.kind === "caregiver" ? account : null;
+    // The person it was saved to, or the caregiver who runs the circle, goes straight in.
+    if (signedIn && (signedIn.userId === member.userId || signedIn.circleIds.includes(member.circleId))) redirect(`/circles/${member.circleId}`);
+    return (
+      <div className="flex min-h-dvh items-center justify-center bg-surface-50 px-4">
+        <LinkNeedsSignIn next={`/i/${invite}`} other={signedIn ? { email: signedIn.email ?? null } : null} />
+      </div>
+    );
+  }
   if (member.status === "locked") {
     return (
       <div className="flex min-h-dvh items-center justify-center bg-surface-50 px-4">

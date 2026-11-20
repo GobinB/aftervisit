@@ -19,7 +19,7 @@ const FEATURES = [
 
 const STEPS = [
   { title: "Start a circle", body: "Sign in with Google and add the person you look after." },
-  { title: "Add the people who help", body: "Family, aides and the day program each get their own link. No account needed." },
+  { title: "Add the people who help", body: "Family, aides and the day program each get their own link. No account needed; anyone can sign in to keep all their circles in one place." },
   { title: "Keep it current", body: "After each visit, update it once. Everyone sees the same page." },
 ];
 
@@ -33,7 +33,7 @@ const PROMISES = [
 const FAQ = [
   {
     q: "Does everyone need an account?",
-    a: "No. Only the caregiver who starts the circle signs in, with Google. Everyone else opens their own private link. No password, nothing to install.",
+    a: "No. The caregiver who starts the circle signs in with Google. Everyone else opens their own private link, with no password and nothing to install. Someone who helps in more than one circle, like a care manager or a family member looking after both parents, can sign in with Google to keep every circle in one place. After that their link opens only for them.",
   },
   {
     q: "What does it cost?",
@@ -163,7 +163,7 @@ export default function HomePage() {
             </ul>
             <p className="mt-6 flex items-center gap-2 text-ink-500">
               <Users className="size-5 shrink-0 text-primary-700" aria-hidden="true" />
-              One caregiver signs in. Everyone else opens their own private link.
+              One caregiver runs each circle. Everyone else opens their own private link, no account needed, and can sign in to keep all their circles in one place.
             </p>
           </div>
         </section>
