@@ -2,7 +2,7 @@
 
 ## Decision
 
-Caregivers sign in with Google through Supabase Auth. It is the only sign-in method, and All Hands Care sends no email or text messages.
+Caregivers sign in with Google through Supabase Auth. It is the only sign-in method, and All Hands Care sends no email or text messages. Since November 20, 2026 the people in a circle may sign in the same way, if they choose, to keep all their circles in one place (decision 0003); nobody has to.
 
 - The login page has one button. It calls `signInWithOAuth({ provider: "google" })` with `redirectTo` set to the site's own `/callback`.
 - `app/(auth)/callback` exchanges the code for a session cookie with `@supabase/ssr`. `proxy.ts` keeps the session fresh.

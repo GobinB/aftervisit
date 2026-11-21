@@ -1,4 +1,4 @@
-// The database after migrations 0001-0023, as the Supabase CLI writes it. Regenerate with:
+// The database after migrations 0001-0025, as the Supabase CLI writes it. Regenerate with:
 // supabase gen types typescript --local > store/types.gen.ts
 export type Json =
   | string

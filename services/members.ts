@@ -26,7 +26,25 @@ export type MemberLinkPreview =
   | { status: "revoked" | "expired" }
   | { status: "locked"; message: string }
   | { status: "pin" }
-  | { status: "ready" };
+  | { status: "ready" }
+  /** Saved to a Google account: it opens only for that account. Server-side only; never sent to the page. */
+  | { status: "account"; circleId: string; userId: string };
+
+/** The Google email of each signed-in person, for the caregiver's People page. Missing when it cannot be read. */
+async function accountEmails(ids: string[]): Promise<Map<string, string>> {
+  const emails = new Map<string, string>();
+  await Promise.all(
+    [...new Set(ids)].map(async (id) => {
+      try {
+        const { data, error } = await serviceClient().auth.admin.getUserById(id);
+        if (!error && data.user?.email) emails.set(id, data.user.email);
+      } catch {
+        // Shown as "signed in" without the address.
+      }
+    }),
+  );
+  return emails;
+}
 
 /** Google profile name for each caregiver. The role label is used when a name is missing. */
 async function caregiverNames(ids: string[]): Promise<Map<string, string>> {
@@ -48,6 +66,8 @@ async function caregiverNames(ids: string[]): Promise<Map<string, string>> {
 }
 
 const notSetUp = "Links are not set up on this site yet.";
+/** Shown when a link saved to an account is opened without that sign-in. */
+export const SAVED_TO_ACCOUNT = "This link is saved to a Google account. Sign in with that account to open it.";
 
 function missingRelation(error: unknown): boolean {
   const code = (error as { code?: string }).code;
@@ -59,7 +79,7 @@ async function memberByToken(token: string) {
   if (!INVITE_RE.test(token)) return null;
   const { data, error } = await serviceClient()
     .from("members")
-    .select("id, circle_id, role, pin_hash, locked_until, revoked_at, expires_at, token_hash")
+    .select("id, circle_id, role, pin_hash, locked_until, revoked_at, expires_at, token_hash, user_id")
     .eq("token_hash", hashInvite(token))
     .maybeSingle();
   if (error) throw error;
@@ -73,6 +93,8 @@ export async function previewMemberLink(token: string): Promise<MemberLinkPrevie
     if (!row) return { status: "absent" };
     if (row.revoked_at) return { status: "revoked" };
     if (new Date(row.expires_at as string).getTime() <= Date.now()) return { status: "expired" };
+    // Google sign-in takes the place of the PIN once the link is saved to an account.
+    if (row.user_id) return { status: "account", circleId: row.circle_id as string, userId: row.user_id as string };
     const lock = activeLock(row.locked_until as string | null);
     if (lock) return { status: "locked", message: COPY.pinLocked(lock.lockedUntil) };
     if (row.pin_hash) return { status: "pin" };
@@ -92,6 +114,7 @@ export async function openMemberToken(
   if (!row) return { ok: false, error: COPY.notFound };
   if (row.revoked_at) return { ok: false, error: COPY.revoked };
   if (new Date(row.expires_at as string).getTime() <= Date.now()) return { ok: false, error: COPY.expired };
+  if (row.user_id) return { ok: false, error: SAVED_TO_ACCOUNT };
   const lock = activeLock(row.locked_until as string | null);
   if (lock) return { ok: false, error: COPY.pinLocked(lock.lockedUntil) };
   if (row.pin_hash) {
@@ -334,6 +357,61 @@ export async function memberLink(actor: Actor, circleId: string, memberId: strin
   };
 }
 
+export type SaveToAccountResult = { ok: true } | { ok: false; error: string };
+
+/**
+ * A person saves their own link to the Google account they are signed in with. It takes both: the
+ * cookie their link set (so any PIN was typed), which is `actor`, and the verified sign-in, which is
+ * `account`. A row is tied once: if it is already tied to someone, nothing changes. The database
+ * (migration 0025) refuses the circle's own caregiver and a second person on one account.
+ */
+export async function saveLinkToAccount(actor: Actor, account: { userId: string }, circleId: string): Promise<SaveToAccountResult> {
+  if (actor.kind !== "helper" || actor.circleId !== circleId) return { ok: false, error: "Open your link first, then save it to your account." };
+  if (actor.userId) return { ok: true };
+  if (!can(actor, "account:save:own", { circleId })) return { ok: false, error: "This link cannot be saved to an account." };
+  const db = serviceClient();
+  const { data, error } = await db
+    .from("members")
+    .update({ user_id: account.userId })
+    .eq("id", actor.memberId)
+    .eq("circle_id", circleId)
+    .is("user_id", null)
+    .is("revoked_at", null)
+    .select("id")
+    .maybeSingle();
+  if (error) {
+    const code = (error as { code?: string }).code;
+    const message = (error as { message?: string }).message ?? "";
+    if (code === "23505") return { ok: false, error: "This Google account is already saved to someone else in this circle. Ask the caregiver who runs it." };
+    if (/runs a circle/i.test(message)) return { ok: false, error: "You run this circle, so it is already in your account." };
+    return { ok: false, error: generic };
+  }
+  if (!data) {
+    const { data: now } = await db.from("members").select("user_id").eq("id", actor.memberId).maybeSingle();
+    if (now?.user_id === account.userId) return { ok: true };
+    if (now?.user_id) return { ok: false, error: "This link is already saved to another Google account. Nothing was changed. Ask the caregiver who runs the circle if that is wrong." };
+    return { ok: false, error: generic };
+  }
+  await log(actor, circleId, "member_account_saved", actor.memberId);
+  return { ok: true };
+}
+
+/** The caregiver undoes a person's sign-in: their link opens on its own again. Their place in the circle stays. */
+export async function undoMemberAccount(actor: Actor, circleId: string, memberId: string) {
+  if (!can(actor, "members:manage", { circleId })) return { ok: false as const, error: denied };
+  const { data, error } = await clientFor(actor)
+    .from("members")
+    .update({ user_id: null })
+    .eq("id", memberId)
+    .eq("circle_id", circleId)
+    .not("user_id", "is", null)
+    .select("id")
+    .maybeSingle();
+  if (error || !data) return { ok: false as const, error: "That person is not signed in." };
+  await log(actor, circleId, "member_account_undo", memberId);
+  return { ok: true as const };
+}
+
 /** Records that the caregiver sent these people their link about the latest changes (or chose not to). */
 export async function markTold(actor: Actor, circleId: string, memberIds: string[]) {
   if (!can(actor, "members:manage", { circleId })) return { ok: false as const, error: denied };
@@ -393,7 +471,7 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
     names || canManage
       ? db
           .from("members")
-          .select("id, name, role, email, phone, expires_at, revoked_at, last_seen_at, locked_until, visibility")
+          .select("id, name, role, email, phone, expires_at, revoked_at, last_seen_at, locked_until, visibility, user_id")
           .eq("circle_id", circleId)
           .order("created_at")
       : Promise.resolve(null),
@@ -418,6 +496,9 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
   }
   if (memberRows) {
     if (memberRows.error) return { ok: false, error: generic };
+    // Who has signed in, and with which Google email: only for the caregiver.
+    const signedIn = canManage ? (memberRows.data ?? []).map((row) => row.user_id as string | null).filter((id): id is string => Boolean(id)) : [];
+    const emails = signedIn.length ? await accountEmails(signedIn) : new Map<string, string>();
     for (const row of memberRows.data ?? []) {
       const role = row.role as HelperRole;
       const view: PersonView = {
@@ -437,6 +518,8 @@ export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: 
         view.locked = !!activeLock(row.locked_until as string | null);
         const visibility = VisibilitySchema.safeParse(row.visibility ?? {});
         view.hidden = visibility.success ? (visibility.data.hidden ?? []) : [];
+        view.signedIn = Boolean(row.user_id);
+        view.accountEmail = row.user_id ? (emails.get(row.user_id as string) ?? null) : null;
       }
       people.push(view);
     }

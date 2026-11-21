@@ -19,7 +19,20 @@ function inIosHomeScreenApp(): boolean {
  * would otherwise open in a Safari sheet whose cookies the app never sees, so the button opens
  * Google in a window of the app itself and waits for /login/done to say the sign-in finished.
  */
-export function GoogleButton({ next }: { next: string }) {
+export function GoogleButton({
+  next,
+  label = "Sign in with Google",
+  chooseAccount = false,
+  variant = "primary",
+  className = "mt-8",
+}: {
+  next: string;
+  label?: string;
+  /** Google shows its list of accounts instead of reusing the one already signed in. */
+  chooseAccount?: boolean;
+  variant?: "primary" | "secondary";
+  className?: string;
+}) {
   const [waiting, setWaiting] = useState(false);
 
   useEffect(() => {
@@ -32,6 +45,9 @@ export function GoogleButton({ next }: { next: string }) {
       }
     };
     const check = async () => {
+      // Switching accounts: this browser is already signed in (as the other account), so only the
+      // message from /login/done means the new sign-in finished.
+      if (chooseAccount) return;
       try {
         const res = await fetch("/api/session", { cache: "no-store" });
         const body = (await res.json()) as { signedIn?: boolean };
@@ -60,12 +76,12 @@ export function GoogleButton({ next }: { next: string }) {
       document.removeEventListener("visibilitychange", onVisible);
       window.clearInterval(timer);
     };
-  }, [waiting, next]);
+  }, [waiting, next, chooseAccount]);
 
   const onSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     if (!inIosHomeScreenApp()) return;
     event.preventDefault();
-    const url = `/login/google?app=1&next=${encodeURIComponent(next)}`;
+    const url = `/login/google?app=1&next=${encodeURIComponent(next)}${chooseAccount ? "&choose=1" : ""}`;
     // Opened straight from the tap, so iOS allows it and keeps it inside the app.
     const opened = window.open(url, "_blank");
     if (!opened) {
@@ -78,11 +94,12 @@ export function GoogleButton({ next }: { next: string }) {
   };
 
   return (
-    <form action={signInWithGoogle} onSubmit={onSubmit} className="mt-8">
+    <form action={signInWithGoogle} onSubmit={onSubmit} className={className}>
       <input type="hidden" name="next" value={next} />
-      <Button type="submit" className="w-full" disabled={waiting}>
+      {chooseAccount ? <input type="hidden" name="choose" value="1" /> : null}
+      <Button type="submit" variant={variant} className="w-full" disabled={waiting}>
         {waiting ? <Loader2 className="size-5 animate-spin" aria-hidden="true" /> : null}
-        {waiting ? "Finishing sign-in" : "Sign in with Google"}
+        {waiting ? "Finishing sign-in" : label}
       </Button>
       {waiting ? (
         <p role="status" className="mt-3 text-center text-[14px] text-ink-500">

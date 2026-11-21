@@ -3,8 +3,8 @@ import { createHash } from "node:crypto";
 import { cache } from "react";
 import type { Actor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
-import { CONSENT_TEXT, CONSENT_TYPES, CONSENT_VERSION, CircleContentSchema, type CircleContent, type CreateCircleInput } from "@/lib/schema/circles";
-import { clientFor, createCircleRecord } from "@/store/db";
+import { CONSENT_TEXT, CONSENT_TYPES, CONSENT_VERSION, CircleContentSchema, HELPER_ROLE_LABELS, type CircleContent, type CreateCircleInput, type HelperRole } from "@/lib/schema/circles";
+import { clientFor, createCircleRecord, serviceClient } from "@/store/db";
 
 const generic = "That could not be saved. Try again.";
 
@@ -37,15 +37,53 @@ export async function deleteCircle(actor: Actor, circleId: string): Promise<{ ok
   return { ok: true };
 }
 
-export async function listCircles(actor: Actor): Promise<{ id: string; personName: string }[]> {
-  if (actor.kind !== "caregiver") return [];
-  const { data, error } = await clientFor(actor).from("circles").select("id, content").is("deleted_at", null).order("created_at");
-  if (error || !data) return [];
-  return data.map((row) => {
-    const parsed = CircleContentSchema.safeParse(row.content);
-    return { id: row.id as string, personName: parsed.success ? parsed.data.person_name : "Circle" };
-  });
+export type CircleListItem = {
+  id: string;
+  personName: string;
+  /** "run": the signed-in person is its caregiver. "help": they saved their link in it to their account. */
+  kind: "run" | "help";
+  /** Their role in a circle they help in, as the People page names it. */
+  roleLabel?: string;
+};
+
+function personNameOf(content: unknown): string {
+  const parsed = CircleContentSchema.safeParse(content);
+  return parsed.success ? parsed.data.person_name : "Circle";
 }
+
+/**
+ * Every circle the signed-in person is in: the ones they run (their own session, row security
+ * applies) and the ones they help in through their account (read on the server, by the user id
+ * from their verified sign-in, and only live rows: not removed, not ended, circle not deleted).
+ * Cached per request, so the circle frame and /circles share one read.
+ */
+export const listCircles = cache(async function listCircles(actor: Actor): Promise<CircleListItem[]> {
+  if (actor.kind !== "caregiver") return [];
+  const [own, helping] = await Promise.all([
+    clientFor(actor).from("circles").select("id, content").is("deleted_at", null).order("created_at"),
+    serviceClient()
+      .from("members")
+      .select("circle_id, role, created_at, circles!inner(content, deleted_at)")
+      .eq("user_id", actor.userId)
+      .is("revoked_at", null)
+      .gt("expires_at", new Date().toISOString())
+      .is("circles.deleted_at", null)
+      .order("created_at"),
+  ]);
+  const run: CircleListItem[] = own.error || !own.data ? [] : own.data.map((row) => ({ id: row.id as string, personName: personNameOf(row.content), kind: "run" as const }));
+  const ran = new Set(run.map((circle) => circle.id));
+  const help: CircleListItem[] =
+    helping.error || !helping.data
+      ? []
+      : helping.data
+          .filter((row) => !ran.has(row.circle_id as string))
+          .map((row) => {
+            const circle = (Array.isArray(row.circles) ? row.circles[0] : row.circles) as { content: unknown } | null;
+            const role = row.role as HelperRole;
+            return { id: row.circle_id as string, personName: personNameOf(circle?.content), kind: "help" as const, roleLabel: HELPER_ROLE_LABELS[role] ?? role };
+          });
+  return [...run, ...help];
+});
 
 /** Replaces the care summary. Only the caregiver may; row security checks it again. */
 export async function updateCircleContent(actor: Actor, circleId: string, content: CircleContent): Promise<{ ok: true } | { ok: false; error: string }> {

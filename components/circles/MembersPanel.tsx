@@ -1,9 +1,9 @@
 "use client";
 
-import { ChevronDown, Link2, Share2, Trash2, UserPlus } from "lucide-react";
+import { ChevronDown, Link2, Share2, Trash2, UserCheck, UserPlus } from "lucide-react";
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { addMemberAction, changeRoleAction, memberLinkAction, newLinkAction, revokeMemberAction, setVisibilityAction } from "@/app/actions/members";
+import { addMemberAction, changeRoleAction, memberLinkAction, newLinkAction, revokeMemberAction, setVisibilityAction, undoAccountAction } from "@/app/actions/members";
 import { CallButton } from "@/components/circles/CallButton";
 import { memberUrl } from "@/components/circles/member-link";
 import { PeopleList } from "@/components/circles/PeopleList";
@@ -176,7 +176,7 @@ function PersonLine({ person, you = false }: { person: PersonView; you?: boolean
           ) : null}
         </span>
       </span>
-      {person.revokedAt ? <Badge tone="attn">Removed</Badge> : person.locked ? <Badge tone="attn">Locked</Badge> : null}
+      {person.revokedAt ? <Badge tone="attn">Removed</Badge> : person.locked ? <Badge tone="attn">Locked</Badge> : person.signedIn ? <Badge tone="ok">Signed in</Badge> : null}
     </>
   );
 }
@@ -382,7 +382,7 @@ function Profile({
 }) {
   const [role, setRole] = useState<HelperRole>((HELPER_ROLES as readonly string[]).includes(person.role) ? (person.role as HelperRole) : "family");
   const [hidden, setHidden] = useState<VisibilityArea[]>((person.hidden ?? []) as VisibilityArea[]);
-  const [confirm, setConfirm] = useState<"link" | "remove" | null>(null);
+  const [confirm, setConfirm] = useState<"link" | "remove" | "undo" | null>(null);
   const [pending, start] = useTransition();
   const [problem, setProblem] = useState<string | null>(null);
   const ended = Boolean(person.expiresAt && new Date(person.expiresAt).getTime() <= Date.now());
@@ -439,6 +439,35 @@ function Profile({
         )}
       </div>
 
+      {person.signedIn ? (
+        <div className="space-y-2 rounded-xl border border-border-200 bg-white p-3">
+          <p className="flex items-start gap-2 text-[15px] text-ink-900">
+            <UserCheck className="mt-0.5 size-5 shrink-0 text-ok-ink" aria-hidden="true" />
+            <span>
+              {first} signed in with Google{person.accountEmail ? <> as <strong className="break-all">{person.accountEmail}</strong></> : null}. Their link opens only when they are signed in
+              with that account.
+            </span>
+          </p>
+          {confirm === "undo" ? (
+            <div role="group" aria-label={`Confirm undoing ${first}'s sign-in`} className="space-y-2">
+              <p className="text-[15px] text-ink-900">{first}&apos;s link will open on its own again, for anyone who has it. {first} stays in the circle.</p>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" disabled={pending} onClick={() => run(() => undoAccountAction({ circleId, memberId: person.id }))} className={`${action} bg-primary-700 text-white hover:bg-primary-900`}>
+                  Yes, undo
+                </button>
+                <button type="button" onClick={() => setConfirm(null)} className={`${action} text-ink-500 hover:bg-paper-100`}>
+                  Cancel
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" disabled={pending} onClick={() => setConfirm("undo")} className={`${action} border border-border-200 bg-white text-primary-700 hover:bg-sky-100`}>
+              Undo
+            </button>
+          )}
+        </div>
+      ) : null}
+
       <div className="space-y-3 rounded-xl border border-border-200 bg-white p-3">
         {person.phone && !removed ? <CallButton phone={person.phone} name={person.name} size="small" /> : null}
         <PhoneField circleId={circleId} memberId={person.id} initial={person.phone ?? null} label={`${first}'s phone number`} help="Leave it blank and save to remove it." />
@@ -446,7 +475,9 @@ function Profile({
 
       {confirm === "link" ? (
         <div role="group" aria-label={`Confirm a new link for ${first}`} className="space-y-2 rounded-xl border border-border-200 bg-white p-3">
-          <p className="text-[15px] text-ink-900">The link {first} has now will stop working, on every phone that opened it. Make a new one?</p>
+          <p className="text-[15px] text-ink-900">
+            The link {first} has now will stop working, on every phone that opened it.{person.signedIn ? ` The new one also opens only when ${first} is signed in.` : ""} Make a new one?
+          </p>
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={pending} onClick={() => run(() => newLinkAction({ circleId, memberId: person.id }), onNewLink)} className={`${action} bg-primary-700 text-white hover:bg-primary-900`}>
               Yes, new link

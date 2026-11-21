@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { BottomBar, CircleNavProvider, HeaderTitle, SidebarCircleNav, type NavTab } from "@/components/circles/CircleNav";
+import { CircleSwitcher, type SwitcherCircle } from "@/components/circles/CircleSwitcher";
 import { Logo } from "@/components/Logo";
 import { SignOut } from "@/components/circles/SignOut";
 import { InstallButton } from "@/components/pwa/InstallButton";
@@ -12,17 +13,20 @@ export type ShellCircle = { personName: string; tabs: NavTab[] };
  * and a slim header names the page; on phones the header shows the logo and the areas sit in a bottom bar.
  * Inside a circle it is drawn once by app/circles/[id]/layout.tsx and stays on screen between areas.
  * `narrow` suits one-column forms. `signedIn` shows Sign out and the list of circles.
+ * `circles` (someone signed in, with two or more circles) adds a switcher between them.
  */
 export function CircleShell({
   children,
   signedIn = false,
   narrow = false,
   circle,
+  circles = [],
 }: {
   children: React.ReactNode;
   signedIn?: boolean;
   narrow?: boolean;
   circle?: ShellCircle;
+  circles?: SwitcherCircle[];
 }) {
   const width = narrow ? "max-w-xl" : "max-w-6xl";
   const homeHref = signedIn ? "/circles" : "/";
@@ -39,6 +43,7 @@ export function CircleShell({
           >
             <Logo size={32} variant="onDark" />
           </Link>
+          <CircleSwitcher circles={circles} tone="dark" />
           <SidebarCircleNav signedIn={signedIn} personName={personName} tabs={tabs} />
         </aside>
 
@@ -57,6 +62,10 @@ export function CircleShell({
               {signedIn ? <SignOut /> : null}
             </nav>
           </header>
+          {/* Phones: the switcher gets a row of its own under the top bar, so the name fits and the list has room. */}
+          <div className="no-print border-b border-border-200 bg-white px-4 py-2 empty:hidden sm:px-6 lg:hidden">
+            <CircleSwitcher circles={circles} tone="light" />
+          </div>
           <main id="main" data-shell="sidebar" className={`group/shell mx-auto w-full min-w-0 ${width} flex-1 px-4 pt-5 sm:px-6 ${circle ? "pb-28 lg:pb-12" : "pb-12"}`}>
             {children}
           </main>

@@ -7,11 +7,11 @@ import { CONTACT_EMAIL, mailto } from "@/lib/contact";
 export const metadata: Metadata = {
   title: "For care teams",
   description:
-    "For home care agencies, day programs and care managers: the family keeps one shared care page, and your aides open their own link. No account, no app, free.",
+    "For home care agencies, day programs and care managers: the family keeps one shared care page, and your aides open their own link. No account needed, no app, free.",
 };
 
 const GETS = [
-  "Each aide gets their own private link from the family. No account, no password, no app to install.",
+  "Each aide gets their own private link from the family. No account needed, no password, no app to install. Someone who works with several families can sign in with Google to see every circle in one place.",
   "Aides and day programs see only the reminders given to them and, from visit notes, what to watch for.",
   "They can tap “I’ll do it” and mark a reminder done, so the family knows it is handled.",
   "If the family caregiver adds their phone number, it is one tap away.",
