@@ -471,7 +471,7 @@ export type CircleRunner = {
 /**
  * The caregiver who runs this circle, when the person looking may see them ("members:read:caregivers",
  * as on the People list). Null for anyone the caregiver has hidden people from, and when it cannot be read:
- * the line is left out rather than the page failing.
+ * the line is left out rather than the page failing, and the error is logged (its code and message, no names).
  */
 export async function getCircleRunner(actor: Actor, circleId: string): Promise<CircleRunner | null> {
   if (!can(actor, "members:read:caregivers", { circleId })) return null;
@@ -482,12 +482,17 @@ export async function getCircleRunner(actor: Actor, circleId: string): Promise<C
       .eq("circle_id", circleId)
       .eq("role", "owner")
       .maybeSingle();
-    if (error || !data) return null;
+    if (error) {
+      console.error("circle runner read failed:", error.code, error.message);
+      return null;
+    }
+    if (!data) return null;
     const userId = data.user_id as string;
     if (actor.kind === "caregiver" && actor.userId === userId) return { name: actor.name ?? null, phone: null, you: true };
     const name = (await caregiverNames([userId])).get(userId) ?? null;
     return { name, phone: (data.phone as string | null) ?? null, you: false };
-  } catch {
+  } catch (e) {
+    console.error("circle runner read failed:", (e as Error).message);
     return null;
   }
 }

@@ -93,7 +93,12 @@ export const listCircles = cache(async function listCircles(actor: Actor): Promi
 export const getPersonName = cache(async function getPersonName(actor: Actor, circleId: string): Promise<string | null> {
   if (actor.kind === "helper" ? actor.circleId !== circleId : !actor.circleIds.includes(circleId)) return null;
   const { data, error } = await clientFor(actor).from("circles").select("content->>person_name").eq("id", circleId).is("deleted_at", null).maybeSingle();
-  if (error || !data) return null;
+  if (error) {
+    // The frame falls back to "Your care circle"; logged so a broken read does not go unseen.
+    console.error("person name read failed:", error.code, error.message);
+    return null;
+  }
+  if (!data) return null;
   const name = (data as { person_name?: unknown }).person_name;
   return typeof name === "string" && name.trim() ? name : null;
 });
