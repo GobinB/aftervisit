@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { PageHead } from "@/components/circles/PageHead";
+import { PageHead, PrintedName } from "@/components/circles/PageHead";
 import { notFound, redirect } from "next/navigation";
 import { TodoForm } from "@/components/todos/TodoForm";
 import { TodoViews } from "@/components/todos/TodoViews";
@@ -46,7 +46,12 @@ export default async function TodosPage({ params, searchParams }: { params: Prom
     <>
       <PageHead
         title="Reminders"
-        subtitle={`${personName} · ${counts.open} open${seesAll && counts.volunteer ? ` · ${counts.volunteer} need a volunteer` : ""}`}
+        subtitle={
+          <>
+            <PrintedName name={personName} />
+            {`${counts.open} open${seesAll && counts.volunteer ? ` · ${counts.volunteer} need a volunteer` : ""}`}
+          </>
+        }
         help={
           canEdit
             ? "Type one, pick who does it, and tap Mark done when it is done."

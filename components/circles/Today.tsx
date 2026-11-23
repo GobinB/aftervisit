@@ -30,16 +30,12 @@ const CHIP_TONE: Record<Tone, string> = {
 };
 const DOT_TONE: Record<Tone, string> = { blue: "bg-primary-700", green: "bg-ok", amber: "bg-med", attn: "bg-attn", neutral: "bg-ink-500/50", primary: "bg-primary-700" };
 
-/** Page title row: what day it is for whom, and the caregiver's main actions. */
-export function TodayHeader({ personName, actions, help }: { personName: string; actions?: ReactNode; help?: string }) {
+/** Page title row: what day it is, and the caregiver's main actions. Whose circle it is sits above it (CircleTop). */
+export function TodayHeader({ actions, help }: { actions?: ReactNode; help?: string }) {
   return (
     <PageHead
       title="Today"
-      subtitle={
-        <>
-          {personName} · <TodayDate />
-        </>
-      }
+      subtitle={<TodayDate />}
       help={help}
       actions={actions}
     />

@@ -1,6 +1,6 @@
 import { ScanLine, Plus } from "lucide-react";
 import type { Metadata } from "next";
-import { PageHead } from "@/components/circles/PageHead";
+import { PageHead, PrintedName } from "@/components/circles/PageHead";
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { Card, SectionLabel } from "@/components/circles/Today";
@@ -41,7 +41,8 @@ export default async function MedicationsPage({ params }: { params: Promise<{ id
         title="Medications"
         subtitle={
           <>
-            {personName} · {scheduled.length + asNeeded.length} taking now · <TodayDate />
+            <PrintedName name={personName} />
+            {scheduled.length + asNeeded.length} taking now · <TodayDate />
           </>
         }
         help="What is being taken now. Tap a medicine to change it, or scan an after-visit summary to update the list for you."

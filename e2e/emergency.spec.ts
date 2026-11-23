@@ -178,7 +178,7 @@ test.describe("Emergency page and phone numbers, through people's links", () => 
     await expect(page.getByRole("region", { name: "Emergency contacts" }).getByRole("link", { name: /Call Marco Ruiz/ })).toBeVisible();
     await expect(page.getByRole("region", { name: "Allergies" }).getByText("Shellfish")).toBeVisible();
     // People: a home aide sees only the caregiver on the list, never the other people or their numbers.
-    await expect(page.getByRole("link", { name: "Call Lena Ortiz, 555-010-0100" })).toBeVisible();
+    await expect(page.getByRole("region", { name: "People in the circle" }).getByRole("link", { name: "Call Lena Ortiz, 555-010-0100" })).toBeVisible();
     await expect(page.getByText("555-010-0199")).toHaveCount(0);
     await expect(page.getByText("Paul Ruiz")).toHaveCount(0);
     await expect(page.getByRole("heading", { name: "Your phone number" })).toBeVisible();

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { CallButton } from "@/components/circles/CallButton";
 import { EmergencyContacts } from "@/components/circles/EmergencyContacts";
-import { PageHead } from "@/components/circles/PageHead";
+import { PageHead, PrintedName } from "@/components/circles/PageHead";
 import { PhoneField } from "@/components/circles/PhoneField";
 import { roleLine } from "@/components/circles/CircleFrame";
 import { PrintButton } from "@/components/medications/PrintButton";
@@ -43,7 +43,12 @@ export default async function EmergencyPage({ params }: { params: Promise<{ id: 
     <>
       <PageHead
         title="Emergency"
-        subtitle={`${personName} · ${roleLine(actor)}`}
+        subtitle={
+          <>
+            <PrintedName name={personName} />
+            {roleLine(actor)}
+          </>
+        }
         help="Who to call, with one tap, and the allergies to tell a doctor or paramedic. Print it to keep by the phone."
         actions={<PrintButton />}
       />

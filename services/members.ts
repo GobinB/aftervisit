@@ -458,6 +458,45 @@ export async function getPendingUpdates(actor: Actor, circleId: string): Promise
   );
 }
 
+/** Who runs a circle, for the line under the person's name at the top of every circle screen. */
+export type CircleRunner = {
+  /** Their Google profile name; null when it has none. */
+  name: string | null;
+  /** Their number for tap to call or text; null when none is saved, and always null for the caregiver themself. */
+  phone: string | null;
+  /** The person looking is the one who runs it. */
+  you: boolean;
+};
+
+/**
+ * The caregiver who runs this circle, when the person looking may see them ("members:read:caregivers",
+ * as on the People list). Null for anyone the caregiver has hidden people from, and when it cannot be read:
+ * the line is left out rather than the page failing, and the error is logged (its code and message, no names).
+ */
+export async function getCircleRunner(actor: Actor, circleId: string): Promise<CircleRunner | null> {
+  if (!can(actor, "members:read:caregivers", { circleId })) return null;
+  try {
+    const { data, error } = await clientFor(actor)
+      .from("circle_caregivers")
+      .select("user_id, phone")
+      .eq("circle_id", circleId)
+      .eq("role", "owner")
+      .maybeSingle();
+    if (error) {
+      console.error("circle runner read failed:", error.code, error.message);
+      return null;
+    }
+    if (!data) return null;
+    const userId = data.user_id as string;
+    if (actor.kind === "caregiver" && actor.userId === userId) return { name: actor.name ?? null, phone: null, you: true };
+    const name = (await caregiverNames([userId])).get(userId) ?? null;
+    return { name, phone: (data.phone as string | null) ?? null, you: false };
+  } catch (e) {
+    console.error("circle runner read failed:", (e as Error).message);
+    return null;
+  }
+}
+
 export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: true; people: PersonView[]; canManage: boolean } | { ok: false; error: string }> {
   const canManage = can(actor, "members:manage", { circleId });
   const names = can(actor, "members:read", { circleId });
