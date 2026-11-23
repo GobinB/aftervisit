@@ -152,6 +152,11 @@ test.describe("the person's name and who runs the circle", () => {
       await expect(top(page).getByRole("link")).toHaveCount(0);
       await expect(top(page).locator("summary")).toHaveCount(0);
     }
+    // The name is the largest line: inside a circle the page title stays a size down, on computers too.
+    const size = (locator: Locator) => locator.evaluate((element) => parseFloat(getComputedStyle(element).fontSize));
+    const nameSize = await size(top(page).getByText("Teodora Ruiz", { exact: true }));
+    const titleSize = await size(page.getByRole("heading", { level: 1 }));
+    expect(titleSize).toBeLessThan(nameSize);
     await context.close();
   });
 
