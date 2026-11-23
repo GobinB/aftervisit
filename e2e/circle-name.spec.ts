@@ -6,7 +6,7 @@ import { expect, test, type Browser, type BrowserContext, type Locator, type Pag
  * The person's name, large, at the top of every circle screen, and who runs the circle under it.
  * Lena, a fictional caregiver with a phone number saved, runs Teodora's circle; Marco runs Walter's
  * and has none. Joy opens Teodora's circle with her link and can call or text Lena; Pat, whom Lena
- * hid people from, sees the name only. Ivy helps in both circles through her account and switches
+ * hid people from, sees the name only; Sam, on "Calendar and reminders only", still sees the name. Ivy helps in both circles through her account and switches
  * between them by tapping the name.
  *
  * Skipped when the test database is not set up here or has password sign-in off. The circles are
@@ -102,7 +102,7 @@ async function fresh(browser: Browser): Promise<{ context: BrowserContext; page:
 /** The name and who runs the circle, at the top of the page. */
 const top = (page: Page): Locator => page.locator("[data-circle-top]");
 
-type Seeded = { lena: Person; marco: Person; ivy: Person; teodora: string; walter: string; joy: string; pat: string };
+type Seeded = { lena: Person; marco: Person; ivy: Person; teodora: string; walter: string; joy: string; pat: string; sam: string };
 
 test.describe("the person's name and who runs the circle", () => {
   test.skip(!ready, "needs the test database from .env.local");
@@ -119,13 +119,15 @@ test.describe("the person's name and who runs the circle", () => {
     const [teodora, walter] = await Promise.all([circle(lena, "Teodora Ruiz"), circle(marco, "Walter Kim")]);
     // Lena saves her number as she would on her own row; Marco has none.
     await rest(`/rest/v1/circle_caregivers?circle_id=eq.${teodora}`, { method: "PATCH", body: JSON.stringify({ phone: "555-010-0100" }) }, lena.session.access_token);
-    const [joy, pat] = await Promise.all([
+    const [joy, pat, sam] = await Promise.all([
       member(teodora, "Joy Banda", "home_aide"),
       member(teodora, "Pat Lee", "day_program", { visibility: { members: "off" } }),
+      // "Calendar and reminders only": no care summary, which is where the name is kept.
+      member(teodora, "Sam Ortiz", "family", { visibility: { hidden: ["medications", "summary", "handoff"] } }),
       member(teodora, "Ivy Chen", "care_manager", { user_id: ivy.session.user.id }),
       member(walter, "Ivy Chen", "family", { user_id: ivy.session.user.id }),
     ]);
-    seeded = { lena, marco, ivy, teodora, walter, joy, pat };
+    seeded = { lena, marco, ivy, teodora, walter, joy, pat, sam };
   });
 
   test.beforeEach(() => {
@@ -153,8 +155,8 @@ test.describe("the person's name and who runs the circle", () => {
     await context.close();
   });
 
-  test("a person with a link sees who runs it and can call or text her; someone hidden from people sees the name only", async ({ browser }) => {
-    const { teodora, joy, pat } = seeded;
+  test("a person with a link sees who runs it and can call or text her; someone hidden from people sees the name only; calendar-only sees the name", async ({ browser }) => {
+    const { teodora, joy, pat, sam } = seeded;
     const one = await fresh(browser);
     await one.page.goto(`/i/${joy}`);
     await one.page.waitForURL(`**/circles/${teodora}`);
@@ -172,7 +174,15 @@ test.describe("the person's name and who runs the circle", () => {
     await expect(top(two.page).getByText("Teodora Ruiz", { exact: true })).toBeVisible();
     await expect(top(two.page)).not.toContainText("runs this circle");
     await expect(top(two.page).getByRole("link")).toHaveCount(0);
-    await Promise.all([one.context.close(), two.context.close()]);
+    const three = await fresh(browser);
+    await three.page.goto(`/i/${sam}`);
+    await three.page.waitForURL(`**/circles/${teodora}`);
+    for (const path of ["", "/calendar"]) {
+      if (path) await three.page.goto(`/circles/${teodora}${path}`);
+      await expect(top(three.page).getByText("Teodora Ruiz", { exact: true })).toBeVisible();
+      await expect(top(three.page)).toContainText("Lena Ortiz runs this circle");
+    }
+    await Promise.all([one.context.close(), two.context.close(), three.context.close()]);
   });
 
   test("someone in two circles switches between them by tapping the name", async ({ browser }) => {

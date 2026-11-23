@@ -3,7 +3,7 @@ import { CircleShell } from "@/components/circles/Shell";
 import { RecordTimeZone } from "@/components/circles/RecordTimeZone";
 import { ShareUpdates } from "@/components/circles/ShareUpdates";
 import { getActor } from "@/lib/auth";
-import { getCircle, listCircles } from "@/services/circles";
+import { getCircle, getPersonName, listCircles } from "@/services/circles";
 import { getCircleRunner, getPendingUpdates } from "@/services/members";
 
 /**
@@ -18,8 +18,9 @@ export default async function CircleLayout({ children, params }: { children: Rea
   // Someone signed in (who runs this circle, or helps in it through their account) gets Sign out and a switcher between their circles.
   const signedIn = actor.kind === "caregiver" || Boolean(actor.userId);
   const account = signedIn ? await getActor() : null;
-  const [content, pending, circles, runner] = await Promise.all([
+  const [content, personName, pending, circles, runner] = await Promise.all([
     getCircle(actor, id),
+    getPersonName(actor, id),
     getPendingUpdates(actor, id),
     account ? listCircles(account) : Promise.resolve([]),
     getCircleRunner(actor, id),
@@ -28,7 +29,7 @@ export default async function CircleLayout({ children, params }: { children: Rea
     <CircleShell
       signedIn={signedIn}
       circles={circles}
-      circle={{ personName: content?.person_name ?? "Your care circle", tabs: circleTabs(actor, id), runner }}
+      circle={{ personName: personName ?? "Your care circle", tabs: circleTabs(actor, id), runner }}
     >
       {/* After the caregiver changes something, the people who can see it are offered their same link with a note. */}
       {actor.kind === "caregiver" && content && !content.time_zone ? <RecordTimeZone circleId={id} /> : null}
