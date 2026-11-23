@@ -45,6 +45,14 @@ test("Google's window closed before signing in: the button comes back", async ({
   await expect(page.getByRole("button", { name: "Sign in with Google" })).toBeEnabled();
   await expect(page.getByText("The Google window closed before sign-in finished. Tap the button to try again.")).toBeVisible();
 
+  // The timed session check stops once the button is back (it runs every 2.5 seconds while waiting).
+  let checks = 0;
+  page.on("request", (request) => {
+    if (new URL(request.url()).pathname === "/api/session") checks += 1;
+  });
+  await page.waitForTimeout(6000);
+  expect(checks).toBe(0);
+
   // Trying again opens Google again and waits again.
   await page.getByRole("button", { name: "Sign in with Google" }).click();
   await expect(page.getByRole("button", { name: "Finishing sign-in" })).toBeDisabled();

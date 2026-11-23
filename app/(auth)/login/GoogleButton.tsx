@@ -82,7 +82,8 @@ export function GoogleButton({
     const timer = window.setInterval(check, 2500);
     // The button comes back once the Google window has been seen open and then closed, after a short
     // wait for its message. Seen open first, so a browser that reports it closed from the start
-    // never cuts a sign-in short.
+    // never cuts a sign-in short. After that the timed session check stops; the message and focus
+    // listeners stay, so a sign-in that still finishes moves the page on.
     let seenOpen = false;
     let graceTimer = 0;
     const watch = window.setInterval(() => {
@@ -100,6 +101,7 @@ export function GoogleButton({
       window.clearInterval(watch);
       graceTimer = window.setTimeout(() => {
         if (gone) return;
+        window.clearInterval(timer);
         setWaiting(false);
         setClosedEarly(true);
       }, CLOSED_GRACE_MS);
@@ -154,15 +156,15 @@ export function GoogleButton({
       </Button>
       {waiting ? (
         <div className="mt-3 text-center">
-          <p role="status" className="text-[14px] text-ink-500">
+          <p role="status" className="text-hint text-ink-500">
             Finish with Google in the window that opened. This page moves on by itself when you are signed in.
           </p>
-          <button type="button" onClick={startAgain} className="mt-1 min-h-11 px-3 text-[15px] font-semibold text-primary-700 underline underline-offset-4">
+          <button type="button" onClick={startAgain} className="mt-1 min-h-11 px-3 text-label font-semibold text-primary-700 underline underline-offset-4">
             Start again
           </button>
         </div>
       ) : closedEarly ? (
-        <p role="status" className="mt-3 text-center text-[14px] text-ink-500">
+        <p role="status" className="mt-3 text-center text-hint text-ink-500">
           The Google window closed before sign-in finished. Tap the button to try again.
         </p>
       ) : null}
