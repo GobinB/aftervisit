@@ -4,7 +4,7 @@ import { RecordTimeZone } from "@/components/circles/RecordTimeZone";
 import { ShareUpdates } from "@/components/circles/ShareUpdates";
 import { getActor } from "@/lib/auth";
 import { getCircle, listCircles } from "@/services/circles";
-import { getPendingUpdates } from "@/services/members";
+import { getCircleRunner, getPendingUpdates } from "@/services/members";
 
 /**
  * The circle's frame (sidebar, header, phone bar), drawn once and kept on screen while moving
@@ -18,13 +18,18 @@ export default async function CircleLayout({ children, params }: { children: Rea
   // Someone signed in (who runs this circle, or helps in it through their account) gets Sign out and a switcher between their circles.
   const signedIn = actor.kind === "caregiver" || Boolean(actor.userId);
   const account = signedIn ? await getActor() : null;
-  const [content, pending, circles] = await Promise.all([
+  const [content, pending, circles, runner] = await Promise.all([
     getCircle(actor, id),
     getPendingUpdates(actor, id),
     account ? listCircles(account) : Promise.resolve([]),
+    getCircleRunner(actor, id),
   ]);
   return (
-    <CircleShell signedIn={signedIn} circles={circles} circle={{ personName: content?.person_name ?? "Your care circle", tabs: circleTabs(actor, id) }}>
+    <CircleShell
+      signedIn={signedIn}
+      circles={circles}
+      circle={{ personName: content?.person_name ?? "Your care circle", tabs: circleTabs(actor, id), runner }}
+    >
       {/* After the caregiver changes something, the people who can see it are offered their same link with a note. */}
       {actor.kind === "caregiver" && content && !content.time_zone ? <RecordTimeZone circleId={id} /> : null}
       {pending.length ? <ShareUpdates circleId={id} personName={content?.person_name ?? "your person"} pending={pending} /> : null}

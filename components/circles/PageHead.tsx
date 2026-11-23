@@ -17,6 +17,14 @@ export function BackLink({ href, label }: { href: string; label: string }) {
 }
 
 /**
+ * The person's name in a page's subtitle, on printouts only. On screen it is already large at the top of
+ * every circle page (CircleTop), which is left off paper. `alone` drops the separator after it.
+ */
+export function PrintedName({ name, alone = false }: { name: string; alone?: boolean }) {
+  return <span className="hidden print:inline">{alone ? name : `${name} · `}</span>;
+}
+
+/**
  * The top of a circle page: an optional way back, the title with its (i) help, a short line under it,
  * and the page's main actions.
  */
@@ -39,7 +47,8 @@ export function PageHead({
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="font-display text-section tracking-[-0.01em] text-primary-900 sm:text-page">{title}</h1>
+            {/* Inside a circle the person's name above is the largest line (CircleTop), so the page title stays a size down. */}
+            <h1 className="font-display text-section tracking-[-0.01em] text-primary-900 sm:text-page sm:group-data-circle/shell:text-section">{title}</h1>
             {help ? <Help text={help} /> : null}
           </div>
           {subtitle ? <p className="mt-1 text-hint text-ink-500">{subtitle}</p> : null}

@@ -110,7 +110,6 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
 
   const header = (
     <TodayHeader
-      personName={personName}
       help={
         canManage
           ? "Everything for today in one place. Tap a card to see more or add something; the menu takes you to each part."

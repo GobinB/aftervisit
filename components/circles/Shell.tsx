@@ -1,19 +1,21 @@
 import Link from "next/link";
 import { BottomBar, CircleNavProvider, HeaderTitle, SidebarCircleNav, type NavTab } from "@/components/circles/CircleNav";
-import { CircleSwitcher, type SwitcherCircle } from "@/components/circles/CircleSwitcher";
+import type { SwitcherCircle } from "@/components/circles/CircleSwitcher";
+import { CircleTop, type Runner } from "@/components/circles/CircleTop";
 import { Logo } from "@/components/Logo";
 import { SignOut } from "@/components/circles/SignOut";
 import { InstallButton } from "@/components/pwa/InstallButton";
 import { COPY } from "@/lib/copy";
 
-export type ShellCircle = { personName: string; tabs: NavTab[] };
+export type ShellCircle = { personName: string; tabs: NavTab[]; runner?: Runner | null };
 
 /**
  * Frame for signed-in and helper screens. On wide screens a dark sidebar holds the circle's areas
  * and a slim header names the page; on phones the header shows the logo and the areas sit in a bottom bar.
  * Inside a circle it is drawn once by app/circles/[id]/layout.tsx and stays on screen between areas.
  * `narrow` suits one-column forms. `signedIn` shows Sign out and the list of circles.
- * `circles` (someone signed in, with two or more circles) adds a switcher between them.
+ * Inside a circle every page starts with the person's name, large, and who runs the circle (CircleTop).
+ * `circles` (someone signed in, with two or more circles) makes that name the switcher between them.
  */
 export function CircleShell({
   children,
@@ -43,7 +45,6 @@ export function CircleShell({
           >
             <Logo size={32} variant="onDark" />
           </Link>
-          <CircleSwitcher circles={circles} tone="dark" />
           <SidebarCircleNav signedIn={signedIn} personName={personName} tabs={tabs} />
         </aside>
 
@@ -52,7 +53,7 @@ export function CircleShell({
             <Link href={homeHref} className="-ml-1 rounded-lg p-1 lg:hidden" aria-label={signedIn ? "All Hands Care, your circles" : "All Hands Care home"}>
               <Logo size={34} />
             </Link>
-            <HeaderTitle fallback={signedIn ? "Your circles" : "Care circle"} personName={personName} tabs={tabs} />
+            <HeaderTitle fallback={signedIn ? "Your circles" : "Care circle"} tabs={tabs} />
             <nav aria-label="Account" className="flex items-center gap-1 text-[13px]">
               <InstallButton />
               {/* On phones Privacy sits in the note at the foot of the page, so the top bar stays on one line. */}
@@ -62,11 +63,8 @@ export function CircleShell({
               {signedIn ? <SignOut /> : null}
             </nav>
           </header>
-          {/* Phones: the switcher gets a row of its own under the top bar, so the name fits and the list has room. */}
-          <div className="no-print border-b border-border-200 bg-white px-4 py-2 empty:hidden sm:px-6 lg:hidden">
-            <CircleSwitcher circles={circles} tone="light" />
-          </div>
-          <main id="main" data-shell="sidebar" className={`group/shell mx-auto w-full min-w-0 ${width} flex-1 px-4 pt-5 sm:px-6 ${circle ? "pb-28 lg:pb-12" : "pb-12"}`}>
+          <main id="main" data-shell="sidebar" data-circle={circle ? "" : undefined} className={`group/shell mx-auto w-full min-w-0 ${width} flex-1 px-4 pt-5 sm:px-6 ${circle ? "pb-28 lg:pb-12" : "pb-12"}`}>
+            {circle ? <CircleTop personName={circle.personName} runner={circle.runner ?? null} circles={circles} /> : null}
             {children}
           </main>
           <p className={`no-print mx-auto w-full ${width} border-t border-border-200 px-4 py-5 text-xs text-ink-500 sm:px-6 ${circle ? "mb-20 lg:mb-0" : ""}`}>

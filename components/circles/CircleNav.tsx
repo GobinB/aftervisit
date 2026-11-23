@@ -84,15 +84,14 @@ export function SidebarCircleNav({ signedIn, personName, tabs }: { signedIn: boo
   );
 }
 
-/** The page name in the slim header on wide screens. */
-export function HeaderTitle({ fallback, personName, tabs }: { fallback: string; personName: string | null; tabs: NavTab[] }) {
+/** The page name in the slim header on wide screens. The person's name sits large at the top of the page (CircleTop). */
+export function HeaderTitle({ fallback, tabs }: { fallback: string; tabs: NavTab[] }) {
   const pathname = usePathname();
   const { href } = useContext(Pending);
   const tab = activeTab(href ?? pathname, tabs);
   return (
     <div className="hidden min-w-0 lg:block">
       <p className="truncate text-base leading-5 font-semibold text-ink-900">{tab?.label ?? fallback}</p>
-      {personName ? <p className="mt-0.5 truncate text-[11px] text-ink-500">{personName}</p> : null}
     </div>
   );
 }

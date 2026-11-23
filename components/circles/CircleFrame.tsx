@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { PageHead } from "@/components/circles/PageHead";
+import type { ReactNode } from "react";
+import { PageHead, PrintedName } from "@/components/circles/PageHead";
 import type { Actor } from "@/lib/auth";
 import { can } from "@/lib/permissions";
 
@@ -23,9 +24,13 @@ export function circleTabs(actor: Actor, circleId: string): { key: CircleTab; la
   return tabs;
 }
 
-export function roleLine(actor: Actor): string {
+/**
+ * How this viewer is in the circle, for the line under a page title. "You run this circle" is already
+ * under the person's name at the top of the page (CircleTop), so on screen it is left out and only printed.
+ */
+export function roleLine(actor: Actor): ReactNode {
   if (actor.kind === "helper") return actor.userId ? "Signed in" : "Your personal link";
-  return "You run this circle";
+  return <span className="hidden print:inline">You run this circle</span>;
 }
 
 /**
@@ -41,7 +46,7 @@ export function CircleFrame({
   children,
 }: {
   personName: string;
-  subtitle: string;
+  subtitle: ReactNode;
   tabs: { key: CircleTab; label: string; href: string }[];
   active: CircleTab;
   help?: string;
@@ -50,7 +55,16 @@ export function CircleFrame({
   const title = tabs.find((tab) => tab.key === active)?.label ?? personName;
   return (
     <>
-      <PageHead title={title} subtitle={`${personName} · ${subtitle}`} help={help} />
+      <PageHead
+        title={title}
+        subtitle={
+          <>
+            <PrintedName name={personName} />
+            {subtitle}
+          </>
+        }
+        help={help}
+      />
       <nav aria-label="Circle" className="no-print -mt-1 mb-5 group-data-[shell=sidebar]/shell:hidden">
         <ul className="flex gap-x-5 overflow-x-auto border-b border-border-200 [scrollbar-width:none]">
           {tabs.map((tab) => (

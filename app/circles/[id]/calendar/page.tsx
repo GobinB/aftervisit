@@ -1,7 +1,7 @@
 import { CalendarPlus, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import { todayIn } from "@/lib/time-zone";
 import type { Metadata } from "next";
-import { PageHead } from "@/components/circles/PageHead";
+import { PageHead, PrintedName } from "@/components/circles/PageHead";
 import Link from "next/link";
 import { PendingLink } from "@/components/ui/PendingLink";
 import { notFound, redirect } from "next/navigation";
@@ -74,7 +74,7 @@ export default async function CalendarPage({ params, searchParams }: { params: P
         <PageHead
           back={{ href: `${base}?week=${weekStart(day)}`, label: "Week" }}
           title={dayText(day)}
-          subtitle={personName}
+          subtitle={<PrintedName name={personName} alone />}
           help="Everything on this day: appointments, reminders that are due, and the medicines to take, by time of day."
           actions={
             canEdit ? (
@@ -112,7 +112,7 @@ export default async function CalendarPage({ params, searchParams }: { params: P
     <>
       <PageHead
         title="Calendar"
-        subtitle={personName}
+        subtitle={<PrintedName name={personName} alone />}
         help="Your week at a glance, coloured by kind: appointments, ones that need someone to go, reminders and medicines. Tap a card to open it, or a day to see everything on it."
         actions={
           <>
