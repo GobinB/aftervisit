@@ -26,6 +26,8 @@ const PHONES_EFFECTIVE = "November 15, 2026";
 const TIME_ZONE_EFFECTIVE = "November 16, 2026";
 /** People in a circle may sign in with Google. */
 const ACCOUNTS_EFFECTIVE = "November 20, 2026";
+/** A cookie remembers the welcome was read, and what home aides and day programs see is said in full. */
+const WELCOME_EFFECTIVE = "November 24, 2026";
 
 const PROMISES: { icon: LucideIcon; title: string; body: string }[] = [
   { icon: Eye, title: "You decide who sees what", body: "Each person gets their own link to only the parts you choose. Turn off any link at any time." },
@@ -59,7 +61,7 @@ export default function PrivacyPage() {
   const provider = providerDisclosure();
   // OpenAI reads the photos, PDF or text of a visit summary itself; otherwise photos are read on the phone.
   const reads = provider.readsPages;
-  const effective = ACCOUNTS_EFFECTIVE;
+  const effective = WELCOME_EFFECTIVE;
   return (
     <PageShell>
       <main id="main" className="flex-1 overflow-x-clip">
@@ -250,7 +252,8 @@ export default function PrivacyPage() {
                     </li>
                     <li>
                       The people you add, through their own link, and only the parts their role and your choices allow. Home aides and day
-                      programs see only the reminders given to them. From a visit&apos;s notes, family and care managers see all of it; home
+                      programs see the reminders given to them, not everyone&apos;s; the calendar, medicines and the care summary unless
+                      you hide them; and not updates or the list of people. From a visit&apos;s notes, family and care managers see all of it; home
                       aides and day programs see what to watch for and good to know, not the summary or the questions. You can hide visit
                       notes from any one person.
                     </li>
@@ -390,7 +393,8 @@ export default function PrivacyPage() {
                   <h3>Cookies</h3>
                   <p>
                     Cookies are used only to run the site: to keep you signed in, to keep a helper&apos;s link open on their phone, to remember
-                    which circle you opened last, and for a few minutes while Google sign-in finishes. None are used for ads or tracking,
+                    that a person tapped Got it on the welcome (it holds only which link, so the welcome is not shown again on that
+                    device), to remember which circle you opened last, and for a few minutes while Google sign-in finishes. None are used for ads or tracking,
                     and page visits are counted without cookies.
                   </p>
                 </section>
@@ -482,7 +486,14 @@ export default function PrivacyPage() {
                     the app. All Hands Care organizes what you and the clinician wrote; it does not give medical advice.
                   </p>
                   <p>
-                    <strong>Latest change, {ACCOUNTS_EFFECTIVE}:</strong> the people a caregiver adds can now sign in with Google if they
+                    <strong>Latest change, {WELCOME_EFFECTIVE}:</strong> the first time a person opens a circle, a welcome says who
+                    added them and what they can see. A cookie remembers that they tapped Got it, so it is not shown again on that phone
+                    or computer; it holds only which link it was. We also now say in full what home aides and day programs see: the
+                    reminders given to them, not everyone&apos;s, and the calendar, medicines and care summary unless you hide them. What
+                    they see has not changed.
+                  </p>
+                  <p>
+                    <strong>Before that, {ACCOUNTS_EFFECTIVE}:</strong> the people a caregiver adds can now sign in with Google if they
                     choose, to keep all their circles in one place. It is never required, and links work as before without it. When a
                     person signs in, we keep their Google name and email, and the caregiver who runs that circle sees the email on People.
                     Their link then opens only when they are signed in with that account; the caregiver can undo that. Before, only

@@ -543,6 +543,10 @@ test("privacy page describes access honestly", async ({ page }, info) => {
   await expect(page.getByText(/We do not open them\./)).toBeVisible();
   await expect(page.getByText(/Keeping the key does mean we are able to open them/)).toBeVisible();
   await expect(page.getByText(/Phone numbers are never required/)).toBeVisible();
+  // Home aides and day programs: what they see, said in full, and the cookie that remembers the welcome.
+  await expect(page.getByText(/see the reminders given to them, not everyone.s; the calendar, medicines and the care summary unless/)).toBeVisible();
+  await expect(page.getByText(/see only the reminders given to them/)).toHaveCount(0);
+  await expect(page.getByText(/that a person tapped Got it on the welcome \(it holds only which link/)).toBeVisible();
   await expect(page.getByRole("link", { name: "privacy@allhandscare.org" }).first()).toBeVisible();
   await page.getByRole("link", { name: "Health data notice" }).first().click();
   await expect(page.getByRole("heading", { name: "Health data notice" })).toBeVisible();
