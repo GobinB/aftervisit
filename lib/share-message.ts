@@ -133,10 +133,13 @@ export function assignedMessage({
   return lines.join("\n");
 }
 
-/** Simple choices for what a person sees, instead of a row of bare checkboxes. */
+/**
+ * Simple choices for what a person sees, instead of a row of bare checkboxes. What each one includes
+ * is worked out from the person's role on the People page (lib/what-you-see.ts), since the role narrows it too.
+ */
 export const SEE_PRESETS = [
-  { key: "everything", label: "Everything", detail: "Calendar, reminders, medications, the care summary and visit notes", hidden: [] as VisibilityArea[] },
-  { key: "calendar", label: "Calendar and reminders only", detail: "Good for neighbors, friends and aides", hidden: ["medications", "summary", "handoff"] as VisibilityArea[] },
+  { key: "everything", label: "Everything", goodFor: null, hidden: [] as VisibilityArea[] },
+  { key: "calendar", label: "Calendar and reminders only", goodFor: "Good for neighbors, friends and aides.", hidden: ["medications", "summary", "handoff"] as VisibilityArea[] },
 ] as const;
 
 export const AREA_DETAILS: Partial<Record<VisibilityArea, string>> = {
@@ -156,6 +159,6 @@ export function presetFor(hidden: readonly string[]): string {
 export const ROLE_DETAILS: Record<HelperRole, string> = {
   family: "Can add to the calendar and take on reminders",
   care_manager: "Sees what you share and can take on reminders",
-  home_aide: "Sees their own reminders and the calendar",
-  day_program: "Sees their own reminders and the calendar",
+  home_aide: "Sees their own reminders, not everyone's. Cannot add to the calendar",
+  day_program: "Sees their own reminders, not everyone's. Cannot add to the calendar",
 };

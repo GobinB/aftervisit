@@ -134,6 +134,10 @@ describe("saving a link to an account", () => {
     for (const role of ROLES) expect(can(actor(role), "account:save:own", { circleId: CIRCLE }), role).toBe(role !== "owner");
     expect(can(actor("family"), "account:save:own", { circleId: OTHER })).toBe(false);
     expect(can(stranger, "account:save:own", { circleId: CIRCLE })).toBe(false);
+    // Got it on the first-open welcome: everyone in the circle but its caregiver, only in their own circle.
+    for (const role of ROLES) expect(can(actor(role), "welcome:done:own", { circleId: CIRCLE }), role).toBe(role !== "owner");
+    expect(can(actor("home_aide"), "welcome:done:own", { circleId: OTHER })).toBe(false);
+    expect(can(stranger, "welcome:done:own", { circleId: CIRCLE })).toBe(false);
   });
 
   test("hiding areas does not stop it, and only the owner can undo it", () => {

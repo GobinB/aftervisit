@@ -1,6 +1,7 @@
 import { ArrowRight, CalendarDays, Check, ChevronDown, EllipsisVertical, FileText, ListChecks, Lock, Pill, Share, SquarePlus, Users } from "lucide-react";
 import Link from "next/link";
 import { ButtonLink } from "@/components/Button";
+import { HowACircleWorks } from "@/components/home/HowACircleWorks";
 import { PhonePreview } from "@/components/home/PhonePreview";
 import { PageShell } from "@/components/PageShell";
 import { InstallApp } from "@/components/pwa/InstallApp";
@@ -41,7 +42,7 @@ const FAQ = [
   },
   {
     q: "What can a home aide or day program see?",
-    a: "Only what you choose. By default they see the reminders given to them and, from visit notes, what to watch for. Family members can see more. You can change it for each person.",
+    a: "Only what you choose. On “Everything”, a home aide or day program sees the calendar, medications, the care summary, the reminders given to them (not everyone’s) and, from visit notes, what to watch for and good to know. Pick “Calendar and reminders only” to show less, or choose each part. You can change it for each person at any time, on the same link.",
   },
   {
     q: "What if a link goes to the wrong person?",
@@ -214,6 +215,9 @@ export default function HomePage() {
                 </li>
               ))}
             </ol>
+            <div className="mt-6">
+              <HowACircleWorks />
+            </div>
           </div>
         </section>
 

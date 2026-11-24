@@ -1,5 +1,6 @@
 import "server-only";
 import { randomUUID } from "node:crypto";
+import { cache } from "react";
 import { activeLock, HARD_LOCK_AFTER, LOCK_MINUTES, MAX_PIN_ATTEMPTS, toPinCheck, type TryPinRow } from "@/lib/access";
 import type { Actor } from "@/lib/auth";
 import { COPY } from "@/lib/copy";
@@ -473,7 +474,7 @@ export type CircleRunner = {
  * as on the People list). Null for anyone the caregiver has hidden people from, and when it cannot be read:
  * the line is left out rather than the page failing, and the error is logged (its code and message, no names).
  */
-export async function getCircleRunner(actor: Actor, circleId: string): Promise<CircleRunner | null> {
+export const getCircleRunner = cache(async function getCircleRunner(actor: Actor, circleId: string): Promise<CircleRunner | null> {
   if (!can(actor, "members:read:caregivers", { circleId })) return null;
   try {
     const { data, error } = await clientFor(actor)
@@ -495,7 +496,7 @@ export async function getCircleRunner(actor: Actor, circleId: string): Promise<C
     console.error("circle runner read failed:", (e as Error).message);
     return null;
   }
-}
+});
 
 export async function listPeople(actor: Actor, circleId: string): Promise<{ ok: true; people: PersonView[]; canManage: boolean } | { ok: false; error: string }> {
   const canManage = can(actor, "members:manage", { circleId });
