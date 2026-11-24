@@ -1,13 +1,13 @@
 import Link from "next/link";
 import { BottomBar, CircleNavProvider, HeaderTitle, SidebarCircleNav, type NavTab } from "@/components/circles/CircleNav";
 import type { SwitcherCircle } from "@/components/circles/CircleSwitcher";
-import { CircleTop, type Runner } from "@/components/circles/CircleTop";
+import { CircleTop, type Runner, type Welcome } from "@/components/circles/CircleTop";
 import { Logo } from "@/components/Logo";
 import { SignOut } from "@/components/circles/SignOut";
 import { InstallButton } from "@/components/pwa/InstallButton";
 import { COPY } from "@/lib/copy";
 
-export type ShellCircle = { personName: string; tabs: NavTab[]; runner?: Runner | null };
+export type ShellCircle = { personName: string; tabs: NavTab[]; runner?: Runner | null; welcome?: Welcome | null };
 
 /**
  * Frame for signed-in and helper screens. On wide screens a dark sidebar holds the circle's areas
@@ -64,7 +64,7 @@ export function CircleShell({
             </nav>
           </header>
           <main id="main" data-shell="sidebar" data-circle={circle ? "" : undefined} className={`group/shell mx-auto w-full min-w-0 ${width} flex-1 px-4 pt-5 sm:px-6 ${circle ? "pb-28 lg:pb-12" : "pb-12"}`}>
-            {circle ? <CircleTop personName={circle.personName} runner={circle.runner ?? null} circles={circles} /> : null}
+            {circle ? <CircleTop personName={circle.personName} runner={circle.runner ?? null} circles={circles} welcome={circle.welcome ?? null} /> : null}
             {children}
           </main>
           <p className={`no-print mx-auto w-full ${width} border-t border-border-200 px-4 py-5 text-xs text-ink-500 sm:px-6 ${circle ? "mb-20 lg:mb-0" : ""}`}>

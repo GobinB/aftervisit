@@ -1,4 +1,4 @@
-import { ArrowRight, UserPlus } from "lucide-react";
+import { ArrowRight, Eye, UserPlus } from "lucide-react";
 import { todayIn } from "@/lib/time-zone";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -20,7 +20,9 @@ import { listActivity } from "@/services/activity";
 import { getCircle } from "@/services/circles";
 import { listEvents } from "@/services/events";
 import { listMedications } from "@/services/medications";
-import { listPeople } from "@/services/members";
+import { getCircleRunner, listPeople } from "@/services/members";
+import { firstName, seenText, whatTheySee } from "@/lib/what-you-see";
+import { needsWelcome } from "@/lib/welcome-server";
 import { listTodos } from "@/services/todos";
 import { listVisits } from "@/services/visits";
 
@@ -35,7 +37,7 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
   // Today where the person lives (the server runs in UTC). getCircle is cached, so the read below is free.
   const today = todayIn((await getCircle(actor, id))?.time_zone);
   // Everything Today shows is read at once rather than one after another.
-  const [content, listed, medications, todos, events, activity, visits] = await Promise.all([
+  const [content, listed, medications, todos, events, activity, visits, runner, welcome] = await Promise.all([
     getCircle(actor, id),
     listPeople(actor, id),
     listMedications(actor, id),
@@ -44,6 +46,8 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
     listEvents(actor, id, addDays(today, -90), addDays(today, 365)),
     listActivity(actor, id),
     listVisits(actor, id, 20),
+    getCircleRunner(actor, id),
+    needsWelcome(actor),
   ]);
   if (!content && actor.kind === "caregiver") notFound();
   const personName = content?.person_name ?? "Your care circle";
@@ -128,9 +132,23 @@ export default async function CircleToday({ params }: { params: Promise<{ id: st
     />
   );
 
+  // A person in the circle: one short line on what they can open, once the first-open welcome above has gone.
+  const asker = runner && !runner.you && runner.name ? firstName(runner.name) : null;
+  const seeLine =
+    actor.kind === "helper" && !welcome ? (
+      <p data-what-you-see className="mb-5 flex items-start gap-2 rounded-lg border border-border-200 bg-white px-3 py-2.5 text-note text-ink-500">
+        <Eye className="mt-0.5 size-4 shrink-0 text-primary-700" aria-hidden="true" />
+        <span>
+          <span className="font-semibold text-ink-900">What you can see:</span> {seenText(whatTheySee(actor.role, actor.visibility))}.{" "}
+          {asker ? `Ask ${asker} if you need more.` : "Ask the person who runs the circle if you need more."}
+        </span>
+      </p>
+    ) : null;
+
   return (
     <>
       {header}
+      {seeLine}
       {canManage && people ? (
         <>
           <TodayActions actions={buildTodayActions(id)} />

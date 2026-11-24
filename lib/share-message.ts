@@ -133,10 +133,13 @@ export function assignedMessage({
   return lines.join("\n");
 }
 
-/** Simple choices for what a person sees, instead of a row of bare checkboxes. */
+/**
+ * Simple choices for what a person sees, instead of a row of bare checkboxes. What each one includes
+ * is worked out from the person's role on the People page (lib/what-you-see.ts), since the role narrows it too.
+ */
 export const SEE_PRESETS = [
-  { key: "everything", label: "Everything", detail: "Calendar, reminders, medications, the care summary and visit notes", hidden: [] as VisibilityArea[] },
-  { key: "calendar", label: "Calendar and reminders only", detail: "Good for neighbors, friends and aides", hidden: ["medications", "summary", "handoff"] as VisibilityArea[] },
+  { key: "everything", label: "Everything", goodFor: null, hidden: [] as VisibilityArea[] },
+  { key: "calendar", label: "Calendar and reminders only", goodFor: "Good for neighbors, friends and aides.", hidden: ["medications", "summary", "handoff"] as VisibilityArea[] },
 ] as const;
 
 export const AREA_DETAILS: Partial<Record<VisibilityArea, string>> = {

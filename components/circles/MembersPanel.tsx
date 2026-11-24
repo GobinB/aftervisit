@@ -17,6 +17,7 @@ import { dateTime } from "@/lib/format";
 import { LINK_IDLE_DAYS, LINK_MAX_DAYS } from "@/lib/link-life";
 import { cleanPhone } from "@/lib/phone";
 import { AREA_DETAILS, ROLE_DETAILS, SEE_PRESETS, presetFor } from "@/lib/share-message";
+import { seenSentence, whatTheySee } from "@/lib/what-you-see";
 import { AREA_LABELS, HELPER_ROLES, HELPER_ROLE_LABELS, READY_AREAS, type HelperRole, type PersonView, type VisibilityArea } from "@/lib/schema/circles";
 
 const field = "mt-1.5 w-full min-h-12 rounded-xl border border-border-200 bg-white px-3 text-[16px] text-ink-900 outline-none focus:border-action-500";
@@ -181,8 +182,11 @@ function PersonLine({ person, you = false }: { person: PersonView; you?: boolean
   );
 }
 
-/** "What can Sam see?" A preset for most people, switches for anyone who wants to choose. */
-function WhatCanSee({ name, hidden, setHidden }: { name: string; hidden: VisibilityArea[]; setHidden: (next: VisibilityArea[]) => void }) {
+/**
+ * "What can Sam see?" A preset for most people, switches for anyone who wants to choose. Each choice
+ * says what it includes for the role picked, so a home aide on "Everything" reads "their own reminders".
+ */
+function WhatCanSee({ name, role, hidden, setHidden }: { name: string; role: HelperRole; hidden: VisibilityArea[]; setHidden: (next: VisibilityArea[]) => void }) {
   const preset = presetFor(hidden);
   const [custom, setCustom] = useState(preset === "custom");
   const first = name.trim().split(/\s+/)[0] || "they";
@@ -204,13 +208,18 @@ function WhatCanSee({ name, hidden, setHidden }: { name: string; hidden: Visibil
             />
             <span>
               <span className="block font-semibold text-ink-900">{item.label}</span>
-              <span className="block text-[13px] text-ink-500">{item.detail}</span>
+              <span className="block text-hint text-ink-500" data-includes>
+                {seenSentence(whatTheySee(role, { hidden: [...item.hidden] }, "they"))}.{item.goodFor ? ` ${item.goodFor}` : ""}
+              </span>
             </span>
           </label>
         ))}
         <label className={option}>
           <input type="radio" name={`see-${name}`} className="mt-1 size-5 shrink-0 accent-primary-700" checked={custom} onChange={() => setCustom(true)} />
-          <span className="block font-semibold text-ink-900">Let me choose</span>
+          <span>
+            <span className="block font-semibold text-ink-900">Let me choose</span>
+            <span className="block text-hint text-ink-500">Turn each part on or off.</span>
+          </span>
         </label>
       </div>
       {custom ? (
@@ -303,7 +312,7 @@ function AddPerson({ circleId, onDone, onCancel }: { circleId: string; onDone: (
           ))}
         </div>
       </fieldset>
-      <WhatCanSee name={name || "they"} hidden={hidden} setHidden={setHidden} />
+      <WhatCanSee name={name || "they"} role={role} hidden={hidden} setHidden={setHidden} />
       <div className="grid gap-4 sm:grid-cols-2">
         <div>
           <label htmlFor="member-phone" className="text-[15px] font-semibold text-ink-900">
@@ -478,6 +487,7 @@ function Profile({
           <p className="text-[15px] text-ink-900">
             The link {first} has now will stop working, on every phone that opened it.{person.signedIn ? ` The new one also opens only when ${first} is signed in.` : ""} Make a new one?
           </p>
+          <p className="text-hint text-ink-500">To change what {first} sees, you do not need a new link: use More below, and it works on the same link right away.</p>
           <div className="flex flex-wrap gap-2">
             <button type="button" disabled={pending} onClick={() => run(() => newLinkAction({ circleId, memberId: person.id }), onNewLink)} className={`${action} bg-primary-700 text-white hover:bg-primary-900`}>
               Yes, new link
@@ -516,15 +526,20 @@ function Profile({
         <details className="rounded-xl border border-border-200 bg-white p-3">
           <summary className="min-h-8 cursor-pointer text-[15px] font-semibold text-ink-900">More: what {first} sees, role, when the link ends</summary>
           <div className="mt-4 space-y-5">
-            <WhatCanSee name={person.name} hidden={hidden} setHidden={setHidden} />
-            <button
-              type="button"
-              disabled={pending}
-              onClick={() => run(() => setVisibilityAction({ circleId, memberId: person.id, visibility: { hidden } }))}
-              className={`${action} w-full border border-primary-700 bg-white text-primary-700 hover:bg-sky-100`}
-            >
-              Save what {first} sees
-            </button>
+            <WhatCanSee name={person.name} role={role} hidden={hidden} setHidden={setHidden} />
+            <div>
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => run(() => setVisibilityAction({ circleId, memberId: person.id, visibility: { hidden } }))}
+                className={`${action} w-full border border-primary-700 bg-white text-primary-700 hover:bg-sky-100`}
+              >
+                Save what {first} sees
+              </button>
+              <p className="mt-2 text-hint text-ink-500" data-same-link>
+                A change works on {first}&apos;s same link right away. No new link needed.
+              </p>
+            </div>
             <div>
               <label className="text-[15px] font-semibold text-ink-900" htmlFor={`role-${person.id}`}>
                 Role

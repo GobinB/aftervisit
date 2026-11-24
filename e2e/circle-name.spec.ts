@@ -102,6 +102,12 @@ async function fresh(browser: Browser): Promise<{ context: BrowserContext; page:
 /** The name and who runs the circle, at the top of the page. */
 const top = (page: Page): Locator => page.locator("[data-circle-top]");
 
+/** The first time a person opens the circle, a welcome stands in for the short line; Got it puts the line back. */
+async function gotIt(page: Page) {
+  await top(page).getByRole("button", { name: "Got it" }).click();
+  await expect(top(page).locator("[data-welcome]")).toHaveCount(0);
+}
+
 type Seeded = { lena: Person; marco: Person; ivy: Person; teodora: string; walter: string; joy: string; pat: string; sam: string };
 
 test.describe("the person's name and who runs the circle", () => {
@@ -165,6 +171,7 @@ test.describe("the person's name and who runs the circle", () => {
     const one = await fresh(browser);
     await one.page.goto(`/i/${joy}`);
     await one.page.waitForURL(`**/circles/${teodora}`);
+    await gotIt(one.page);
     for (const path of ["", "/calendar", "/emergency"]) {
       if (path) await one.page.goto(`/circles/${teodora}${path}`);
       await expect(top(one.page).getByText("Teodora Ruiz", { exact: true })).toBeVisible();
@@ -182,6 +189,7 @@ test.describe("the person's name and who runs the circle", () => {
     const three = await fresh(browser);
     await three.page.goto(`/i/${sam}`);
     await three.page.waitForURL(`**/circles/${teodora}`);
+    await gotIt(three.page);
     for (const path of ["", "/calendar"]) {
       if (path) await three.page.goto(`/circles/${teodora}${path}`);
       await expect(top(three.page).getByText("Teodora Ruiz", { exact: true })).toBeVisible();
@@ -195,6 +203,7 @@ test.describe("the person's name and who runs the circle", () => {
     const { context, page } = await fresh(browser);
     await signIn(context, ivy);
     await page.goto(`/circles/${teodora}/calendar`);
+    await gotIt(page);
     await expect(top(page)).toContainText("Lena Ortiz runs this circle");
     // One switcher on the page, at every width: the name.
     await expect(page.locator("summary[aria-label^='Switch circle']")).toHaveCount(1);
@@ -202,6 +211,7 @@ test.describe("the person's name and who runs the circle", () => {
     await top(page).locator("details[open]").getByRole("link", { name: /Walter Kim.*You help · Family/ }).click();
     await page.waitForURL(`**/circles/${walter}`);
     await expect(top(page).locator("summary")).toHaveAccessibleName("Switch circle. Now: Walter Kim");
+    await gotIt(page);
     await expect(top(page)).toContainText("Marco Kim runs this circle");
     // Marco saved no number, so there is nothing to call.
     await expect(top(page).getByRole("link", { name: /^(Call|Text) / })).toHaveCount(0);

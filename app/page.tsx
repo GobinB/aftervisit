@@ -1,6 +1,7 @@
 import { ArrowRight, CalendarDays, Check, ChevronDown, EllipsisVertical, FileText, ListChecks, Lock, Pill, Share, SquarePlus, Users } from "lucide-react";
 import Link from "next/link";
 import { ButtonLink } from "@/components/Button";
+import { HowACircleWorks } from "@/components/home/HowACircleWorks";
 import { PhonePreview } from "@/components/home/PhonePreview";
 import { PageShell } from "@/components/PageShell";
 import { InstallApp } from "@/components/pwa/InstallApp";
@@ -214,6 +215,9 @@ export default function HomePage() {
                 </li>
               ))}
             </ol>
+            <div className="mt-6">
+              <HowACircleWorks />
+            </div>
           </div>
         </section>
 

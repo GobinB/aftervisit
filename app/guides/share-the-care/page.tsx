@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { HowACircleWorks } from "@/components/home/HowACircleWorks";
 import { InfoPage, LINK } from "@/components/InfoPage";
 import { COPY } from "@/lib/copy";
 
@@ -71,6 +72,9 @@ export default function ShareTheCareGuide() {
         </Link>
         .
       </p>
+      <div className="mt-6">
+        <HowACircleWorks />
+      </div>
       <p className="!mt-8 border-t border-border-200 pt-5 text-[14px] text-ink-500">{COPY.notMedicalAdvice}</p>
     </InfoPage>
   );
