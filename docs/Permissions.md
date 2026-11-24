@@ -16,6 +16,8 @@ Phone numbers and the Emergency page: everyone in the circle can open the Emerge
 
 Saving a link to an account: every person in the circle may save their own link to their Google account (`account:save:own`); the owner has nothing to save and is denied. It takes their link's cookie (so any PIN was typed) and their Google sign-in together, and goes through the server. Only the owner can undo it (`members:manage`), which makes the link work on its own again. Hiding areas does not stop it: saving changes how the person gets in, never what they see.
 
+The welcome: the first time a person opens the circle, the top of the page says who added them, what they can see and who to ask, until they tap Got it (`welcome:done:own`, every role but the owner, who gets no welcome). Got it only sets a cookie on that device with their member id; it changes nothing in the database. What they can see is worked out from the same actions as the circle's menu (`lib/what-you-see.ts`), so it counts their role and what the caregiver hid.
+
 Only the owner is handed the circle's key for files (`circle:rotate_key`). The key is stored, wrapped, only on the owner's row, and nothing can replace it. The server never hands it to a helper. Family can read and post updates, including family-only ones. A care manager can read updates that are not family-only. Home aides and day programs do not see updates. They can read and print medications, see their own tasks, read the calendar, and open the care folder of documents. Handoff sections for helpers are only the ones chosen on their member row. Per-member `visibility` can hide an area. It cannot grant manage, export, or delete.
 
 ## Who is locked by what

@@ -19,7 +19,7 @@ const LINE = "mx-auto block h-5 w-px bg-border-200";
 export function HowACircleWorks({ title = "How a circle works" }: { title?: string }) {
   return (
     <figure aria-labelledby="circle-model-title" className="rounded-xl border border-border-200 bg-paper-100/60 p-4 sm:p-6" data-circle-model>
-      <span id="circle-model-title" className="block text-tag font-semibold tracking-[0.12em] text-ink-500 uppercase">
+      <span id="circle-model-title" className="block text-tag font-semibold tracking-widest text-ink-500 uppercase">
         {title}
       </span>
 
@@ -44,7 +44,7 @@ export function HowACircleWorks({ title = "How a circle works" }: { title?: stri
 
       {/* On wider screens a bar joins the helpers to the caregiver above. */}
       <div className="relative grid gap-3 sm:grid-cols-3 sm:pt-5">
-        <span className="absolute top-0 right-[16.67%] left-[16.67%] hidden h-px bg-border-200 sm:block" aria-hidden="true" />
+        <span className="absolute top-0 right-1/6 left-1/6 hidden h-px bg-border-200 sm:block" aria-hidden="true" />
         {HELPERS.map((helper) => (
           <div key={helper.who} className={`${NODE} relative text-left`}>
             <span className="absolute -top-5 left-1/2 hidden h-5 w-px bg-border-200 sm:block" aria-hidden="true" />

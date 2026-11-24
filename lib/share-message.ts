@@ -159,6 +159,6 @@ export function presetFor(hidden: readonly string[]): string {
 export const ROLE_DETAILS: Record<HelperRole, string> = {
   family: "Can add to the calendar and take on reminders",
   care_manager: "Sees what you share and can take on reminders",
-  home_aide: "Sees only the reminders given to them",
-  day_program: "Sees only the reminders given to them",
+  home_aide: "Sees their own reminders, not everyone's. Cannot add to the calendar",
+  day_program: "Sees their own reminders, not everyone's. Cannot add to the calendar",
 };

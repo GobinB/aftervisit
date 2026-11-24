@@ -20,6 +20,9 @@ import type { HelperRole, VisibilityArea } from "@/lib/schema/circles";
  *
  * "account:save:own" is a person saving their own link to their Google account, so their circles
  * are in one place and the link opens only for them. The caregiver's "Undo" is "members:manage".
+ *
+ * "welcome:done:own" is a person in the circle tapping Got it on the welcome they see the first time
+ * they open it. The caregiver gets no welcome.
  */
 export const ACTIONS = [
   "members:manage",
@@ -58,6 +61,7 @@ export const ACTIONS = [
   "emergency:read",
   "phone:edit:own",
   "account:save:own",
+  "welcome:done:own",
 ] as const;
 
 export type Action = (typeof ACTIONS)[number];
@@ -99,6 +103,7 @@ const OWNER: Cell[] = [
   "allow", "allow", "allow",
   "allow", "allow",
   "deny",
+  "deny",
 ];
 
 const FAMILY: Cell[] = [
@@ -115,6 +120,7 @@ const FAMILY: Cell[] = [
   "deny",
   "allow", "allow", "deny",
   "allow", "allow",
+  "allow",
   "allow",
 ];
 
@@ -133,6 +139,7 @@ const CARE_MANAGER: Cell[] = [
   "allow", "allow", "deny",
   "allow", "allow",
   "allow",
+  "allow",
 ];
 
 const AIDE: Cell[] = [
@@ -149,6 +156,7 @@ const AIDE: Cell[] = [
   "deny",
   "allow", "deny", "deny",
   "allow", "allow",
+  "allow",
   "allow",
 ];
 
