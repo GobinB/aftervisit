@@ -257,15 +257,16 @@ test.describe("a circle that is easy to understand", () => {
     }).toPass({ timeout: 20_000 });
     await Promise.all([caregiver.context.close(), phone.context.close()]);
   });
+});
 
-  test("the home page and the guide show how a circle works", async ({ page }) => {
-    for (const path of ["/", "/guides/share-the-care"]) {
-      await page.goto(path);
-      const model = page.locator("[data-circle-model]");
-      await expect(model.getByText("How a circle works")).toBeVisible();
-      await expect(model).toContainText("You, the caregiver");
-      await expect(model).toContainText("Runs the circle");
-      await expect(model.getByText("Own link", { exact: true })).toHaveCount(3);
-    }
-  });
+// Needs no database.
+test("the home page and the guide show how a circle works", async ({ page }) => {
+  for (const path of ["/", "/guides/share-the-care"]) {
+    await page.goto(path);
+    const model = page.locator("[data-circle-model]");
+    await expect(model.getByText("How a circle works")).toBeVisible();
+    await expect(model).toContainText("You, the caregiver");
+    await expect(model).toContainText("Runs the circle");
+    await expect(model.getByText("Own link", { exact: true })).toHaveCount(3);
+  }
 });
