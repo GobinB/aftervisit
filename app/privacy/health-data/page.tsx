@@ -2,8 +2,12 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { PRIVACY_EMAIL } from "@/lib/contact";
+import { pageSeo } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Health data notice" };
+export const metadata: Metadata = pageSeo("/privacy/health-data", {
+  title: "Health data notice",
+  description: "Health information All Hands Care holds, including allergies, medicines, visits and reminders: why it is used, who it is shared with, and how to see or delete it.",
+});
 
 const EFFECTIVE = "November 15, 2026";
 

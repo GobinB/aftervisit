@@ -1,9 +1,9 @@
 import type { MetadataRoute } from "next";
-import { env } from "@/lib/env";
+import { PUBLIC_PAGES, siteUrl } from "@/lib/seo";
 
 /** Public pages only. Links (/h, /i), the create flow and signed-in pages stay out, as robots.ts says. */
-const PAGES = ["/", "/about", "/care-teams", "/guides/share-the-care", "/contact", "/privacy", "/privacy/health-data", "/terms"];
-
 export default function sitemap(): MetadataRoute.Sitemap {
-  return PAGES.map((path) => ({ url: `${env.appUrl}${path === "/" ? "" : path}` }));
+  // When these pages were last built. Search engines treat it as a hint.
+  const lastModified = new Date();
+  return PUBLIC_PAGES.map(({ path }) => ({ url: siteUrl(path), lastModified }));
 }

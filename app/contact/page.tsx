@@ -3,11 +3,12 @@ import { Bug, Lock, Mail, MessageCircleHeart, Users } from "lucide-react";
 import Link from "next/link";
 import { InfoPage, LINK } from "@/components/InfoPage";
 import { CONTACT_EMAIL, PRIVACY_EMAIL, mailto } from "@/lib/contact";
+import { pageSeo } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageSeo("/contact", {
   title: "Contact",
   description: "Questions, feedback, or want to try All Hands Care with your family? Write to us.",
-};
+});
 
 const WAYS = [
   {

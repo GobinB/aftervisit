@@ -3,12 +3,13 @@ import Link from "next/link";
 import { InfoPage, LINK } from "@/components/InfoPage";
 import { SOURCE_URL } from "@/components/AppBar";
 import { CONTACT_EMAIL, mailto } from "@/lib/contact";
+import { pageSeo } from "@/lib/seo";
 import { ASSEMBLY_CODE, CAREGIVING_FACTS, CAREGIVING_SOURCE, MAKER } from "@/lib/site";
 
-export const metadata: Metadata = {
-  title: "About",
-  description: `Why All Hands Care exists and who makes it. Made by ${MAKER.name}. A project of Assembly Code, a nonprofit.`,
-};
+export const metadata: Metadata = pageSeo("/about", {
+  title: "About, made in Louisville",
+  description: `Why All Hands Care exists and who makes it in ${MAKER.place}. Made by ${MAKER.name}. A project of ${ASSEMBLY_CODE.name}, a nonprofit.`,
+});
 
 export default function AboutPage() {
   return (

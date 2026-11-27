@@ -25,7 +25,7 @@ export function PhonePreview({ className = "" }: { className?: string }) {
               <p className="mt-1 text-[10px] text-ink-500">Margaret Lee · Thursday, October 8</p>
             </div>
             <div className="origin-top-left overflow-hidden rounded-lg border border-border-200 bg-white text-[12px] [zoom:0.78]">
-              <Agenda items={SAMPLE_CALENDAR.slice(0, 2)} circleId="sample" canEdit={false} empty="" fromToday={false} />
+              <Agenda items={SAMPLE_CALENDAR.slice(0, 2)} circleId="sample" canEdit={false} empty="" fromToday={false} datesAsHeadings={false} />
             </div>
             <div className="overflow-hidden rounded-lg border border-border-200 bg-white [zoom:0.78]">
               <TodoList todos={SAMPLE_TODOS.slice(0, 2)} canEdit={false} />

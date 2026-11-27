@@ -8,8 +8,12 @@ import { MAKER } from "@/lib/site";
 import { env } from "@/lib/env";
 import { providerDisclosure } from "@/lib/extract/provider";
 import { LINK_IDLE_DAYS, LINK_MAX_DAYS } from "@/lib/link-life";
+import { pageSeo } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Privacy" };
+export const metadata: Metadata = pageSeo("/privacy", {
+  title: "Privacy",
+  description: "How All Hands Care handles what families share: who can see it, how photos stay locked, and how to delete a circle. Never sold, and no ads.",
+});
 export const dynamic = "force-dynamic";
 
 const TTL_DAYS = Number(process.env.HANDOFF_TTL_DAYS || 30);
