@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { HowACircleWorks } from "@/components/home/HowACircleWorks";
 import { InfoPage, LINK } from "@/components/InfoPage";
+import { JsonLd } from "@/components/JsonLd";
 import { COPY } from "@/lib/copy";
+import { howTo, pageSeo } from "@/lib/seo";
 
-export const metadata: Metadata = {
-  title: "Sharing the care: keeping family and aides on the same page",
-  description:
-    "Seven plain habits for families who share the care of an older parent with siblings, a home aide or a day program: one place for the plan, a name on every task, and a dated medicine list.",
-};
+const TITLE = "Sharing the care: keeping family and aides on the same page";
+const DESCRIPTION =
+  "Seven plain habits for families who share the care of an older parent with siblings, a home aide or a day program: one place for the plan, a name on every task, and a dated medicine list.";
+
+export const metadata: Metadata = pageSeo("/guides/share-the-care", { title: TITLE, description: DESCRIPTION });
 
 const HABITS = [
   {
@@ -45,9 +47,10 @@ export default function ShareTheCareGuide() {
   return (
     <InfoPage
       label="Guide"
-      title="Sharing the care: keeping family and aides on the same page"
+      title={TITLE}
       lead="When a parent is looked after by siblings, a home aide or a day program, most mix-ups come from one person knowing something the others don't. These seven habits help, whatever tool you use."
     >
+      <JsonLd data={howTo("/guides/share-the-care", TITLE, DESCRIPTION, HABITS)} />
       <ol className="!list-none !pl-0">
         {HABITS.map(({ title, body }, index) => (
           <li key={title} className="!mt-8 flex gap-4">

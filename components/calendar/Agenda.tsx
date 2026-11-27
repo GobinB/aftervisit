@@ -21,6 +21,7 @@ export function Agenda({
   fromToday = true,
   dayBase,
   medCounts,
+  datesAsHeadings = true,
 }: {
   items: CalendarItem[];
   circleId: string;
@@ -33,6 +34,8 @@ export function Agenda({
   dayBase?: string;
   /** How many medicines are due each day, shown beside the day's name. */
   medCounts?: Record<string, number>;
+  /** False on the home-page picture, where the day names are decoration, not headings. */
+  datesAsHeadings?: boolean;
 }) {
   const [today, setToday] = useState<string | null>(null);
   useEffect(() => setToday(localToday()), []);
@@ -40,11 +43,12 @@ export function Agenda({
   if (!shown.length) return <p className="px-4 py-6 text-center text-[14px] text-ink-500">{empty}</p>;
   const days = [...new Set(shown.map((item) => item.date))];
   const label = (date: string) => (date === today ? "Today" : today && date === addDays(today, 1) ? "Tomorrow" : dayText(date));
+  const Day = datesAsHeadings ? "h3" : "p";
   return (
     <div className="divide-y divide-border-200">
       {days.map((date) => (
         <section key={date} aria-label={dayText(date)}>
-          <h3 className={`flex items-center justify-between gap-2 bg-paper-100/60 px-4 py-1.5 text-[12px] font-semibold ${date === today ? "text-primary-700" : "text-ink-500"}`}>
+          <Day className={`flex items-center justify-between gap-2 bg-paper-100/60 px-4 py-1.5 text-[12px] font-semibold ${date === today ? "text-primary-700" : "text-ink-500"}`}>
             {dayBase ? (
               <Link href={`${dayBase}?view=day&date=${date}`} className="hover:underline">
                 {label(date)}
@@ -57,7 +61,7 @@ export function Agenda({
                 <Pill className="size-3.5" aria-hidden="true" /> {medCounts[date]} medicine{medCounts[date] === 1 ? "" : "s"}
               </Link>
             ) : null}
-          </h3>
+          </Day>
           <ul className="divide-y divide-border-200">
             {shown
               .filter((item) => item.date === date)

@@ -2,13 +2,15 @@ import type { Metadata } from "next";
 import { Check } from "lucide-react";
 import Link from "next/link";
 import { InfoPage, LINK } from "@/components/InfoPage";
+import { JsonLd } from "@/components/JsonLd";
 import { CONTACT_EMAIL, mailto } from "@/lib/contact";
+import { faqPage, pageSeo } from "@/lib/seo";
 
-export const metadata: Metadata = {
+export const metadata: Metadata = pageSeo("/care-teams", {
   title: "For care teams",
   description:
     "For home care agencies, day programs and care managers: the family keeps one shared care page, and your aides open their own link. No account needed, no app, free.",
-};
+});
 
 const GETS = [
   "Each aide gets their own private link from the family. No account needed, no password, no app to install. Someone who works with several families can sign in with Google to see every circle in one place.",
@@ -47,6 +49,7 @@ export default function CareTeamsPage() {
       title="Your aides see what they need. The family sees it got done."
       lead="For home care agencies, adult day programs and care managers. The family keeps one shared care page for the person you serve, and each of your staff opens their own link."
     >
+      <JsonLd data={faqPage("/care-teams", QUESTIONS)} />
       <h2>What your team gets</h2>
       <ul className="!list-none !pl-0">
         {GETS.map((item) => (

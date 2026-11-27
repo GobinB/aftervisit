@@ -4,8 +4,12 @@ import { SOURCE_URL } from "@/components/AppBar";
 import { PageShell } from "@/components/PageShell";
 import { ADMIN_EMAIL, PRIVACY_EMAIL } from "@/lib/contact";
 import { TERMS_EFFECTIVE } from "@/lib/schema/circles";
+import { pageSeo } from "@/lib/seo";
 
-export const metadata: Metadata = { title: "Terms of use" };
+export const metadata: Metadata = pageSeo("/terms", {
+  title: "Terms of use",
+  description: "The rules for using All Hands Care. It is free, it does not give medical advice, and it is not for emergencies. You must be 18 or older and allowed to share the care information.",
+});
 
 /**
  * The terms a caregiver agrees to when they start a circle (the "terms" consent). Plain words, short

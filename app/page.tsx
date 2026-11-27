@@ -1,12 +1,17 @@
 import { ArrowRight, CalendarDays, Check, ChevronDown, EllipsisVertical, FileText, ListChecks, Lock, Pill, Share, SquarePlus, Users } from "lucide-react";
+import type { Metadata } from "next";
 import Link from "next/link";
 import { ButtonLink } from "@/components/Button";
 import { HowACircleWorks } from "@/components/home/HowACircleWorks";
 import { PhonePreview } from "@/components/home/PhonePreview";
+import { JsonLd } from "@/components/JsonLd";
 import { PageShell } from "@/components/PageShell";
 import { InstallApp } from "@/components/pwa/InstallApp";
 import { StartSample } from "@/components/StartSample";
+import { faqPage, pageSeo } from "@/lib/seo";
 import { ASSEMBLY_CODE, CAREGIVING_FACTS, CAREGIVING_SOURCE } from "@/lib/site";
+
+export const metadata: Metadata = pageSeo("/");
 
 /** Where a caregiver starts. /circles/new sends a signed-out visitor to Google sign-in first. */
 const START_HREF = "/circles/new";
@@ -86,6 +91,7 @@ const INSTALL = [
 export default function HomePage() {
   return (
     <PageShell>
+      <JsonLd data={faqPage("/", FAQ)} />
       <main id="main" className="flex-1 overflow-x-clip">
         {/* Hero: navy, with the app itself on a phone */}
         <section className="bg-primary-900 text-white">
